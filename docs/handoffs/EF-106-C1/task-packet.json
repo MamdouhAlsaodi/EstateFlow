@@ -1,0 +1,47 @@
+{
+  "task_id": "EF-106-C1",
+  "title": "Derive typed client output from the OpenAPI document",
+  "status": "approved-for-execution",
+  "gates": {
+    "G1": "Independent EF-106 review found the client generator emitted a fixed template rather than deriving types from the generated OpenAPI contract.",
+    "G2": "EF-106 Training Demo plan is approved by docs/handoffs/EF-007-scope-approval.md.",
+    "G3": "Mamdouh explicitly approved this corrective packet: نعم (2026-07-28)."
+  },
+  "objective": "Repair only the EF-106 client-generation boundary so generated TypeScript is mechanically derived from the generated OpenAPI document, preserving its narrow health-only scope.",
+  "allowed_paths": [
+    "apps/api/src/openapi.ts",
+    "apps/api/src/features/health/health.controller.ts",
+    "apps/api/test/openapi.test.mjs",
+    "packages/api-client/openapi.json",
+    "packages/api-client/src/generated.ts",
+    "packages/api-client/test/generated-client.test.mjs",
+    "scripts/openapi-client-template.mjs",
+    "scripts/openapi-client-template.test.mjs",
+    "scripts/generate-openapi.mjs",
+    "scripts/check-openapi-drift.mjs",
+    "docs/TASKS.md",
+    "docs/CURRENT_HANDOFF.md",
+    "docs/handoffs/EF-106-C1/task-packet.json",
+    "docs/handoffs/EF-106-C1/pre-execution.sha256",
+    "docs/handoffs/EF-106-C1/worker-report.md"
+  ],
+  "forbidden": [
+    "No dependency/package/lockfile change.",
+    "No API endpoint, database, Docker/integration stack, auth, external service, listener, commit, push, or deploy.",
+    "No generic arbitrary-schema code generator: support exactly the documented health response schemas and fail clearly if their required OpenAPI shape is absent.",
+    "No manual edit to generated.ts except through the approved generator script."
+  ],
+  "acceptance": [
+    "OpenAPI carries stable operation IDs for the two health GET operations, and the generator obtains client method names, URL paths, and HealthStatus status literal union from the document rather than a fixed client template.",
+    "A pure generator test feeds an isolated copied document whose status enum is altered and proves emitted TypeScript changes to include the altered union; it also proves unsupported/missing operation schema fails safely.",
+    "Regenerated tracked openapi.json/generated.ts are deterministic across two runs; normal drift check passes and isolated drift negative proof still fails without tracked-file mutation.",
+    "Existing health and fake-fetch client behavior remains green; full non-integration canonical quality suite passes.",
+    "Update EF-106 task/handoff to done only after all checks pass, otherwise preserve truthful partial state."
+  ],
+  "verification": [
+    "TDD RED then GREEN for altered schema and invalid schema generator behavior.",
+    "pnpm --filter @estateflow/api test; pnpm --filter @estateflow/api-client test; node --test scripts/openapi-client-template.test.mjs.",
+    "pnpm generate:openapi twice plus cmp; pnpm check:openapi-drift; isolated drift-negative proof.",
+    "pnpm lint; pnpm typecheck; pnpm test; pnpm build; pnpm format:check. Do not run integration."
+  ]
+}

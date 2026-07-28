@@ -1,0 +1,63 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "getLiveHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is live",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status"],
+                  "properties": {
+                    "status": { "type": "string", "enum": ["ok"] }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": ["Health"]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "getReadyHealth",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Service is ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status"],
+                  "properties": {
+                    "status": { "type": "string", "enum": ["ok"] }
+                  }
+                }
+              }
+            }
+          },
+          "503": { "description": "Dependencies are not ready" }
+        },
+        "summary": "",
+        "tags": ["Health"]
+      }
+    }
+  },
+  "info": {
+    "title": "EstateFlow API",
+    "description": "",
+    "version": "0.1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": { "schemas": {} }
+}

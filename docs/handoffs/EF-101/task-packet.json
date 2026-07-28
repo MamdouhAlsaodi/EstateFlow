@@ -1,0 +1,68 @@
+{
+  "task_id": "EF-101",
+  "title": "Training Demo workspace and tooling foundation",
+  "scope": {
+    "target_symbols": [
+      {
+        "path": "package.json",
+        "symbol": "workspace scripts and toolchain pins",
+        "reason": "Defines reproducible repository commands and root tooling."
+      },
+      {
+        "path": "pnpm-workspace.yaml",
+        "symbol": "workspace package list",
+        "reason": "Defines monorepo package discovery."
+      },
+      {
+        "path": "apps/*/package.json",
+        "symbol": "package manifests",
+        "reason": "Defines isolated API, web, and worker package boundaries."
+      }
+    ],
+    "allowed_paths": [
+      "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      ".nvmrc",
+      ".editorconfig",
+      ".gitignore",
+      "tsconfig.base.json",
+      "eslint.config.mjs",
+      "apps/api/**",
+      "apps/web/**",
+      "apps/worker/**",
+      "packages/config/**",
+      "scripts/verify-workspace.mjs",
+      "docs/YUI_TECHNICAL_CONTEXT.md",
+      "docs/handoffs/EF-101/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "docs/source/**",
+      "docs/PRD.md",
+      "docs/DEVELOPMENT_PLAN.md",
+      "infra/**",
+      "node_modules/**"
+    ],
+    "max_changed_files": 24
+  },
+  "acceptance": [
+    "pnpm workspace declares API, web, worker, and shared config packages.",
+    "Node and pnpm versions are pinned and package dependencies are locked.",
+    "Root commands for lint, typecheck, test, integration test, build, and format checking exist and execute successfully for the empty foundation.",
+    "Package boundaries are documented and checked without creating business features.",
+    "No secrets, customer data, production configuration, Git push, deployment, or business UI are introduced."
+  ],
+  "verification": {
+    "commands": [
+      "pnpm install --frozen-lockfile",
+      "pnpm lint",
+      "pnpm typecheck",
+      "pnpm test",
+      "pnpm test:integration",
+      "pnpm build",
+      "pnpm format:check"
+    ]
+  }
+}

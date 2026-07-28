@@ -1,0 +1,21 @@
+# EF-106 execution checksum baseline (refreshed after gate evidence)
+# source baseline immediately before authorized execution
+77b639e9b37f04c5343150950430dbc24e44613d50280e546e270d49c32a2039  apps/api/package.json
+9382516fd5f17144456ca82d15cc5e02f9843c80c73d635acec38224ce0f53bc  apps/api/src/main.ts
+3e02438e4740e207b63ddade27b475dc41618d9fc9a8b1c80dac5b0dec53c406  apps/api/src/features/health/health.controller.ts
+bb5395ba3b633c3862c3fc9ce79328c7485c353c010af4550c89900e03669d80  package.json
+6e2a79f95d9a5c7568d27f5923eb8a85040c49ca9c2ca951e84462a3ce9fd967  pnpm-lock.yaml
+b9743cd40e2a1a64263c687418b16f67b5b70508534f64191bf3d4b84ddd9ba0  docs/TASKS.md
+84bba446bb239b50c41098e0576e0a81f9f853beec39294d84eb4cbad370a178  docs/YUI_TECHNICAL_CONTEXT.md
+12ee4fccf8e6387efa60d1d862108ee77db7dd8678637bc8ce1ecce1cb6240f5  docs/CURRENT_HANDOFF.md
+f66e33925548f5722175abb1403951c703c6fd3b2c12a56591e840624a08efd3  docs/handoffs/EF-106/task-packet.json
+46d3ac85883a1914a8d6efbdb659584b2f589ade843de415c0ce814a2e9a27b5  docs/handoffs/EF-106/worker-report.md
+MISSING  apps/api/src/openapi.ts
+MISSING  apps/api/test/openapi.test.mjs
+MISSING  packages/api-client/package.json
+MISSING  packages/api-client/tsconfig.json
+MISSING  packages/api-client/src/generated.ts
+MISSING  packages/api-client/openapi.json
+MISSING  packages/api-client/test/generated-client.test.mjs
+MISSING  scripts/generate-openapi.mjs
+MISSING  scripts/check-openapi-drift.mjs

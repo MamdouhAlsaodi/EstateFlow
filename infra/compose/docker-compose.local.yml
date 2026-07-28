@@ -1,0 +1,43 @@
+name: estateflow-local
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_LOCAL_DB:-estateflow_local}
+      POSTGRES_USER: ${POSTGRES_LOCAL_USER:-estateflow_local}
+      POSTGRES_PASSWORD: ${POSTGRES_LOCAL_PASSWORD:-local_only_change_me}
+    ports:
+      - "127.0.0.1:${POSTGRES_LOCAL_PORT:-55432}:5432"
+    volumes:
+      - estateflow-local-postgres:/var/lib/postgresql/data
+      - ../postgres/init.sql:/docker-entrypoint-initdb.d/00-extensions.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_LOCAL_PORT:-56379}:6379"
+    volumes:
+      - estateflow-local-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  estateflow-local-postgres:
+    name: estateflow-local-postgres
+  estateflow-local-redis:
+    name: estateflow-local-redis

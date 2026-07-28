@@ -1,0 +1,14 @@
+# EF-106-C1 source baseline
+09ab806b3b9cee60d2f2b476ea259267b300f3cec6c8d672f55a4a68df9b8d8d  apps/api/src/openapi.ts
+dc3cdb39fe303ef8ab07e8652be36ccd4a273c3f94f0af48dc7fe73de223fe36  apps/api/src/features/health/health.controller.ts
+c9ed7bc973041be3be3c47c2908424795068df1a47fcfb21767004ef046cae36  apps/api/test/openapi.test.mjs
+4a8c73bd59ca7ca29b2d9bb9ac18e871a897fdc614a93823cf69f7429d28f930  packages/api-client/openapi.json
+9b49a254f03583e2a6e46903d0fee534248dd0afc9f57ed4facf219afbb6c074  packages/api-client/src/generated.ts
+32a51f893652a8cd067e358f18da3a2c738b48ecf1ee39d8b5cc9d69163db8d8  packages/api-client/test/generated-client.test.mjs
+2b133a62034a94f52fc5c5e1b5325f412b72e34f3ced66abed6635d89dbe6d71  scripts/generate-openapi.mjs
+8d2546c0d634888f0291c5bb4f7c4c454c37672e557ea9c50a3b229cabda0e6b  scripts/check-openapi-drift.mjs
+cd0e00bdd6b58af21632a2625c72e72f75dd33eb80e177f1e08de16fd6855814  docs/TASKS.md
+ad7cd97f7202e2cfd744e9dcaa897366ece8f3e56750507289139da6c77de25c  docs/CURRENT_HANDOFF.md
+188d631760576b3ad5ccd6d37ad52a2d3c42a53884b2b1055beb3fabd2b3c402  docs/handoffs/EF-106-C1/task-packet.json
+MISSING  scripts/openapi-client-template.mjs
+MISSING  scripts/openapi-client-template.test.mjs

@@ -1,0 +1,13 @@
+{
+  "name": "@estateflow/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "pnpm exec eslint src --max-warnings=0",
+    "typecheck": "pnpm exec tsc --project tsconfig.json --noEmit",
+    "test": "node --test",
+    "test:integration": "node -e \"console.log('No config integration tests exist before EF-103.')\"",
+    "build": "pnpm exec tsc --project tsconfig.json"
+  }
+}

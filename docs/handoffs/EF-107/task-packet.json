@@ -1,0 +1,61 @@
+{
+  "task_id": "EF-107",
+  "title": "Local GitHub CI workflow and quality-gate contract",
+  "status": "approved-for-execution",
+  "gates": {
+    "G1_requirements": "EF-107 is the next Phase 1 task after independently verified EF-106 and EF-106-C1 evidence.",
+    "G2_plan_approval": {"evidence":"docs/handoffs/EF-007-scope-approval.md","status":"approved","scope":"Training Demo Platform Foundation"},
+    "G3_execution_authorization": {"evidence":"Mamdouh said: ابدء","approved_on":"2026-07-28","scope":"EF-107 only; no commit, push, deployment, or later task."}
+  },
+  "objective": "Create a local, reviewable GitHub Actions CI workflow that runs EstateFlow's established quality gates and uses the already-isolated ephemeral test stack for integration tests, without publishing or running a destructive database test locally.",
+  "context": {
+    "workspace":"/home/server/projects/estateflow",
+    "repository_state":"not a Git repository; workflow is created locally only",
+    "test_target":"CI only: Docker Compose project estateflow-test, PostgreSQL estateflow_test on loopback 55433, ephemeral tmpfs; cleanup always removes volumes",
+    "known_tooling":"act is unavailable locally; GitHub Actions runtime is not emulated"
+  },
+  "allowed_paths": [
+    ".github/workflows/estateflow-ci.yml",
+    "scripts/verify-ci-workflow.mjs",
+    "scripts/verify-ci-workflow.test.mjs",
+    "package.json",
+    "docs/TASKS.md",
+    "docs/CURRENT_HANDOFF.md",
+    "docs/YUI_TECHNICAL_CONTEXT.md",
+    "docs/handoffs/EF-107/task-packet.json",
+    "docs/handoffs/EF-107/pre-execution.sha256",
+    "docs/handoffs/EF-107/worker-report.md"
+  ],
+  "forbidden": [
+    "No git init, commit, remote, push, GitHub API/CLI action, PR, release, or deployment.",
+    "No local Docker start or local pnpm test:integration run; do not mutate estateflow_test locally.",
+    "No package/dependency/lockfile change, source code change, auth/secret/env-file change, production service, or workflow beyond this one CI file.",
+    "No credentials, token, hardcoded database URL/password, or non-test database target in CI YAML."
+  ],
+  "workflow_contract": {
+    "triggers":"push and pull_request",
+    "permissions":"contents: read only",
+    "runner":"ubuntu-latest; checkout; setup Node 24.14.1; enable Corepack; pnpm 10.33.2; pnpm install --frozen-lockfile",
+    "quality_steps":"pnpm lint; pnpm typecheck; pnpm test; pnpm generate:openapi; pnpm check:openapi-drift; pnpm build; pnpm format:check",
+    "integration":"CI starts infra test compose, waits only for declared healthchecks, passes DATABASE_URL and ALLOW_DESTRUCTIVE_TESTS=1 only to pnpm test:integration, and always runs infra:test:down in a cleanup step with if: always().",
+    "security":"Use GitHub-provided environment only; no secret context access; no package publishing; no cache poisoning or remote writable action. Pin external actions to full commit SHA where action use is needed."
+  },
+  "tdd": [
+    "Write workflow verifier tests first; RED must fail because the workflow/verifier is absent.",
+    "Implement minimal static verifier that parses only the expected CI contract and rejects missing trigger/permissions, unpinned actions, absent cleanup, absent frozen install, absent required commands, and unsafe local database target literals.",
+    "GREEN: run verifier test and verifier against the committed local YAML."
+  ],
+  "acceptance": [
+    "The workflow is syntactically valid YAML by a local parser-free structural verifier and is explicit about each quality command.",
+    "It restricts permissions to read-only contents and pins external action references to full commit SHA; no secrets context or credential literal appears.",
+    "Integration test is CI-only and targets only estateflow_test with cleanup guaranteed after success/failure; it never runs against local/dev production-like state.",
+    "Local verifier tests cover acceptance and negative failures for at least unpinned action, missing always-cleanup, and unsafe DB target.",
+    "Root lint/typecheck/test/build/format remain PASS; no local Docker/integration execution is performed.",
+    "Task docs record EF-107 executor evidence and require independent verification before Phase 2."
+  ],
+  "verification": [
+    "node --test scripts/verify-ci-workflow.test.mjs; node scripts/verify-ci-workflow.mjs .github/workflows/estateflow-ci.yml.",
+    "static scan proves no `secrets.` and no database URL/credential literals in the workflow.",
+    "pnpm lint; pnpm typecheck; pnpm test; pnpm build; pnpm format:check. Do not run pnpm test:integration or docker compose."
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "task_id": "EF-104",
+  "title": "Prisma/PostGIS migration baseline and isolated integration-test harness",
+  "scope": {
+    "target_symbols": [
+      {
+        "path": "apps/api/prisma/schema.prisma",
+        "symbol": "datasource db",
+        "reason": "PostgreSQL datasource and generated Prisma Client baseline without premature domain models"
+      },
+      {
+        "path": "apps/api/prisma/migrations/20260727000000_database_baseline/migration.sql",
+        "symbol": "database baseline migration",
+        "reason": "migration-owned PostGIS and pgcrypto extension baseline"
+      },
+      {
+        "path": "apps/api/src/database/prisma.service.ts",
+        "symbol": "PrismaService",
+        "reason": "single DI-managed Prisma client lifecycle boundary"
+      },
+      {
+        "path": "apps/api/src/database/database.module.ts",
+        "symbol": "DatabaseModule",
+        "reason": "global Nest module that owns and exports PrismaService"
+      },
+      {
+        "path": "apps/api/test/database.integration.mjs",
+        "symbol": "database baseline integration suite",
+        "reason": "isolated PostGIS, migration, DI lifecycle, and FK-safe cleanup evidence"
+      },
+      {
+        "path": "apps/api/test/support/cleanup-database.mjs",
+        "symbol": "cleanupDatabase",
+        "reason": "FK-safe cleanup primitive restricted to an explicitly guarded test database"
+      }
+    ],
+    "allowed_paths": [
+      "apps/api/package.json",
+      "apps/api/prisma/**",
+      "apps/api/src/app.module.ts",
+      "apps/api/src/database/**",
+      "apps/api/test/database.integration.mjs",
+      "apps/api/test/support/**",
+      "package.json",
+      "pnpm-lock.yaml",
+      "docs/handoffs/EF-104/**",
+      "docs/YUI_TECHNICAL_CONTEXT.md",
+      "docs/TASKS.md"
+    ],
+    "forbidden_paths": [
+      ".env*",
+      "infra/compose/**",
+      "infra/postgres/**",
+      "scripts/assert-test-database.mjs",
+      "apps/web/**",
+      "apps/worker/**",
+      "apps/api/src/features/**",
+      "production/**"
+    ],
+    "max_changed_files": 18
+  },
+  "acceptance": [
+    "Prisma is pinned and reproducibly generates a PostgreSQL client from apps/api/prisma/schema.prisma without introducing Auth, Organization, Property, Lead, Finance, or other premature domain models.",
+    "A committed migration baseline idempotently enables PostGIS and pgcrypto; btree_gist is not enabled before the viewing exclusion-constraint task.",
+    "A global DatabaseModule owns one injectable PrismaService and no controller or use-case constructs PrismaService directly.",
+    "The integration harness refuses any database outside the EF-102 loopback test boundary before destructive setup or cleanup.",
+    "Integration tests deploy the migration to the isolated estateflow_test database, prove PostGIS availability, create temporary parent/child fixtures, prove FK-safe cleanup, and remove fixture tables in finally cleanup.",
+    "No business schema, worker/outbox implementation, real customer data, secrets, deployment, commit, or push is introduced."
+  ],
+  "runtime_data_effects": [
+    "Start only infra/compose/docker-compose.test.yml on loopback ports 55433 and 56380.",
+    "Apply EF-104 migration only to estateflow_test after scripts/assert-test-database.mjs passes with ALLOW_DESTRUCTIVE_TESTS=1.",
+    "Create and drop ef104_test_parent and ef104_test_child fixtures only inside estateflow_test."
+  ],
+  "verification": {
+    "commands": [
+      "pnpm install --frozen-lockfile",
+      "pnpm lint",
+      "pnpm typecheck",
+      "pnpm test",
+      "DATABASE_URL=<isolated-test-url> ALLOW_DESTRUCTIVE_TESTS=1 pnpm test:integration",
+      "pnpm build",
+      "pnpm format:check",
+      "migration status and PostGIS SQL smoke against estateflow_test",
+      "forbidden new PrismaService construction scan",
+      "checksum scope audit"
+    ]
+  }
+}

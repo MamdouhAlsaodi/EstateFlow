@@ -1,0 +1,58 @@
+{
+  "task_id": "EF-105",
+  "title": "Arabic-first web shell and design-system foundation",
+  "status": "approved-for-execution",
+  "objective": "Create a runnable Arabic-first Next.js App Router shell and reusable visual foundation for EstateFlow without introducing domain workflows or server coupling.",
+  "context": {
+    "project_root": "/home/server/projects/estateflow",
+    "product": "Arabic-first, demo-first real-estate operations platform using synthetic data only.",
+    "visual_direction": "Calm operational cockpit informed by property files, contracts, and maps. Light neutral canvas, deep navy for trust, restrained teal for operational movement, and gold reserved for meaningful financial/deal milestones."
+  },
+  "allowed_paths": [
+    "apps/web/package.json",
+    "apps/web/tsconfig.json",
+    "apps/web/next-env.d.ts",
+    "apps/web/src/index.ts",
+    "apps/web/src/app/**",
+    "apps/web/test/**",
+    "packages/design-tokens/**",
+    "package.json",
+    "pnpm-lock.yaml",
+    "docs/TASKS.md",
+    "docs/YUI_TECHNICAL_CONTEXT.md",
+    "docs/CURRENT_HANDOFF.md",
+    "docs/handoffs/EF-105/**"
+  ],
+  "requirements": [
+    "Use a locale-aware Next.js App Router shell with Arabic as the initial supported locale and document direction/lang semantics.",
+    "Create a design-tokens package with semantic color, spacing, radius, typography, and status tokens; consume its values in the web shell rather than defining an unrelated palette per component.",
+    "Build responsive Arabic navigation and application shell usable from 360px through desktop.",
+    "Create a static design-system demo route covering typography, controls, table, finance values, semantic statuses, empty state, loading state, error state, and not-found state.",
+    "Add global focus-visible styling, reduced-motion handling, semantic landmark/navigation structure, and accessible labels for icon-only controls.",
+    "Use synthetic static content only and make it clear that the screen is a foundation/demo, not a live workflow.",
+    "Use Next production build for apps/web build verification.",
+    "Capture desktop and mobile Arabic visual evidence from a running local web server."
+  ],
+  "acceptance": [
+    "pnpm --filter @estateflow/design-tokens test passes.",
+    "pnpm lint, pnpm typecheck, pnpm test, pnpm test:integration, pnpm build, and pnpm format:check pass.",
+    "The web production build succeeds.",
+    "Arabic shell renders on /ar with lang=ar and dir=rtl; a missing route renders the custom Arabic not-found experience.",
+    "Desktop and 360px screenshots demonstrate navigation, readable content, and no horizontal viewport overflow.",
+    "No browser code imports API server, Prisma, environment secrets, database access, or business-domain models.",
+    "Scope checksum audit identifies no paths outside this packet."
+  ],
+  "forbidden": [
+    "No API endpoint, database schema, Prisma migration, authentication, authorization, or browser-to-database access.",
+    "No EF-106 OpenAPI/API-client work.",
+    "No real customer data, credentials, provider integration, deployment, public exposure, commit, or push.",
+    "No arbitrary component library or design-template dependency.",
+    "No edits under apps/api, apps/worker, infra, or unrelated packages."
+  ],
+  "verification_plan": [
+    "Start with token package regression tests.",
+    "Run package and root quality gates.",
+    "Run Next locally on loopback only and inspect Arabic desktop/mobile and missing-route rendering with browser automation.",
+    "Compare final workspace paths against pre-execution checksum and document evidence."
+  ]
+}

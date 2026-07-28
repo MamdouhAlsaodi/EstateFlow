@@ -1,0 +1,55 @@
+{
+  "task_id": "EF-102",
+  "title": "Isolated local and test service infrastructure",
+  "scope": {
+    "target_symbols": [
+      {
+        "path": "infra/compose/docker-compose.local.yml",
+        "symbol": "local PostgreSQL/PostGIS and Redis services",
+        "reason": "Provides loopback-only developer services without touching host ports already in use."
+      },
+      {
+        "path": "infra/compose/docker-compose.test.yml",
+        "symbol": "test PostgreSQL/PostGIS and Redis services",
+        "reason": "Provides an isolated destructive-test target."
+      },
+      {
+        "path": "scripts/assert-test-database.mjs",
+        "symbol": "destructive-test guard",
+        "reason": "Rejects any database target that is not the explicit EstateFlow test database."
+      }
+    ],
+    "allowed_paths": [
+      "infra/compose/docker-compose.local.yml",
+      "infra/compose/docker-compose.test.yml",
+      "infra/postgres/init.sql",
+      ".env.example",
+      "scripts/assert-test-database.mjs",
+      "scripts/verify-infrastructure.mjs",
+      "package.json",
+      "docs/handoffs/EF-102/**"
+    ],
+    "forbidden_paths": [
+      ".env",
+      ".env.*",
+      "apps/**",
+      "packages/**",
+      "docs/source/**",
+      "docs/PRD.md",
+      "node_modules/**"
+    ],
+    "max_changed_files": 9
+  },
+  "constraints": [
+    "Bind every service port to 127.0.0.1 only.",
+    "Do not use host ports 5432 or 6379 because they are occupied.",
+    "Local and test database names, credentials, volumes, compose project names, and ports must differ.",
+    "No real credentials, customer data, application schema, migrations, or deployment."
+  ],
+  "acceptance": [
+    "Both compose configurations validate and start their own healthy PostGIS and Redis services.",
+    "PostGIS extension is enabled by init SQL in each database.",
+    "The destructive-test guard rejects local/non-test URLs and accepts only explicit loopback estateflow_test URLs with opt-in.",
+    "Both compose stacks are removed after verification without touching unrelated host services."
+  ]
+}

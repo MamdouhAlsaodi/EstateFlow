@@ -1,0 +1,28 @@
+:root {
+  --ef-canvas: #f4f6f8;
+  --ef-surface: #ffffff;
+  --ef-surface-muted: #eaf0f5;
+  --ef-ink: #10233d;
+  --ef-ink-muted: #58708b;
+  --ef-line: #cfdae5;
+  --ef-navy: #123152;
+  --ef-teal: #007c83;
+  --ef-gold: #a96f16;
+  --ef-success: #197348;
+  --ef-warning: #9b6408;
+  --ef-danger: #b64040;
+  --ef-focus: #005fcc;
+  --ef-space-1: 0.25rem;
+  --ef-space-2: 0.5rem;
+  --ef-space-3: 0.75rem;
+  --ef-space-4: 1rem;
+  --ef-space-5: 1.5rem;
+  --ef-space-6: 2rem;
+  --ef-space-7: 3rem;
+  --ef-radius-small: 0.5rem;
+  --ef-radius-medium: 0.875rem;
+  --ef-radius-large: 1.25rem;
+  --ef-radius-pill: 999px;
+  --ef-font-arabic: "Noto Sans Arabic", Tahoma, sans-serif;
+  --ef-font-numeric: "IBM Plex Mono", "SFMono-Regular", monospace;
+}

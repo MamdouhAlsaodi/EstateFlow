@@ -1,0 +1,38 @@
+name: estateflow-test
+
+services:
+  postgres:
+    image: postgis/postgis:17-3.5
+    environment:
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-estateflow_test}
+      POSTGRES_USER: ${POSTGRES_TEST_USER:-estateflow_test}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD:-test_only_change_me}
+    ports:
+      - "127.0.0.1:${POSTGRES_TEST_PORT:-55433}:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ../postgres/init.sql:/docker-entrypoint-initdb.d/00-extensions.sql:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:${REDIS_TEST_PORT:-56380}:6379"
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

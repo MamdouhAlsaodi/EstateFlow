@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.next/
+*.tsbuildinfo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Local data and generated artifacts
+*.db
+*.db-journal
+*.log
+
+# Tool and editor state
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,98 @@
+{
+  "task_id": "EF-106",
+  "title": "OpenAPI generation, typed API client, and contract-drift check",
+  "status": "approved-for-execution",
+  "gates": {
+    "G1_requirements": "EF-106 is the explicit next task in docs/TASKS.md after EF-101 through EF-105 were verified PASS.",
+    "G2_plan_approval": {
+      "status": "approved",
+      "evidence": "docs/handoffs/EF-007-scope-approval.md",
+      "decision_owner": "Mamdouh Alsaudi",
+      "approved_on": "2026-07-25",
+      "scope": "Training Demo Platform Foundation; EF-106 is defined in docs/DEVELOPMENT_PLAN.md lines 466-471."
+    },
+    "G3_execution_authorization": {
+      "status": "approved",
+      "evidence": "Mamdouh said: نعم ابدء",
+      "approved_on": "2026-07-28",
+      "authorization": "Execute this one bounded EF-106 packet only; no commit, push, deployment, or later task."
+    }
+  },
+  "objective": "Create a reproducible, server-owned OpenAPI document from the completed NestJS health API, generate a typed workspace client from it, and make drift a failing local quality check without adding business workflows or exposing services.",
+  "context": {
+    "project_root": "/home/server/projects/estateflow",
+    "completed_dependencies": ["EF-101", "EF-102", "EF-103", "EF-104", "EF-105"],
+    "current_api_surface": ["GET /health/live", "GET /health/ready"],
+    "constraints": ["training demo", "synthetic data only", "no public listener", "workspace has no Git repository"]
+  },
+  "scope": {
+    "target_symbols": [
+      {"path":"apps/api/src/main.ts","symbol":"bootstrap","reason":"registers the canonical OpenAPI configuration without changing runtime health behavior"},
+      {"path":"apps/api/src/features/health/health.controller.ts","symbol":"HealthController","reason":"documents the existing completed health endpoints and response contracts"},
+      {"path":"apps/api/src/openapi.ts","symbol":"buildOpenApiDocument","reason":"one reusable document factory for generation and contract tests"},
+      {"path":"scripts/generate-openapi.mjs","symbol":"generation entrypoint","reason":"reproducibly writes the tracked API contract and typed client"},
+      {"path":"scripts/check-openapi-drift.mjs","symbol":"drift entrypoint","reason":"fails when generated outputs differ from source API contract"},
+      {"path":"packages/api-client/src/generated.ts","symbol":"generated API types/client","reason":"typed browser-safe client package generated from the OpenAPI document"}
+    ],
+    "direct_callers": ["root package scripts", "future apps/web API boundary"],
+    "file_budget": {"max_source_files": 16, "max_source_lines": 750}
+  },
+  "allowed_paths": [
+    "apps/api/package.json",
+    "apps/api/src/main.ts",
+    "apps/api/src/openapi.ts",
+    "apps/api/src/features/health/health.controller.ts",
+    "apps/api/test/openapi.test.mjs",
+    "packages/api-client/package.json",
+    "packages/api-client/tsconfig.json",
+    "packages/api-client/src/generated.ts",
+    "packages/api-client/openapi.json",
+    "packages/api-client/test/generated-client.test.mjs",
+    "scripts/generate-openapi.mjs",
+    "scripts/check-openapi-drift.mjs",
+    "package.json",
+    "pnpm-lock.yaml",
+    "docs/TASKS.md",
+    "docs/YUI_TECHNICAL_CONTEXT.md",
+    "docs/CURRENT_HANDOFF.md",
+    "docs/handoffs/EF-106/task-packet.json",
+    "docs/handoffs/EF-106/pre-execution.sha256",
+    "docs/handoffs/EF-106/worker-report.md"
+  ],
+  "forbidden": [
+    "No controller, route, or business-domain endpoint beyond documenting the existing health endpoints.",
+    "No database schema/migration/data mutation, integration-stack start, auth, authorization, Redis/BullMQ, external provider, deployment, public listener, commit, or push.",
+    "No browser import of apps/api internals and no raw fetch from apps/web.",
+    "No generated client with any secret, base URL, cookie, environment access, server-only import, or network side effect at import time.",
+    "No arbitrary OpenAPI UI exposure or Swagger UI dependency; generation is build-time/local only.",
+    "No unrelated lint/format/config broadening or source refactor."
+  ],
+  "technical_contract": {
+    "openapi": "OpenAPI 3.x document generated from NestJS decorators/factory, with title/version and exact GET health paths.",
+    "generation": "One deterministic script writes both packages/api-client/openapi.json and packages/api-client/src/generated.ts. Outputs must be stable across two immediate runs.",
+    "client": "Exports typed HealthStatus and a createEstateFlowClient({ baseUrl, fetch? }) factory. It accepts an injected Fetch-like function; import has no network effect. Methods call only /health/live and /health/ready and reject non-OK HTTP responses without exposing body text.",
+    "drift": "A check regenerates to an isolated temporary location and byte-compares both tracked artifacts; mismatch exits non-zero without mutating tracked outputs.",
+    "dependencies": "Package additions are permitted only when required for actual NestJS OpenAPI document generation or TypeScript client generation. Pin explicit compatible versions in package.json and lockfile; no broad version ranges."
+  },
+  "tdd": [
+    "Write focused API document/client behavior tests first and run them RED for the expected missing contract behavior.",
+    "Implement the smallest scoped generation/document/client code until GREEN.",
+    "Record the RED command/result and GREEN evidence in the worker report."
+  ],
+  "acceptance": [
+    "The generated document describes only the current health endpoints, uses a valid OpenAPI 3.x shape, and contains deterministic documented success/service-unavailable responses as applicable.",
+    "packages/api-client is a valid workspace package; its generated typed client compiles and can be tested with injected fake fetch without importing API internals or making a network call on import.",
+    "Generation executed twice yields byte-identical openapi.json and generated.ts.",
+    "Contract-drift check passes when artifacts are current and demonstrably fails against an isolated modified copy without changing tracked files.",
+    "Existing health behavior/tests remain green and root canonical checks pass except integration checks are explicitly excluded because this task must not start named test infrastructure.",
+    "No paths outside allowed paths change; record checksum audit against pre-execution manifest.",
+    "Update Task map and Current Handoff only after all EF-106 acceptance checks pass; otherwise document a truthful blocker/partial state."
+  ],
+  "verification_plan": [
+    "Run focused API OpenAPI and api-client fake-fetch tests.",
+    "Run generator twice then byte compare artifacts; run drift pass and isolated negative proof.",
+    "Run pnpm lint, pnpm typecheck, pnpm test, pnpm build, pnpm format:check. Do not run pnpm test:integration or start Docker.",
+    "Run static scan proving apps/web does not import apps/api internals and API client has no secret/base URL literal.",
+    "Compare every allowed pre-existing source hash plus changed-path manifest to docs/handoffs/EF-106/pre-execution.sha256."
+  ]
+}

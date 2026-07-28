@@ -1,0 +1,9 @@
+# EF-107 pre-execution source baseline
+b6c7ac598094462e608dc57f584dc9e3dfb838e47b006571c7ffb7c45aebaa7e  package.json
+f11b9960f27ff4740e7a2d7643603342f1779be602b5abab67f6d12b1059b98c  docs/TASKS.md
+ac4725517aefebae8269003283d2b1e3ba8b7cb16df8c115362df1b58c8a4470  docs/CURRENT_HANDOFF.md
+84bba446bb239b50c41098e0576e0a81f9f853beec39294d84eb4cbad370a178  docs/YUI_TECHNICAL_CONTEXT.md
+8e38e3de42aeff46b2a8a21e0e5d798dd310ca98f494b7e24f0021f938275857  docs/handoffs/EF-107/task-packet.json
+MISSING  .github/workflows/estateflow-ci.yml
+MISSING  scripts/verify-ci-workflow.mjs
+MISSING  scripts/verify-ci-workflow.test.mjs

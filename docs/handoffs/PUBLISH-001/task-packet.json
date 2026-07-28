@@ -1,0 +1,49 @@
+{
+  "task_id": "PUBLISH-001",
+  "title": "Public educational/portfolio repository preparation",
+  "status": "approved-for-execution",
+  "authorization": {
+    "user_request": "Mamdouh explicitly requested creation of a GitHub repository, publication for education/portfolio, environment setup material, database material, and an open license.",
+    "safe_interpretation": "Publish only safe environment templates and database schema/migrations/demo infrastructure; never publish real environment values, credentials, tokens, database dumps, or operational data.",
+    "publication_target": "GitHub public repository MamdouhAlsaodi/EstateFlow after independent staged-content audit."
+  },
+  "objective": "Prepare a public-safe repository surface that accurately presents EstateFlow as an in-progress Arabic-first Training Demo and teaches local setup without disclosing secrets or operational data.",
+  "allowed_paths": [
+    ".gitignore",
+    ".env.example",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "docs/PUBLIC_REPOSITORY.md",
+    "docs/handoffs/PUBLISH-001/task-packet.json",
+    "docs/handoffs/PUBLISH-001/pre-execution.sha256",
+    "docs/handoffs/PUBLISH-001/worker-report.md"
+  ],
+  "forbidden": [
+    "No git init, commit, remote, push, GitHub API/CLI call, publication, deployment, or release; Yui performs those only after independent audit.",
+    "No source app/business behavior, dependencies, lockfile, migration/schema, compose, CI, or test change.",
+    "Never add an actual .env file, credentials, token, private key, database URL with real password, database dump, SQLite file, production data, IP/hostname topology, or user/customer data.",
+    "Do not claim production readiness, hosted availability, completed Auth domain, or active CI run."
+  ],
+  "requirements": {
+    "license": "Create MIT License with copyright holder Mamdouh Alsaodi and current year 2026.",
+    "env_template": "Retain only named placeholder variables, grouped and commented; use values such as YOUR_LOCAL_DATABASE_URL, YOUR_LOCAL_SESSION_SECRET, and YOUR_LOCAL_TOKEN_SECRET. Never include a concrete credential, IP address, port, or connection string.",
+    "database_material": "Document that public database material is Prisma schema, versioned migrations, PostGIS initialization, and isolated local/test compose templates only. Explicitly state that no database dump, volume, operational record, or real data is included.",
+    "readme": "Update stale progress to EF-101 through EF-107 completed/verified, state next planned task EF-120 but not started, include safe local quick-start, test/integration safety boundary, architecture overview, portfolio learning evidence, open-source license, and no-secrets/no-data policy.",
+    "security": "Add SECURITY.md with responsible disclosure instruction using GitHub private security advisory; state not to open public issues containing credentials or customer data.",
+    "public_doc": "Add docs/PUBLIC_REPOSITORY.md with explicit included/excluded inventory, setup variables policy, and publishing-audit checklist."
+  },
+  "tdd_and_validation": [
+    "Write no application test; this is documentation/configuration-only. First inspect existing public files and record defects: stale README, concrete-looking env example, missing license/security/public guide.",
+    "Use a deterministic local checks command that confirms env placeholders only, ignores actual .env and *.db, verifies MIT and required README/security statements, and confirms no forbidden literal appears in the edited public-facing files.",
+    "Run pnpm lint, typecheck, test, build, and format:check after edits; do not run Docker or integration tests."
+  ],
+  "acceptance": [
+    "MIT LICENSE exists and is complete.",
+    ".env.example is demonstrably placeholders-only, while .gitignore rejects .env variants and *.db but permits .env.example.",
+    "README accurately describes current verified state and safe local database materials without external credentials or claims of publication/runtime availability.",
+    "SECURITY.md and public-repository guide define safe disclosure and exact publish boundary.",
+    "No source/dependency/database/compose changes and no Git/GitHub side effects occur in this worker task.",
+    "Worker report records scope and evidence for independent audit."
+  ]
+}

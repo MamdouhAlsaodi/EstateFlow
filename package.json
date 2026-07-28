@@ -1,0 +1,33 @@
+{
+  "name": "estateflow",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24.14.1 <25",
+    "pnpm": ">=10.33.2 <11"
+  },
+  "scripts": {
+    "lint": "pnpm exec eslint . --max-warnings=0 && node scripts/verify-workspace.mjs && node scripts/verify-infrastructure.mjs",
+    "typecheck": "pnpm --recursive --if-present run typecheck",
+    "test": "pnpm --recursive --if-present run test",
+    "test:integration": "pnpm --recursive --if-present run test:integration",
+    "db:test:guard": "node scripts/assert-test-database.mjs",
+    "generate:openapi": "pnpm --dir apps/api run build && node scripts/generate-openapi.mjs",
+    "check:openapi-drift": "pnpm --dir apps/api run build && node scripts/check-openapi-drift.mjs",
+    "infra:local:up": "docker compose -f infra/compose/docker-compose.local.yml up -d",
+    "infra:local:down": "docker compose -f infra/compose/docker-compose.local.yml down",
+    "infra:test:up": "docker compose -f infra/compose/docker-compose.test.yml up -d",
+    "infra:test:down": "docker compose -f infra/compose/docker-compose.test.yml down --volumes",
+    "infra:verify": "node scripts/verify-infrastructure.mjs",
+    "build": "pnpm --recursive --if-present run build",
+    "format:check": "pnpm exec prettier --check --ignore-unknown package.json pnpm-workspace.yaml tsconfig.base.json eslint.config.mjs .github apps packages infra scripts docs/YUI_TECHNICAL_CONTEXT.md docs/handoffs/EF-101 docs/handoffs/EF-102 docs/handoffs/EF-103 docs/handoffs/EF-104 docs/handoffs/EF-105"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.65.0"
+  }
+}

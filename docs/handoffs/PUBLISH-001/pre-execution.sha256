@@ -1,0 +1,8 @@
+# PUBLISH-001 public-surface baseline
+1e86449112ba7e169de7b692b828a6e3fcda3780f30969d54e10b3ee565588aa  .gitignore
+904d5d89a246bd8f6364e7886bec6de36800b8012af8bbc5c1f66d2cb17bd1c8  .env.example
+bdd549e8c67ecc9ccdf6e0af1fddb079025b7719d4aa9b0c9f8c4afd0f0fce41  README.md
+61946d4567cff744d16961be4fef9ebb510e4ac3931398d1272f807728e87139  docs/handoffs/PUBLISH-001/task-packet.json
+MISSING  LICENSE
+MISSING  SECURITY.md
+MISSING  docs/PUBLIC_REPOSITORY.md

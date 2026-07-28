@@ -1,0 +1,79 @@
+{
+  "task_id": "EF-103",
+  "title": "NestJS API bootstrap, safe configuration, health, error model, and observability baseline",
+  "scope": {
+    "target_symbols": [
+      {
+        "path": "apps/api/src/main.ts",
+        "symbol": "bootstrap",
+        "reason": "HTTP bootstrap, global validation, request correlation, and graceful startup"
+      },
+      {
+        "path": "apps/api/src/app.module.ts",
+        "symbol": "AppModule",
+        "reason": "root module composition"
+      },
+      {
+        "path": "apps/api/src/bootstrap/config.ts",
+        "symbol": "loadRuntimeConfig",
+        "reason": "typed environment validation and production-secret gate"
+      },
+      {
+        "path": "apps/api/src/common/http/api-error.ts",
+        "symbol": "ApiErrorFilter",
+        "reason": "safe typed error envelope"
+      },
+      {
+        "path": "apps/api/src/features/health/health.controller.ts",
+        "symbol": "HealthController",
+        "reason": "separate liveness and readiness endpoints"
+      }
+    ],
+    "allowed_paths": [
+      "apps/api/package.json",
+      "apps/api/tsconfig.json",
+      "apps/api/src/**",
+      "apps/api/test/**",
+      "packages/config/src/**",
+      "pnpm-lock.yaml",
+      "docs/handoffs/EF-103/**",
+      "docs/YUI_TECHNICAL_CONTEXT.md",
+      "docs/TASKS.md",
+      "docs/ROADMAP.md",
+      "README.md"
+    ],
+    "forbidden_paths": [
+      ".env*",
+      "infra/compose/**",
+      "infra/postgres/**",
+      "scripts/assert-test-database.mjs",
+      "apps/web/**",
+      "apps/worker/**",
+      "**/prisma/**",
+      "**/migrations/**"
+    ],
+    "max_changed_files": 20
+  },
+  "acceptance": [
+    "Nest API starts from apps/api/src/main.ts with global ValidationPipe and a safe JSON error envelope.",
+    "Every response has a request ID, preserving a valid inbound UUID or generating a new one; structured logs include it without secrets or request bodies.",
+    "GET /health/live proves process liveness without database access; GET /health/ready reports dependency readiness separately and is honest when dependencies are unavailable.",
+    "Runtime configuration rejects invalid ports and production startup without required secret material, while development needs no committed secret.",
+    "Focused behavioral tests demonstrate config, request ID, error mapping, and separate health behavior before implementation is accepted.",
+    "No database schema/migration, customer data, external provider, deployment, commit, or push is introduced."
+  ],
+  "verification": {
+    "commands": [
+      "pnpm install --frozen-lockfile",
+      "pnpm lint",
+      "pnpm typecheck",
+      "pnpm test",
+      "pnpm test:integration",
+      "pnpm build",
+      "pnpm format:check",
+      "temporary API runtime smoke: GET /health/live and GET /health/ready",
+      "production missing-secret startup rejection test",
+      "checksum scope audit"
+    ]
+  }
+}

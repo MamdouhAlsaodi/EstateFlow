@@ -1,0 +1,29 @@
+{
+  "name": "@estateflow/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "pnpm exec eslint src --max-warnings=0",
+    "typecheck": "pnpm exec tsc --project tsconfig.json --noEmit",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "test:integration": "node ../../scripts/assert-test-database.mjs && pnpm run db:generate && pnpm run db:migrate:test && pnpm run build && node --test test/*.integration.mjs",
+    "db:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:migrate:test": "prisma migrate deploy --schema prisma/schema.prisma",
+    "build": "pnpm exec tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "@nestjs/common": "11.1.28",
+    "@nestjs/core": "11.1.28",
+    "@nestjs/platform-express": "11.1.28",
+    "@nestjs/swagger": "11.2.3",
+    "@prisma/client": "6.19.0",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "24.10.13",
+    "prisma": "6.19.0"
+  }
+}
