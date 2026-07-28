@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "lint": "pnpm exec eslint src --max-warnings=0",
-    "typecheck": "pnpm exec tsc --project tsconfig.json --noEmit",
+    "typecheck": "pnpm run db:generate && pnpm exec tsc --project tsconfig.json --noEmit",
     "test": "pnpm run build && node --test test/*.test.mjs",
     "test:integration": "node ../../scripts/assert-test-database.mjs && pnpm run db:generate && pnpm run db:migrate:test && pnpm run build && node --test test/*.integration.mjs",
     "db:generate": "prisma generate --schema prisma/schema.prisma",

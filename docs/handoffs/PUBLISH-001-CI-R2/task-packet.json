@@ -1,0 +1,27 @@
+{
+  "task_id": "PUBLISH-001-CI-R2",
+  "title": "Make API typecheck self-sufficient in clean CI workspaces",
+  "status": "approved-for-execution",
+  "authorization": "Bounded root-cause repair of the public CI workflow explicitly authorized by Mamdouh; no feature scope expansion.",
+  "root_cause": "Hosted run 30396487436 and an independent fresh-clone reproduction both fail at apps/api typecheck because PrismaClient is generated in an existing local node_modules but absent after pnpm install --frozen-lockfile. Prisma generate itself succeeds without DATABASE_URL and does not connect to a database.",
+  "allowed_paths": [
+    "apps/api/package.json",
+    "docs/handoffs/PUBLISH-001-CI-R2/task-packet.json",
+    "docs/handoffs/PUBLISH-001-CI-R2/pre-execution.sha256",
+    "docs/handoffs/PUBLISH-001-CI-R2/worker-report.md"
+  ],
+  "forbidden": [
+    "No dependency/lockfile/schema/migration/source/CI YAML/doc/env/compose change.",
+    "No Git/GitHub command, commit, push, Docker, integration test, database connection, deployment, or release."
+  ],
+  "requirements": [
+    "Change only @estateflow/api typecheck script so it runs its existing db:generate script before tsc --noEmit.",
+    "Do not alter db:generate itself or any command contracts outside the typecheck precondition.",
+    "Record RED clean-clone typecheck symptom and GREEN proof that prisma generation succeeds without DATABASE_URL and typecheck can then see PrismaClient."
+  ],
+  "acceptance": [
+    "apps/api typecheck is self-sufficient after a fresh frozen install without database connectivity.",
+    "pnpm typecheck and existing local non-integration quality commands remain PASS.",
+    "No scope outside packet paths changes and worker evidence is present."
+  ]
+}
