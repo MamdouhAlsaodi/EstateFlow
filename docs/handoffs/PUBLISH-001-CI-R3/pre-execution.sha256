@@ -1,0 +1,5 @@
+# PUBLISH-001-CI-R3 refreshed baseline after governance-complete packet
+a25c41fe3eb3bfea862f3ef40e5eccbc1220fd1163a11897f13198494b984df4  .github/workflows/estateflow-ci.yml
+01a39d008b29a3adddd0cb28a610d848617ae626967d5b5f4adcd027c37e54a8  scripts/verify-ci-workflow.mjs
+ae994818947b69f4b8965f595da37178bc8e0ac62f734d92348ff9b718132964  scripts/verify-ci-workflow.test.mjs
+ee6fe7f24c550f19f9ed0ec38e5ddbc92d4de34cfb2b131db3f8264408ad258d  docs/handoffs/PUBLISH-001-CI-R3/task-packet.json

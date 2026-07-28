@@ -70,7 +70,7 @@ requireContract(
   "workflow must not access secrets context",
 );
 requireContract(
-  !/postgres(?:ql)?:\/\//i.test(workflow),
+  !/postgres(?:ql)?:\/\/(?=[^'"\s])/i.test(workflow),
   "unsafe database target literal",
 );
 requireContract(
@@ -81,9 +81,26 @@ requireContract(
   !/PASSWORD:\s*[^$\n]/.test(workflow),
   "workflow contains a credential literal",
 );
+const passwordGeneration = 'password="$(openssl rand -hex 32)"';
+const passwordMask = 'echo "::add-mask::$password"';
+const passwordExport = `printf 'POSTGRES_TEST_PASSWORD=%s\\n' "$password" >> "$GITHUB_ENV"`;
+
 requireContract(
-  contains("new URL('postgresql:')"),
-  "missing ephemeral test DATABASE_URL construction",
+  contains("new URL('postgresql://')"),
+  "missing authority-capable ephemeral test DATABASE_URL construction",
+);
+requireContract(
+  contains(passwordMask),
+  "missing ephemeral password mask",
+);
+requireContract(
+  contains(passwordGeneration) && contains(passwordExport),
+  "missing ephemeral password generation or export",
+);
+requireContract(
+  workflow.indexOf(passwordGeneration) < workflow.indexOf(passwordMask) &&
+    workflow.indexOf(passwordMask) < workflow.indexOf(passwordExport),
+  "ephemeral password mask must precede export",
 );
 requireContract(
   contains("databaseUrl.pathname = 'estateflow_test'"),

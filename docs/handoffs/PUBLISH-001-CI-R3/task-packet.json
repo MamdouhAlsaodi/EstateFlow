@@ -1,0 +1,60 @@
+{
+  "task_id": "PUBLISH-001-CI-R3",
+  "title": "Repair CI loopback URL construction and mask ephemeral test password",
+  "status": "approved-for-execution",
+  "authorization": "Bounded root-cause repair of the explicitly authorized public CI workflow after hosted run 30397064358; no product scope expansion.",
+  "root_cause": "The workflow constructed a URL with new URL('postgresql:'), which Node treats as a non-authority URL: assigning hostname leaves it empty. The test-database guard correctly rejected it. The workflow also exposed the generated ephemeral password in GitHub's step environment log because it was exported without an Actions add-mask command.",
+  "allowed_paths": [
+    ".github/workflows/estateflow-ci.yml",
+    "scripts/verify-ci-workflow.mjs",
+    "scripts/verify-ci-workflow.test.mjs",
+    "docs/handoffs/PUBLISH-001-CI-R3/task-packet.json",
+    "docs/handoffs/PUBLISH-001-CI-R3/pre-execution.sha256",
+    "docs/handoffs/PUBLISH-001-CI-R3/worker-report.md"
+  ],
+  "forbidden": [
+    "No dependency/source/package/schema/migration/compose/env/doc change.",
+    "No Git/GitHub command, commit, push, Docker/local integration execution, database connection, deployment, or release.",
+    "No literal password, connection URL with host/credentials, secrets context, non-loopback target, or changed CI test lifecycle."
+  ],
+  "execution": {
+    "executor_lane": "PI_REQUIRED",
+    "model": "openai-codex/gpt-5.6-terra",
+    "artifact_path": "/home/server/projects/estateflow/docs/handoffs/PUBLISH-001-CI-R3/worker-report.md",
+    "working_directory": "/home/server/projects/estateflow"
+  },
+  "deliverables": [
+    ".github/workflows/estateflow-ci.yml with authority-capable loopback URL construction and pre-export GitHub Actions mask command.",
+    "scripts/verify-ci-workflow.mjs enforcing the corrected URL base and masking contract while preserving unsafe-target rejection.",
+    "scripts/verify-ci-workflow.test.mjs with a negative missing-mask case plus existing negative safety cases.",
+    "Exact worker evidence at the declared absolute artifact path."
+  ],
+  "requirements": [
+    "Construct the ephemeral URL with an authority-capable base new URL('postgresql://') before setting loopback host, port, database, user, and ephemeral password.",
+    "Generate the password in a shell variable, execute ::add-mask:: before exporting it to GITHUB_ENV, and export it without printing its value.",
+    "Update static verifier to permit a bare protocol base while still rejecting complete/literal unsafe database targets, credentials, and secrets context.",
+    "Verifier must require mask command and correct authority-capable URL construction; add a negative test that fails if mask command is absent."
+  ],
+  "verification": {
+    "red": [
+      "node -e \"const u=new URL('postgresql:');u.hostname='127.0.0.1';if(u.hostname)process.exit(1)\"",
+      "node --test scripts/verify-ci-workflow.test.mjs before adding the required mask assertion; record the missing-mask failure."
+    ],
+    "green": [
+      "node --test scripts/verify-ci-workflow.test.mjs",
+      "node scripts/verify-ci-workflow.mjs .github/workflows/estateflow-ci.yml",
+      "DATABASE_URL=\"$(node -e \\\"const u=new URL('postgresql://');u.hostname='127.0.0.1';u.port='55433';u.pathname='estateflow_test';u.username='estateflow_test';u.password='MASKED_TEST_VALUE';process.stdout.write(u.toString())\\\")\" ALLOW_DESTRUCTIVE_TESTS=1 node scripts/assert-test-database.mjs"
+    ],
+    "final": [
+      "grep -F \"::add-mask::$password\" .github/workflows/estateflow-ci.yml",
+      "grep -F \"new URL('postgresql://')\" .github/workflows/estateflow-ci.yml",
+      "git diff --check -- .github/workflows/estateflow-ci.yml scripts/verify-ci-workflow.mjs scripts/verify-ci-workflow.test.mjs"
+    ]
+  },
+  "acceptance": [
+    "A minimal local Node proof demonstrates the URL has hostname 127.0.0.1 and the existing guard accepts the constructed safe URL without exposing a password.",
+    "CI workflow includes masking before GITHUB_ENV export, exact loopback/test target construction, and unconditional cleanup.",
+    "Verifier tests and verifier PASS; previous safety negative checks remain.",
+    "No changes outside allowed paths."
+  ]
+}

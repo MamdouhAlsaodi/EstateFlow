@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -55,4 +55,13 @@ test("rejects an unsafe database target", () => {
     "DATABASE_URL: postgresql://localhost/estateflow\n",
     /unsafe database target/,
   );
+});
+
+test("rejects a workflow without an ephemeral password mask", () => {
+  const workflowWithoutMask = readFileSync(workflowPath, "utf8").replace(
+    '          echo "::add-mask::$password"\n',
+    "",
+  );
+
+  assertRejected(workflowWithoutMask, /missing ephemeral password mask/);
 });

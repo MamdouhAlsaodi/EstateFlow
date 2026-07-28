@@ -36,12 +36,15 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
       - name: Create ephemeral test password
-        run: printf 'POSTGRES_TEST_PASSWORD=%s\n' "$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+        run: |
+          password="$(openssl rand -hex 32)"
+          echo "::add-mask::$password"
+          printf 'POSTGRES_TEST_PASSWORD=%s\n' "$password" >> "$GITHUB_ENV"
       - name: Start test infrastructure
         run: docker compose -f infra/compose/docker-compose.test.yml up -d --wait
       - name: Run integration tests
         run: >-
-          DATABASE_URL="$(node -e "const databaseUrl = new URL('postgresql:');
+          DATABASE_URL="$(node -e "const databaseUrl = new URL('postgresql://');
           databaseUrl.hostname = '127.0.0.1'; databaseUrl.port = '55433';
           databaseUrl.pathname = 'estateflow_test'; databaseUrl.username = 'estateflow_test';
           databaseUrl.password = process.env.POSTGRES_TEST_PASSWORD;
