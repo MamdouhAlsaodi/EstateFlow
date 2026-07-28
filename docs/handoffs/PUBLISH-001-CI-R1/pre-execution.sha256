@@ -1,0 +1,5 @@
+# PUBLISH-001-CI-R1 baseline
+423dea5fa59f847ac7d5662bd3e66d6d51194c8806382fddfd29a4f299272e7e  .github/workflows/estateflow-ci.yml
+01a39d008b29a3adddd0cb28a610d848617ae626967d5b5f4adcd027c37e54a8  scripts/verify-ci-workflow.mjs
+ae994818947b69f4b8965f595da37178bc8e0ac62f734d92348ff9b718132964  scripts/verify-ci-workflow.test.mjs
+f75732b5f231682ff894e540f742699e6c06b01a1104d245ccbfc4013a38c4c0  docs/handoffs/PUBLISH-001-CI-R1/task-packet.json

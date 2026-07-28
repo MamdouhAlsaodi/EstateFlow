@@ -1,0 +1,31 @@
+{
+  "task_id": "PUBLISH-001-CI-R1",
+  "title": "Repair invalid GitHub Actions setup-node immutable pin",
+  "status": "approved-for-execution",
+  "authorization": "A public repository and CI workflow were explicitly authorized by Mamdouh. This is a bounded root-cause repair to the first hosted run; no scope expansion.",
+  "root_cause": "Hosted run 30396236937 failed before checkout because actions/setup-node was pinned to a SHA GitHub could not resolve. git ls-remote against the upstream actions/setup-node v4 tag resolved immutable commit 49933ea5288caeca8642d1e84afbd3f7d6820020.",
+  "allowed_paths": [
+    ".github/workflows/estateflow-ci.yml",
+    "scripts/verify-ci-workflow.mjs",
+    "scripts/verify-ci-workflow.test.mjs",
+    "docs/handoffs/PUBLISH-001-CI-R1/task-packet.json",
+    "docs/handoffs/PUBLISH-001-CI-R1/pre-execution.sha256",
+    "docs/handoffs/PUBLISH-001-CI-R1/worker-report.md"
+  ],
+  "forbidden": [
+    "No dependency/source/database/compose/env/documentation/README/security/license change.",
+    "No Git or GitHub command, no commit/push/release/deployment, and no Docker/local integration run.",
+    "No changing CI quality commands, permissions, triggers, credential construction, or cleanup lifecycle."
+  ],
+  "requirements": [
+    "Replace only the invalid setup-node SHA with 49933ea5288caeca8642d1e84afbd3f7d6820020.",
+    "Keep checkout pinned and all action pins immutable full 40-character commit SHA values.",
+    "Update static verifier/tests only if their expected immutable pins require it; preserve negative coverage.",
+    "Record RED evidence against the failed hosted run and GREEN evidence from local static verifier/test."
+  ],
+  "acceptance": [
+    "Workflow action reference uses the verified setup-node SHA and remains SHA-pinned.",
+    "node --test scripts/verify-ci-workflow.test.mjs and workflow verifier PASS.",
+    "No path outside this packet changes; report is present for independent review."
+  ]
+}
