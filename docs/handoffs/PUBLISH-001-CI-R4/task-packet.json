@@ -1,0 +1,13 @@
+{
+  "task_id": "PUBLISH-001-CI-R4",
+  "title": "Format CI workflow verifier after hosted formatting gate failure",
+  "status": "approved-for-execution",
+  "authorization": "Bounded non-behavioral repair within Mamdouh's explicitly authorized public CI work; hosted run 30397596279 proved the exact failure.",
+  "root_cause": "Hosted and local pnpm format:check both fail only on scripts/verify-ci-workflow.mjs after R3. All earlier hosted gates through build passed.",
+  "execution": {"executor_lane":"PI_REQUIRED","model":"openai-codex/gpt-5.6-terra","working_directory":"/home/server/projects/estateflow","artifact_path":"/home/server/projects/estateflow/docs/handoffs/PUBLISH-001-CI-R4/worker-report.md"},
+  "allowed_paths": ["scripts/verify-ci-workflow.mjs","docs/handoffs/PUBLISH-001-CI-R4/task-packet.json","docs/handoffs/PUBLISH-001-CI-R4/pre-execution.sha256","docs/handoffs/PUBLISH-001-CI-R4/worker-report.md"],
+  "forbidden": ["No behavior/contract change, dependency/source/package/workflow/schema/compose/env/doc change.","No Git/GitHub, Docker, database/integration, deployment, or release command."],
+  "deliverables": ["Prettier-formatted scripts/verify-ci-workflow.mjs with byte-level behavior unchanged.","Worker report at declared artifact path."],
+  "verification": {"red":["pnpm format:check; record the exact verifier-file failure."],"green":["pnpm exec prettier --write scripts/verify-ci-workflow.mjs","pnpm format:check","node --test scripts/verify-ci-workflow.test.mjs","node scripts/verify-ci-workflow.mjs .github/workflows/estateflow-ci.yml"],"final":["sha256sum scripts/verify-ci-workflow.mjs","git diff --no-index -- /dev/null scripts/verify-ci-workflow.mjs is forbidden; do not run Git."]},
+  "acceptance": ["pnpm format:check passes.","The existing five CI verifier tests and workflow verifier pass.","Only the allowed script and evidence paths change; no functional workflow changes."]
+}

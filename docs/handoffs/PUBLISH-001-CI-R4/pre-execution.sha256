@@ -1,0 +1,3 @@
+# PUBLISH-001-CI-R4 baseline
+4b97d92d2116c68927b67b50606645f8113c0c33ef8c761af56bbadd511384c8  scripts/verify-ci-workflow.mjs
+c2516884d298ce809ed25042fcab15b29af892ccaff9c56e75fd0ce6205dc0e0  docs/handoffs/PUBLISH-001-CI-R4/task-packet.json

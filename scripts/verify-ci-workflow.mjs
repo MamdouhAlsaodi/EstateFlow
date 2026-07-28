@@ -89,10 +89,7 @@ requireContract(
   contains("new URL('postgresql://')"),
   "missing authority-capable ephemeral test DATABASE_URL construction",
 );
-requireContract(
-  contains(passwordMask),
-  "missing ephemeral password mask",
-);
+requireContract(contains(passwordMask), "missing ephemeral password mask");
 requireContract(
   contains(passwordGeneration) && contains(passwordExport),
   "missing ephemeral password generation or export",
