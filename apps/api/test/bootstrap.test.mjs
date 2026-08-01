@@ -7,18 +7,32 @@ import {
 import { requestIdMiddleware } from "../dist/common/http/request-id.middleware.js";
 import { HealthController } from "../dist/features/health/health.controller.js";
 
-test("configuration supplies a safe development default", () => {
-  assert.deepEqual(loadRuntimeConfig({}), {
+const authEnvironment = {
+  ESTATEFLOW_BROWSER_ORIGIN: "https://app.estateflow.test",
+  ESTATEFLOW_AUTH_HASH_KEY: "a".repeat(32),
+  ESTATEFLOW_AUDIT_HASH_KEY: "b".repeat(32),
+};
+
+test("configuration requires explicit authentication settings in development", () => {
+  assert.deepEqual(loadRuntimeConfig(authEnvironment), {
     environment: "development",
     port: 3001,
     apiSecret: null,
+    browserOrigin: "https://app.estateflow.test",
+    authHashKey: "a".repeat(32),
+    auditHashKey: "b".repeat(32),
+    authFakeDelivery: false,
   });
+  assert.throws(() => loadRuntimeConfig({}), RuntimeConfigError);
 });
 
 test("configuration rejects invalid ports and production without secret", () => {
-  assert.throws(() => loadRuntimeConfig({ PORT: "0" }), RuntimeConfigError);
   assert.throws(
-    () => loadRuntimeConfig({ NODE_ENV: "production" }),
+    () => loadRuntimeConfig({ ...authEnvironment, PORT: "0" }),
+    RuntimeConfigError,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({ NODE_ENV: "production", ...authEnvironment }),
     RuntimeConfigError,
   );
 });
@@ -54,4 +68,29 @@ test("health liveness remains independent from readiness", () => {
   if (prior === undefined) delete globalThis.process.env.ESTATEFLOW_READY;
   else globalThis.process.env.ESTATEFLOW_READY = prior;
   assert.deepEqual(controller.ready(), { status: "ok" });
+});
+
+test("test-only fake auth delivery is opt-in and rejected outside test", () => {
+  assert.equal(loadRuntimeConfig({ ...authEnvironment }).authFakeDelivery, false);
+  assert.equal(
+    loadRuntimeConfig({
+      NODE_ENV: "test",
+      ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+      ...authEnvironment,
+    }).authFakeDelivery,
+    true,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({ ESTATEFLOW_AUTH_FAKE_DELIVERY: "true", ...authEnvironment }),
+    RuntimeConfigError,
+  );
+  assert.throws(
+    () => loadRuntimeConfig({
+      NODE_ENV: "production",
+      ESTATEFLOW_API_SECRET: "present",
+      ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+      ...authEnvironment,
+    }),
+    RuntimeConfigError,
+  );
 });

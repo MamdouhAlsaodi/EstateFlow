@@ -6,3 +6,216 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum SessionRevocationReason {
+  LOGOUT
+  REFRESH_REPLAY
+  PASSWORD_RESET
+  SECURITY_EVENT
+}
+
+enum PlatformRole {
+  NONE
+  PLATFORM_ADMIN
+}
+
+enum OrganizationRole {
+  OWNER
+  MANAGER
+  BROKER
+  CLIENT
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum AuthAttemptReason {
+  INVALID_CREDENTIALS
+  ACCOUNT_LOCKED
+  RATE_LIMITED
+}
+
+enum AuthRateLimitEndpoint {
+  REGISTRATION
+  LOGIN
+  PASSWORD_RECOVERY
+  PASSWORD_RESET
+  REFRESH
+}
+
+enum AuthRateLimitDimension {
+  ACCOUNT
+  CLIENT_SOURCE
+}
+
+enum AuthRateLimitOutcome {
+  ALLOWED
+  REJECTED
+}
+
+enum SecurityAuditOutcome {
+  ALLOWED
+  DENIED
+}
+
+model User {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountIdentifier   String         @unique
+  platformRole        PlatformRole   @default(NONE)
+  createdAt           DateTime       @default(now()) @db.Timestamptz(6)
+  verifiedAt          DateTime?      @db.Timestamptz(6)
+  credential          Credential?
+  sessionFamilies     SessionFamily[]
+  passwordResets      PasswordReset[]
+  emailVerifications  EmailVerification[]
+  memberships         Membership[]   @relation("MembershipUser")
+  approvedMemberships Membership[]   @relation("MembershipApprover")
+}
+
+model Organization {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
+  memberships Membership[]
+}
+
+model Membership {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String           @db.Uuid
+  userId           String           @db.Uuid
+  role             OrganizationRole
+  status           MembershipStatus
+  approvedByUserId String?          @db.Uuid
+  approvedAt       DateTime?        @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  user             User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
+  approvedByUser   User?            @relation("MembershipApprover", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId, status])
+  @@index([organizationId, role, status])
+  @@index([userId, status])
+}
+
+model Credential {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String   @unique @db.Uuid
+  passwordHash      String
+  passwordChangedAt DateTime @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SessionFamily {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String                   @db.Uuid
+  createdAt       DateTime                 @default(now()) @db.Timestamptz(6)
+  revokedAt       DateTime?                @db.Timestamptz(6)
+  revokedReason   SessionRevocationReason?
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessSessions  AccessSession[]
+  refreshSessions RefreshSession[]
+
+  @@index([userId, revokedAt])
+}
+
+model AccessSession {
+  id        String        @id @db.Uuid
+  familyId  String        @db.Uuid
+  tokenHash String        @unique
+  csrfHash  String
+  issuedAt  DateTime      @db.Timestamptz(6)
+  expiresAt DateTime      @db.Timestamptz(6)
+  revokedAt DateTime?     @db.Timestamptz(6)
+  family    SessionFamily @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@index([familyId, revokedAt])
+  @@index([expiresAt])
+}
+
+model RefreshSession {
+  id                String          @id @db.Uuid
+  familyId          String          @db.Uuid
+  tokenHash         String          @unique
+  csrfHash          String
+  issuedAt          DateTime        @db.Timestamptz(6)
+  lastUsedAt        DateTime        @db.Timestamptz(6)
+  absoluteExpiresAt DateTime        @db.Timestamptz(6)
+  idleExpiresAt     DateTime        @db.Timestamptz(6)
+  consumedAt        DateTime?       @db.Timestamptz(6)
+  revokedAt         DateTime?       @db.Timestamptz(6)
+  replacedById      String?         @unique @db.Uuid
+  family            SessionFamily   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  replacedBy        RefreshSession? @relation("RefreshReplacement", fields: [replacedById], references: [id])
+  replaces          RefreshSession? @relation("RefreshReplacement")
+
+  @@index([familyId, revokedAt])
+  @@index([idleExpiresAt])
+  @@index([absoluteExpiresAt])
+}
+
+model PasswordReset {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid
+  secretHash String    @unique
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt  DateTime  @db.Timestamptz(6)
+  consumedAt DateTime? @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt, expiresAt])
+}
+
+model EmailVerification {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String    @db.Uuid
+  secretHash String    @unique
+  createdAt  DateTime  @default(now()) @db.Timestamptz(6)
+  expiresAt  DateTime  @db.Timestamptz(6)
+  consumedAt DateTime? @db.Timestamptz(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, consumedAt, expiresAt])
+}
+
+model AuthAttempt {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountKeyHash      String
+  clientSourceKeyHash String
+  reason              AuthAttemptReason
+  createdAt           DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([accountKeyHash, createdAt])
+  @@index([clientSourceKeyHash, createdAt])
+}
+
+model AuthRateLimitEvent {
+  id        String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  endpoint  AuthRateLimitEndpoint
+  dimension AuthRateLimitDimension
+  keyHash   String
+  outcome   AuthRateLimitOutcome
+  createdAt DateTime               @default(now()) @db.Timestamptz(6)
+
+  @@index([endpoint, dimension, keyHash, createdAt])
+}
+
+model SecurityAuditEvent {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subjectId            String?              @db.Uuid
+  outcome              SecurityAuditOutcome
+  reason               String
+  requestCorrelationId String
+  createdAt            DateTime             @default(now()) @db.Timestamptz(6)
+
+  @@index([subjectId, createdAt])
+  @@index([createdAt])
+}
