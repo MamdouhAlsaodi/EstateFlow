@@ -1,0 +1,2 @@
+export const LEAD_REPOSITORY = Symbol("LEAD_REPOSITORY");
+export const LEAD_MEMBERSHIP_READER = Symbol("LEAD_MEMBERSHIP_READER");
