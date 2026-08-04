@@ -2,7 +2,13 @@
 
 ## Resume instruction
 
-Continue EstateFlow from **independent verification of EF-107 executor evidence** only. Read this file, `docs/TASKS.md`, `docs/YUI_TECHNICAL_CONTEXT.md`, `docs/DEVELOPMENT_PLAN.md`, and `docs/handoffs/EF-107/worker-report.md` before acting.
+Before acting, read this file, `docs/TASKS.md`, `docs/YUI_TECHNICAL_CONTEXT.md`, `docs/DEVELOPMENT_PLAN.md`, and the independent verification reports for EF-120-I, EF-120-II, and EF-120-III:
+
+```text
+docs/handoffs/EF-120-I/independent-verification.md
+docs/handoffs/EF-120-II/independent-verification.md
+docs/handoffs/EF-120-III/independent-verification.md
+```
 
 ## Project root
 
@@ -10,7 +16,7 @@ Continue EstateFlow from **independent verification of EF-107 executor evidence*
 /home/server/projects/estateflow
 ```
 
-The workspace is currently **not a Git repository**. Use a checksum baseline for each task packet. Do not commit, push, deploy, or expose services publicly.
+The workspace is a Git repository. No commit, push, deployment, or public exposure is authorized. No live services are required.
 
 ## Product scope
 
@@ -25,53 +31,54 @@ Property → customer inquiry → Lead → follow-up → viewing
 
 ## Verified progress
 
-- EF-101 — monorepo/workspace foundation: **DONE / PASS**.
-- EF-102 — isolated PostgreSQL/PostGIS and Redis local/test infrastructure: **DONE / PASS**.
-- EF-103 — NestJS bootstrap, configuration, health, errors, request IDs, and observability: **DONE / PASS**.
-- EF-104 — Prisma/PostGIS migration baseline, DI-managed PrismaService, destructive-test guard, and FK-safe integration cleanup: **DONE / PASS**.
-- EF-105 — Arabic-first Next.js App Router shell and design-token foundation: **DONE / PASS**.
-- EF-106 — OpenAPI generation, derived typed API client, and contract-drift check: **DONE / PASS**.
-- EF-107 — local CI workflow and static quality-gate contract: **DONE / PASS**.
+- EF-101 — workspace/tooling foundation: **PASS**.
+- EF-102 — isolated PostgreSQL/PostGIS and Redis local/test infrastructure: **PASS**.
+- EF-103 — NestJS bootstrap, configuration, health, errors, request IDs, and observability: **PASS**.
+- EF-104 — Prisma/PostGIS migration baseline, DI-managed PrismaService, destructive-test guard, and FK-safe integration cleanup: **PASS**.
+- EF-105 — Arabic-first Next.js App Router shell and design-token foundation: **PASS**.
+- EF-106 — OpenAPI generation, derived typed API client, and contract-drift check: **PASS**.
+- EF-107 — local CI workflow and static quality-gate contract: **PASS**.
+- EF-120-I — authentication persistence/session verification: **PASS**.
+- EF-120-II — authentication HTTP/session boundary verification: **PASS**.
+- EF-120-III — recovery, abuse-control, audit, isolated PostgreSQL, and runtime verification: **PASS**.
+- EF-121 — organization persistence, RBAC, protected HTTP authorization, isolated PostgreSQL integration, and Nest runtime smoke: **PASS**.
 
-EF-106 corrective executor evidence is recorded in:
+EF-120 and EF-121 are closed.
+
+## EF-120 authentication decision
+
+- HttpOnly, Secure, SameSite=Lax cookie session.
+- Canonical Origin enforcement and CSRF protection.
+- Opaque server-side sessions.
+- Argon2id password hashing.
+- One-time hashed secrets.
+- Abuse controls and structured audit events.
+
+## EF-120 final proof summary
+
+The final independent verification recorded:
 
 ```text
-docs/handoffs/EF-106-C1/task-packet.json
-docs/handoffs/EF-106-C1/pre-execution.sha256
-docs/handoffs/EF-106-C1/worker-report.md
+Final non-database tests: 100/100 PASS
+Configuration tests: 2/2 PASS
+PostgreSQL integration tests: 10/10 PASS
+Runtime verification: PASS
+Cleanup verification: PASS
 ```
 
-EF-106-C1 and EF-107 received independent verification. The project remains local-only; no GitHub Actions run has occurred because there is no Git repository or push.
-
-EF-104 evidence:
+Evidence:
 
 ```text
-docs/handoffs/EF-104/task-packet.json
-docs/handoffs/EF-104/pre-execution.sha256
-docs/handoffs/EF-104/verification.md
+docs/handoffs/EF-120-I/independent-verification.md
+docs/handoffs/EF-120-II/independent-verification.md
+docs/handoffs/EF-120-III/independent-verification.md
 ```
 
-Final EF-104 checks:
-
-```text
-pnpm lint              PASS
-pnpm typecheck         PASS
-pnpm test              7/7 PASS
-pnpm test:integration  1/1 PASS
-pnpm build             PASS
-pnpm format:check      PASS
-prisma validate        PASS
-prisma migrate status  UP TO DATE
-scope audit             PASS (16 changed, 0 deleted, 0 outside)
-```
-
-The isolated test containers and temporary volumes were stopped and removed after verification. No service needs to remain running.
+No dependency, environment-file, commit, push, deployment, shared/live database, or external-delivery action occurred during EF-120 verification.
 
 ## Next task
 
-**EF-120 — Authentication domain: credentials, sessions, recovery, lockout, and rate limits** is the next planned task.
-
-Do not start EF-120 until Mamdouh explicitly chooses it. It introduces authentication and requires its own reviewed packet and security boundaries.
+**EF-201 — Basic Property/Listing workflow** is next. It depends on EF-121 and EF-104 and must start with a bounded read-only CTO requirements/architecture handoff before any product-source change.
 
 ## Architecture boundaries
 
@@ -96,4 +103,4 @@ pnpm build
 pnpm format:check
 ```
 
-Integration tests require the EF-102 isolated test stack, the exact loopback test URL, and `ALLOW_DESTRUCTIVE_TESTS=1`; the guard must pass before any database mutation.
+Integration tests require the isolated test stack and `ALLOW_DESTRUCTIVE_TESTS=1`; the guard must pass before any database mutation.

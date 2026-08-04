@@ -62,6 +62,23 @@ enum SecurityAuditOutcome {
   DENIED
 }
 
+enum PropertyStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ListingStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ImageMediaType {
+  JPEG
+  PNG
+  WEBP
+}
+
 model User {
   id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   accountIdentifier   String         @unique
@@ -82,6 +99,8 @@ model Organization {
   createdAt   DateTime     @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
   memberships Membership[]
+  properties  Property[]
+  listings    Listing[]
 }
 
 model Membership {
@@ -218,4 +237,50 @@ model SecurityAuditEvent {
 
   @@index([subjectId, createdAt])
   @@index([createdAt])
+}
+
+model Property {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @db.Uuid
+  title          String
+  propertyType   String
+  addressText    String
+  ownerReference String?
+  status         PropertyStatus  @default(ACTIVE)
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(6)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  listings       Listing[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+}
+
+model Listing {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String        @db.Uuid
+  propertyId     String        @db.Uuid
+  status         ListingStatus @default(DRAFT)
+  version        Int           @default(1)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property       Property      @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  images         ImageMetadata[]
+
+  @@index([organizationId, propertyId, status])
+}
+
+model ImageMetadata {
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  listingId String        @db.Uuid
+  mediaType ImageMediaType
+  byteSize  Int
+  position  Int
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(6)
+  listing   Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, position])
 }

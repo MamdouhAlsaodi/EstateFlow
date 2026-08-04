@@ -28,7 +28,7 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-104: Prisma/PostGIS migration baseline, DI-managed PrismaService, guarded integration harness, and FK-safe cleanup verified PASS.
 - EF-105: Arabic-first Next.js App Router shell, reusable design tokens, responsive demo states, and visual evidence verified PASS.
 - EF-106: OpenAPI generation, derived typed API client, and contract-drift check independently verified PASS after EF-106-C1 correction.
-- EF-107: local pinned read-only CI workflow and static contract verifier independently verified PASS; no remote GitHub Actions run has occurred because the workspace is not Git/published.
+- EF-107: local pinned read-only CI workflow and static contract verifier independently verified PASS; no remote GitHub Actions run has occurred. The workspace is a Git repository with a configured GitHub `origin` and published commit history; lack of a remote CI run is not a Git/publication limitation.
 - No customer data, credentials, external providers, deployment, or live business workflow exists; business-domain schema begins in its owning tasks.
 
 ## Package ownership

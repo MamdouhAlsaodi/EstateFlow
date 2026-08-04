@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import process from "node:process";
+import { URL } from "node:url";
 import test from "node:test";
 import { PrismaClient } from "@prisma/client";
 import { PrismaOrganizationRepository } from "../dist/features/organizations/infrastructure/prisma-organization.repository.js";

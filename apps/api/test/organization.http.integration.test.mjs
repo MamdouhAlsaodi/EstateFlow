@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
+import process from "node:process";
+import { URL } from "node:url";
 import test from "node:test";
 
 const TEST_BROWSER_ORIGIN = "https://app.estateflow.test";
@@ -110,7 +112,7 @@ test(
         headers["x-csrf-token"] = session.csrfToken;
         headers["content-type"] = "application/json";
       }
-      const response = await fetch(`${baseUrl}${path}`, {
+      const response = await globalThis.fetch(`${baseUrl}${path}`, {
         method,
         headers,
         ...(options.body ? { body: JSON.stringify(options.body) } : {}),
