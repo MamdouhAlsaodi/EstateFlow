@@ -79,28 +79,45 @@ enum ImageMediaType {
   WEBP
 }
 
+enum LeadStage {
+  NEW
+  CONTACTED
+  QUALIFIED
+  NURTURING
+}
+
+enum LeadTimelineEventType {
+  LEAD_CREATED
+  LEAD_ASSIGNED
+  LEAD_STAGE_CHANGED
+  LEAD_NEXT_ACTION_CHANGED
+}
+
 model User {
-  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  accountIdentifier   String         @unique
-  platformRole        PlatformRole   @default(NONE)
-  createdAt           DateTime       @default(now()) @db.Timestamptz(6)
-  verifiedAt          DateTime?      @db.Timestamptz(6)
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountIdentifier   String              @unique
+  platformRole        PlatformRole        @default(NONE)
+  createdAt           DateTime            @default(now()) @db.Timestamptz(6)
+  verifiedAt          DateTime?           @db.Timestamptz(6)
   credential          Credential?
   sessionFamilies     SessionFamily[]
   passwordResets      PasswordReset[]
   emailVerifications  EmailVerification[]
-  memberships         Membership[]   @relation("MembershipUser")
-  approvedMemberships Membership[]   @relation("MembershipApprover")
+  memberships         Membership[]        @relation("MembershipUser")
+  approvedMemberships Membership[]        @relation("MembershipApprover")
+  ownedLeads          Lead[]              @relation("LeadOwner")
 }
 
 model Organization {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String
-  createdAt   DateTime     @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime     @updatedAt @db.Timestamptz(6)
-  memberships Membership[]
-  properties  Property[]
-  listings    Listing[]
+  id                     String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                   String
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(6)
+  memberships            Membership[]
+  properties             Property[]
+  listings               Listing[]
+  leads                  Lead[]
+  leadIdempotencyRecords LeadIdempotencyRecord[]
 }
 
 model Membership {
@@ -116,6 +133,7 @@ model Membership {
   organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   user             User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
   approvedByUser   User?            @relation("MembershipApprover", fields: [approvedByUserId], references: [id], onDelete: Restrict)
+  ownedLeads       Lead[]           @relation("LeadOwnerMembership")
 
   @@unique([organizationId, userId])
   @@index([organizationId, status])
@@ -246,11 +264,11 @@ model Property {
   propertyType   String
   addressText    String
   ownerReference String?
-  status         PropertyStatus  @default(ACTIVE)
-  version        Int             @default(1)
-  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime        @updatedAt @db.Timestamptz(6)
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  status         PropertyStatus @default(ACTIVE)
+  version        Int            @default(1)
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   listings       Listing[]
 
   @@unique([organizationId, id])
@@ -258,29 +276,83 @@ model Property {
 }
 
 model Listing {
-  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String        @db.Uuid
-  propertyId     String        @db.Uuid
-  status         ListingStatus @default(DRAFT)
-  version        Int           @default(1)
-  createdAt      DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime      @updatedAt @db.Timestamptz(6)
-  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  property       Property      @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String          @db.Uuid
+  propertyId     String          @db.Uuid
+  status         ListingStatus   @default(DRAFT)
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime        @updatedAt @db.Timestamptz(6)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property       Property        @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   images         ImageMetadata[]
 
   @@index([organizationId, propertyId, status])
 }
 
+model Lead {
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String                  @db.Uuid
+  ownerId            String                  @db.Uuid
+  stage              LeadStage               @default(NEW)
+  nextAction         String
+  source             String
+  utm                Json?
+  version            Int                     @default(1)
+  createdAt          DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime                @updatedAt @db.Timestamptz(6)
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  owner              User                    @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  ownerMembership    Membership              @relation("LeadOwnerMembership", fields: [organizationId, ownerId], references: [organizationId, userId], onDelete: Restrict)
+  timelineEvents     LeadTimelineEvent[]
+  idempotencyRecords LeadIdempotencyRecord[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, ownerId])
+  @@index([organizationId, stage])
+}
+
+model LeadTimelineEvent {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String                @db.Uuid
+  leadId         String                @db.Uuid
+  idempotencyId  String                @db.Uuid
+  type           LeadTimelineEventType
+  occurredAt     DateTime              @db.Timestamptz(6)
+  data           Json
+  lead           Lead                  @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+  idempotency    LeadIdempotencyRecord @relation(fields: [organizationId, idempotencyId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, leadId, occurredAt])
+  @@index([idempotencyId])
+}
+
+model LeadIdempotencyRecord {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String              @db.Uuid
+  commandScope   String              @db.VarChar(64)
+  idempotencyKey String              @db.VarChar(255)
+  payloadHash    String              @db.VarChar(64)
+  leadId         String              @db.Uuid
+  createdAt      DateTime            @default(now()) @db.Timestamptz(6)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lead           Lead                @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+  timelineEvents LeadTimelineEvent[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, commandScope, idempotencyKey])
+  @@index([organizationId, leadId])
+}
+
 model ImageMetadata {
-  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  listingId String        @db.Uuid
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  listingId String         @db.Uuid
   mediaType ImageMediaType
   byteSize  Int
   position  Int
-  createdAt DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime      @updatedAt @db.Timestamptz(6)
-  listing   Listing       @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  createdAt DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(6)
+  listing   Listing        @relation(fields: [listingId], references: [id], onDelete: Restrict)
 
   @@index([listingId, position])
 }
