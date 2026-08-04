@@ -31,6 +31,25 @@ class LeadUtmDto {
   content?: string;
 }
 
+export class LeadListQueryDto {
+  @IsOptional()
+  @IsIn(["NEW", "CONTACTED", "QUALIFIED", "NURTURING"])
+  stage?: LeadStage;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
+}
+
 export class CreateLeadDto {
   @IsString()
   @IsNotEmpty()

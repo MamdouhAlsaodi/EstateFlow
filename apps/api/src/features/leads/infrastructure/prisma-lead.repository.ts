@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
-import type { Lead, TimelineEventIntent } from "../domain/lead.js";
+import { LeadStage, LeadValidationError, type Lead, type TimelineEventIntent } from "../domain/lead.js";
 import type {
   CreateLeadInput,
+  LeadListCriteria,
   LeadMutationInput,
   LeadMutationResult,
   LeadRepository,
@@ -86,6 +87,31 @@ export class PrismaLeadRepository implements LeadRepository {
       where: { organizationId, id: leadId },
     });
     return row ? mapLead(row as LeadRow) : null;
+  }
+
+  async listLeads(organizationId: string, criteria: LeadListCriteria): Promise<{ items: readonly Lead[]; nextCursor: string | null }> {
+    const stage = criteria.stage;
+    const cursor = criteria.cursor;
+    const limit = criteria.limit ?? 50;
+    if (typeof organizationId !== "string" || organizationId.trim().length === 0) throw new LeadValidationError("Invalid lead list query");
+    if (stage !== undefined && !Object.values(LeadStage).includes(stage)) throw new LeadValidationError("Invalid lead list query");
+    if (cursor !== undefined && (typeof cursor !== "string" || cursor.trim().length === 0 || cursor.length > 255)) throw new LeadValidationError("Invalid lead list query");
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) throw new LeadValidationError("Invalid lead list query");
+    try {
+      const rows = await this.prisma.lead.findMany({
+        where: { organizationId, ...(stage !== undefined ? { stage } : {}) },
+        orderBy: { id: "asc" },
+        ...(cursor !== undefined ? { cursor: { id: cursor }, skip: 1 } : {}),
+        take: limit + 1,
+      });
+      const pageRows = rows as LeadRow[];
+      const hasNext = pageRows.length > limit;
+      const items = pageRows.slice(0, limit).map(mapLead);
+      return { items, nextCursor: hasNext ? items.at(-1)?.id ?? null : null };
+    } catch (error) {
+      if (isCode(error, "P2025")) throw new LeadValidationError("Invalid lead list query");
+      throw error;
+    }
   }
 
   async createLead(input: CreateLeadInput): Promise<LeadMutationResult> {

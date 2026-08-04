@@ -1,6 +1,6 @@
 import { assignLead, createLead, setLeadNextAction, transitionLead } from "../domain/lead.js";
 import type { Lead, LeadStage, TimelineEventIntent } from "../domain/lead.js";
-import type { CreateLeadInput, LeadMutationResult, LeadRepository } from "./lead-repository.js";
+import type { CreateLeadInput, LeadListPage, LeadRepository, LeadMutationResult } from "./lead-repository.js";
 
 export type LeadMembership = Readonly<{ organizationId: string; role: "OWNER" | "MANAGER" | "BROKER" | "CLIENT"; status: "ACTIVE" | "PENDING" | "SUSPENDED" | "REVOKED" }>;
 export type LeadActor = Readonly<{ verified: boolean }>;
@@ -12,6 +12,12 @@ type AccessResult = true | { kind: "ownership-conflict" } | { kind: "access-deni
 
 export class LeadApplication {
   constructor(private readonly repository: LeadRepository, private readonly membershipReader: LeadMembershipReader) {}
+
+  async list(input: { actor: LeadActor; userId: string; organizationId: string; stage?: LeadStage; cursor?: string; limit?: number }): Promise<LeadListPage | { kind: "ownership-conflict" } | { kind: "access-denied" }> {
+    const access = await this.authorize(input.actor, input.userId, input.organizationId);
+    if (access !== true) return access;
+    return this.repository.listLeads(input.organizationId, { stage: input.stage, cursor: input.cursor, limit: input.limit });
+  }
 
   async find(input: { actor: LeadActor; userId: string; organizationId: string; leadId: string }): Promise<Lead | { kind: "ownership-conflict" } | { kind: "access-denied" }> {
     const access = await this.authorize(input.actor, input.userId, input.organizationId);

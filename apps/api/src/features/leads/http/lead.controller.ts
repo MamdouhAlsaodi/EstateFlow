@@ -1,11 +1,11 @@
-import { Body, ConflictException, Controller, ForbiddenException, Get, Headers, HttpCode, HttpStatus, NotFoundException, Param, Post, Req, UseGuards, BadRequestException } from "@nestjs/common";
+import { Body, ConflictException, Controller, ForbiddenException, Get, Headers, HttpCode, HttpStatus, NotFoundException, Param, Post, Query, Req, UseGuards, BadRequestException } from "@nestjs/common";
 import type { AuthenticatedRequest } from "../../auth/http/auth-request.js";
 import { BrowserSessionGuard } from "../../auth/http/browser-session.guard.js";
 import { CsrfGuard } from "../../auth/http/csrf.guard.js";
 import { RequireCanonicalOriginGuard } from "../../auth/http/origin.guard.js";
 import { LeadApplication } from "../application/lead-application.js";
 import { LeadTransitionError, LeadValidationError, LeadVersionConflictError } from "../domain/lead.js";
-import { AssignLeadDto, CreateLeadDto, NextActionDto, TransitionLeadDto } from "./lead.dto.js";
+import { AssignLeadDto, CreateLeadDto, LeadListQueryDto, NextActionDto, TransitionLeadDto } from "./lead.dto.js";
 
 const UNSAFE_BROWSER_GUARDS = [RequireCanonicalOriginGuard, BrowserSessionGuard, CsrfGuard];
 
@@ -18,6 +18,12 @@ export class LeadController {
   @UseGuards(...UNSAFE_BROWSER_GUARDS)
   create(@Param("organizationId") organizationId: string, @Body() input: CreateLeadDto, @Headers("idempotency-key") idempotencyKey: string | undefined, @Req() request: AuthenticatedRequest) {
     return this.execute(() => this.leads.create({ actor: request.auth, userId: request.auth.userId, organizationId, lead: input, idempotencyKey: idempotencyKey ?? "" }));
+  }
+
+  @Get("organizations/:organizationId/leads")
+  @UseGuards(BrowserSessionGuard)
+  list(@Param("organizationId") organizationId: string, @Query() query: LeadListQueryDto, @Req() request: AuthenticatedRequest) {
+    return this.execute(() => this.leads.list({ actor: request.auth, userId: request.auth.userId, organizationId, stage: query.stage, cursor: query.cursor, limit: query.limit }));
   }
 
   @Get("organizations/:organizationId/leads/:leadId")

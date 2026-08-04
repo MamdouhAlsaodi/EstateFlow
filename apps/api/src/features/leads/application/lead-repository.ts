@@ -1,4 +1,4 @@
-import type { Lead, TimelineEventIntent } from "../domain/lead.js";
+import type { Lead, LeadStage, TimelineEventIntent } from "../domain/lead.js";
 
 export type LeadMutationInput = Readonly<{
   organizationId: string;
@@ -29,6 +29,9 @@ export type LeadMutationResult =
   | { readonly kind: "idempotency-conflict"; readonly idempotencyKey: string }
   | { readonly kind: "invalid-idempotency-key" };
 
+export type LeadListCriteria = Readonly<{ stage?: LeadStage; cursor?: string; limit?: number }>;
+export type LeadListPage = Readonly<{ items: readonly Lead[]; nextCursor: string | null }>;
+
 export type CreateLeadInput = Readonly<{
   lead: Lead;
   idempotencyKey: string;
@@ -37,6 +40,7 @@ export type CreateLeadInput = Readonly<{
 
 export interface LeadRepository {
   findLead(organizationId: string, leadId: string): Promise<Lead | null>;
+  listLeads(organizationId: string, criteria: LeadListCriteria): Promise<LeadListPage>;
   /** Atomically bind this command's idempotency key to its first result; replay returns that result without duplicate Lead/event persistence. */
   createLead(input: CreateLeadInput): Promise<LeadMutationResult>;
   /** Atomically bind this command's idempotency key to its first result; same-command replay returns it, while a different command yields typed idempotency-conflict. */
