@@ -64,6 +64,14 @@ test(
       now,
     });
     const createdEvent = event(lead, "LEAD_CREATED", now, { stage: "NEW" });
+    const secondLead = createLead({
+      id: randomUUID(),
+      organizationId,
+      ownerId,
+      nextAction: "Email",
+      source: "REFERRAL",
+      now: new Date("2026-08-04T12:02:00.000Z"),
+    });
     try {
       await prisma.$connect();
       await cleanupDatabase(prisma, TEST_TABLES);
@@ -100,6 +108,16 @@ test(
         timelineEvents: [createdEvent],
       });
       assert.equal(first.kind, "ok");
+      const second = await repository.createLead({ lead: secondLead, idempotencyKey: "create-2", timelineEvents: [event(secondLead, "LEAD_CREATED", secondLead.createdAt, { stage: "NEW" })] });
+      assert.equal(second.kind, "ok");
+      const firstPage = await repository.listLeads(organizationId, { stage: "NEW", limit: 1 });
+      assert.equal(firstPage.items.length, 1);
+      assert.ok(firstPage.nextCursor);
+      const secondPage = await repository.listLeads(organizationId, { stage: "NEW", cursor: firstPage.nextCursor, limit: 1 });
+      assert.equal(secondPage.items.length, 1);
+      assert.equal(secondPage.nextCursor, null);
+      assert.deepEqual((await repository.listLeads(otherOrganizationId, {})).items, []);
+      assert.deepEqual((await repository.listLeads(organizationId, { stage: "QUALIFIED" })).items, []);
       const replay = await repository.createLead({
         lead,
         idempotencyKey: "create-1",

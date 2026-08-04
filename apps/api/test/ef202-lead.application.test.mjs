@@ -5,14 +5,21 @@ import { createLead } from "../dist/features/leads/domain/lead.js";
 
 const baseInputNow = new Date("2026-08-04T10:00:00.000Z");
 const lead = createLead({ id: "lead-1", organizationId: "org-1", ownerId: "owner-1", nextAction: "Call", source: "REFERRAL", now: baseInputNow });
-const actor = { verified: true, organizationIds: ["org-1"] };
+const actor = { verified: true };
+const userId = "user-1";
+const activeAllowedMembershipReader = {
+  async findMembership(organizationId, membershipUserId) {
+    if (organizationId !== "org-1" || membershipUserId !== userId) return null;
+    return { organizationId, role: "OWNER", status: "ACTIVE" };
+  },
+};
 
 test("application create succeeds with an immutable create timeline intent", async () => {
   let command;
   const repository = {
     async createLead(input) { command = input; return { kind: "ok", lead: input.lead, timelineEvents: input.timelineEvents }; },
   };
-  const result = await new LeadApplication(repository).create({ actor, organizationId: "org-1", lead: { id: "lead-created", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey: "create-1", now: baseInputNow });
+  const result = await new LeadApplication(repository, activeAllowedMembershipReader).create({ actor, userId, organizationId: "org-1", lead: { id: "lead-created", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey: "create-1", now: baseInputNow });
   assert.equal(result.kind, "ok");
   assert.equal(command.timelineEvents[0].type, "LEAD_CREATED");
   assert.ok(Object.isFrozen(command.timelineEvents));
@@ -23,17 +30,17 @@ test("application create succeeds with an immutable create timeline intent", asy
 test("unverified actor is denied before repository access", async () => {
   let calls = 0;
   const repository = { async createLead() { calls += 1; throw new Error("must not call repository"); } };
-  const result = await new LeadApplication(repository).create({ actor: { verified: false, organizationIds: ["org-1"] }, organizationId: "org-1", lead: { id: "lead-denied", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey: "denied-1" });
-  assert.deepEqual(result, { kind: "ownership-conflict" });
+  const result = await new LeadApplication(repository, activeAllowedMembershipReader).create({ actor: { verified: false }, userId, organizationId: "org-1", lead: { id: "lead-denied", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey: "denied-1" });
+  assert.deepEqual(result, { kind: "access-denied" });
   assert.equal(calls, 0);
 });
 
 test("invalid or empty idempotency keys do not call the repository", async () => {
   let calls = 0;
   const repository = { async createLead() { calls += 1; throw new Error("must not call repository"); } };
-  const application = new LeadApplication(repository);
+  const application = new LeadApplication(repository, activeAllowedMembershipReader);
   for (const idempotencyKey of ["", "   ", "x".repeat(256)]) {
-    const result = await application.create({ actor, organizationId: "org-1", lead: { id: "lead-invalid", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey });
+    const result = await application.create({ actor, userId, organizationId: "org-1", lead: { id: "lead-invalid", ownerId: "owner-1", nextAction: "Call", source: "WEBSITE" }, idempotencyKey });
     assert.deepEqual(result, { kind: "invalid-idempotency-key" });
   }
   assert.equal(calls, 0);
@@ -45,7 +52,7 @@ test("application transition carries organization ownership, optimistic version 
     async findLead(organizationId, leadId) { return organizationId === "org-1" && leadId === lead.id ? lead : null; },
     async updateLead(input) { calls.push(input); return { kind: "ok", lead: input.lead, timelineEvents: input.timelineEvents }; },
   };
-  const result = await new LeadApplication(repository).transition({ actor, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, to: "CONTACTED", idempotencyKey: "idem-1", now: new Date("2026-08-04T11:00:00.000Z") });
+  const result = await new LeadApplication(repository, activeAllowedMembershipReader).transition({ actor, userId, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, to: "CONTACTED", idempotencyKey: "idem-1", now: new Date("2026-08-04T11:00:00.000Z") });
   assert.equal(result.kind, "ok");
   assert.equal(result.lead.stage, "CONTACTED");
   assert.equal(calls[0].organizationId, "org-1");
@@ -59,9 +66,9 @@ test("application returns typed stale-version and ownership conflicts without re
     async findLead() { return { ...lead, version: 2 }; },
     async updateLead() { throw new Error("must not mutate stale lead"); },
   };
-  const application = new LeadApplication(repository);
-  assert.deepEqual(await application.assign({ actor, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, ownerId: "owner-2", idempotencyKey: "idem-2" }), { kind: "stale-version-conflict", expectedVersion: 1, actualVersion: 2 });
-  assert.deepEqual(await application.assign({ actor: { verified: true, organizationIds: ["org-2"] }, organizationId: "org-2", leadId: lead.id, expectedVersion: 1, ownerId: "owner-2", idempotencyKey: "idem-3" }), { kind: "ownership-conflict" });
+  const application = new LeadApplication(repository, activeAllowedMembershipReader);
+  assert.deepEqual(await application.assign({ actor, userId, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, ownerId: "owner-2", idempotencyKey: "idem-2" }), { kind: "stale-version-conflict", expectedVersion: 1, actualVersion: 2 });
+  assert.deepEqual(await application.assign({ actor, userId, organizationId: "org-2", leadId: lead.id, expectedVersion: 1, ownerId: "owner-2", idempotencyKey: "idem-3" }), { kind: "ownership-conflict" });
 });
 
 test("repository fake replays the original result without duplicate timeline append intent", async () => {
@@ -78,8 +85,8 @@ test("repository fake replays the original result without duplicate timeline app
       return result;
     },
   };
-  const application = new LeadApplication(repository);
-  const command = { actor, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, nextAction: "Email", idempotencyKey: "idem-replay" };
+  const application = new LeadApplication(repository, activeAllowedMembershipReader);
+  const command = { actor, userId, organizationId: "org-1", leadId: lead.id, expectedVersion: 1, nextAction: "Email", idempotencyKey: "idem-replay" };
   const first = await application.setNextAction(command);
   const replay = await application.setNextAction(command);
   assert.equal(first.kind, "ok");

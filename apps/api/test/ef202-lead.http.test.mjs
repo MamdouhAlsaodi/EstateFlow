@@ -8,7 +8,7 @@ import { BrowserSessionGuard } from "../dist/features/auth/http/browser-session.
 import { CsrfGuard } from "../dist/features/auth/http/csrf.guard.js";
 import { RequireCanonicalOriginGuard } from "../dist/features/auth/http/origin.guard.js";
 import { LeadsModule } from "../dist/features/leads/leads.module.js";
-import { CreateLeadDto, TransitionLeadDto } from "../dist/features/leads/http/lead.dto.js";
+import { CreateLeadDto, LeadListQueryDto, TransitionLeadDto } from "../dist/features/leads/http/lead.dto.js";
 import { LeadController } from "../dist/features/leads/http/lead.controller.js";
 
 const actor = { userId: "user-1", verified: true, csrfHash: "csrf" };
@@ -40,6 +40,28 @@ test("lead routes expose protected explicit commands and required mutation heade
   assert.equal(calls[0].idempotencyKey, "");
   const missingHeader = await new LeadApplication({ createLead: async () => ({}) }, { findMembership: async () => ({ organizationId: "org-1", role: "OWNER", status: "ACTIVE" }) }).create({ actor, userId: "user-1", organizationId: "org-1", lead: { id: "lead-1", ownerId: "owner-1", nextAction: "Call", source: "WEB" }, idempotencyKey: "" });
   assert.deepEqual(missingHeader, { kind: "invalid-idempotency-key" });
+});
+
+test("lead board list route uses BrowserSessionGuard and validates bounded query input", async () => {
+  assert.deepEqual(Reflect.getMetadata(PATH_METADATA, LeadController.prototype.list), "organizations/:organizationId/leads");
+  assert.equal(Reflect.getMetadata(METHOD_METADATA, LeadController.prototype.list), RequestMethod.GET);
+  assert.deepEqual(Reflect.getMetadata(GUARDS_METADATA, LeadController.prototype.list), [BrowserSessionGuard]);
+  const calls = [];
+  const c = controller({ list: async input => { calls.push(input); return { items: [], nextCursor: null }; } });
+  const result = await c.list("org-1", { stage: "QUALIFIED", cursor: "lead-1", limit: 25 }, { auth: actor });
+  assert.deepEqual(result, { items: [], nextCursor: null });
+  assert.deepEqual(calls[0], { actor, userId: "user-1", organizationId: "org-1", stage: "QUALIFIED", cursor: "lead-1", limit: 25 });
+  await assert.rejects(() => validate(LeadListQueryDto, { stage: "INVALID" }), BadRequestException);
+  await assert.rejects(() => validate(LeadListQueryDto, { limit: 0 }), BadRequestException);
+  await assert.rejects(() => validate(LeadListQueryDto, { limit: 101 }), BadRequestException);
+  await assert.rejects(() => validate(LeadListQueryDto, { cursor: "" }), BadRequestException);
+});
+
+test("application denies lead board list before repository access", async () => {
+  let calls = 0;
+  const application = new LeadApplication({ async listLeads() { calls += 1; throw new Error("must not query leads"); } }, { async findMembership() { return { organizationId: "org-1", role: "CLIENT", status: "ACTIVE" }; } });
+  assert.deepEqual(await application.list({ actor, userId: "user-1", organizationId: "org-1" }), { kind: "access-denied" });
+  assert.equal(calls, 0);
 });
 
 test("nested UTM DTO validates supported bounded fields and rejects unknown data", async () => {

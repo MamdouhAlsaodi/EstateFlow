@@ -488,7 +488,7 @@ test("access propagates repository, issuer, and clock operational errors", async
   }
 });
 
-test("get-session returns only the authenticated identifier and verification state, and logout revokes exactly its family", async () => {
+test("get-session returns the authenticated fields and current CSRF token", async () => {
   const { repository } = subject();
   const principal = {
     userId: "user-1",
@@ -498,9 +498,10 @@ test("get-session returns only the authenticated identifier and verification sta
     csrfHash: "csrf-hash",
   };
 
-  assert.deepEqual(new GetSession().execute(principal), {
+  assert.deepEqual(new GetSession().execute(principal, "csrf-token"), {
     id: "user-1",
     verified: false,
+    csrfToken: "csrf-token",
   });
   await new Logout(repository, new FixedClock(NOW), TEST_AUDIT_SERVICE).execute(
     principal,

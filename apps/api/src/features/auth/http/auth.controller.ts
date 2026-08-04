@@ -29,8 +29,13 @@ import {
   InvalidRefreshError,
   InvalidRegistrationInputError,
 } from "../domain/auth-errors.js";
-import { AUTH_CLOCK } from "../auth.tokens.js";
+import { AUTH_CLOCK, SESSION_CREDENTIAL_ISSUER } from "../auth.tokens.js";
 import { AuthCookieService } from "./auth-cookie.service.js";
+import {
+  InvalidAuthCookieError,
+  parseAuthCookies,
+} from "./auth-cookie-parser.js";
+import type { SessionCredentialIssuer } from "../domain/session-credentials.js";
 import {
   AuthCredentialsDto,
   PasswordRecoveryDto,
@@ -57,6 +62,8 @@ export class AuthController {
     private readonly logoutUser: Logout,
     private readonly getSession: GetSession,
     private readonly cookies: AuthCookieService,
+    @Inject(SESSION_CREDENTIAL_ISSUER)
+    private readonly credentialIssuer: SessionCredentialIssuer,
     @Inject(AUTH_CLOCK) private readonly clock: Clock,
     private readonly requestPasswordRecovery: RequestPasswordRecovery,
     private readonly resetPassword: ResetPassword,
@@ -187,11 +194,11 @@ export class AuthController {
 
   @Get("session")
   @UseGuards(BrowserSessionGuard)
-  session(@Req() request: AuthenticatedRequest): {
-    id: string;
-    verified: boolean;
-  } {
-    return this.getSession.execute(request.auth);
+  session(@Req() request: AuthenticatedRequest) {
+    return this.getSession.execute(
+      request.auth,
+      currentCsrfToken(request, request.auth, this.credentialIssuer),
+    );
   }
 
   private setSessionCookies(
@@ -207,6 +214,22 @@ export class AuthController {
         this.clock.now(),
       ),
     });
+  }
+}
+
+function currentCsrfToken(
+  request: Request,
+  principal: AuthenticatedRequest["auth"],
+  credentialIssuer: SessionCredentialIssuer,
+): string | null {
+  try {
+    const csrfToken = parseAuthCookies(request.headers.cookie).csrf;
+    return csrfToken && credentialIssuer.matches(csrfToken, principal.csrfHash)
+      ? csrfToken
+      : null;
+  } catch (error) {
+    if (error instanceof InvalidAuthCookieError) return null;
+    throw error;
   }
 }
 
