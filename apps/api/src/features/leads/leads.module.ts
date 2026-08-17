@@ -1,7 +1,11 @@
 import { Module } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service.js";
 import { AuthModule } from "../auth/auth.module.js";
-import { LeadApplication, type LeadMembership, type LeadMembershipReader } from "./application/lead-application.js";
+import {
+  LeadApplication,
+  type LeadMembership,
+  type LeadMembershipReader,
+} from "./application/lead-application.js";
 import type { LeadRepository } from "./application/lead-repository.js";
 import { PrismaLeadRepository } from "./infrastructure/prisma-lead.repository.js";
 import { LeadController } from "./http/lead.controller.js";
@@ -14,7 +18,8 @@ import { LEAD_MEMBERSHIP_READER, LEAD_REPOSITORY } from "./leads.tokens.js";
     {
       provide: LEAD_REPOSITORY,
       inject: [PrismaService],
-      useFactory: (prisma: PrismaService): LeadRepository => new PrismaLeadRepository(prisma),
+      useFactory: (prisma: PrismaService): LeadRepository =>
+        new PrismaLeadRepository(prisma),
     },
     {
       provide: LEAD_MEMBERSHIP_READER,
@@ -32,7 +37,10 @@ import { LEAD_MEMBERSHIP_READER, LEAD_REPOSITORY } from "./leads.tokens.js";
     {
       provide: LeadApplication,
       inject: [LEAD_REPOSITORY, LEAD_MEMBERSHIP_READER],
-      useFactory: (repository: LeadRepository, memberships: LeadMembershipReader) => new LeadApplication(repository, memberships),
+      useFactory: (
+        repository: LeadRepository,
+        memberships: LeadMembershipReader,
+      ) => new LeadApplication(repository, memberships),
     },
   ],
 })

@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
-import { createApiRewrite, resolveApiOrigin } from "./src/lib/api-client/api-origin";
+import {
+  createApiRewrite,
+  resolveApiOrigin,
+} from "./src/lib/api-client/api-origin";
 
 const nextConfig: NextConfig = {
   async rewrites() {

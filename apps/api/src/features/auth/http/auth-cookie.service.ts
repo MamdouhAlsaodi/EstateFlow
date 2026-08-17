@@ -21,11 +21,17 @@ export type SessionCookieInput = {
 
 @Injectable()
 export class AuthCookieService {
-  setSessionCookies(response: CookieResponse, cookies: SessionCookieInput): void {
+  setSessionCookies(
+    response: CookieResponse,
+    cookies: SessionCookieInput,
+  ): void {
     validateSessionCookies(cookies);
     response.append("Set-Cookie", accessCookie(cookies.accessCredential));
     response.append("Set-Cookie", refreshCookie(cookies.refreshCredential));
-    response.append("Set-Cookie", csrfCookie(cookies.csrfToken, cookies.remainingRefreshLifetimeSeconds));
+    response.append(
+      "Set-Cookie",
+      csrfCookie(cookies.csrfToken, cookies.remainingRefreshLifetimeSeconds),
+    );
   }
 
   clearSessionCookies(response: CookieResponse): void {
@@ -40,18 +46,28 @@ function validateSessionCookies(cookies: SessionCookieInput): void {
     parseOpaqueCredential(cookies.accessCredential);
     parseOpaqueCredential(cookies.refreshCredential);
   } catch (error) {
-    if (error instanceof Error && error.message === "Malformed opaque credential") {
+    if (
+      error instanceof Error &&
+      error.message === "Malformed opaque credential"
+    ) {
       throw new Error("Invalid session cookie", { cause: error });
     }
     throw error;
   }
-  if (!isCanonicalCsrfToken(cookies.csrfToken) || !isValidRefreshLifetime(cookies.remainingRefreshLifetimeSeconds)) {
+  if (
+    !isCanonicalCsrfToken(cookies.csrfToken) ||
+    !isValidRefreshLifetime(cookies.remainingRefreshLifetimeSeconds)
+  ) {
     throw new Error("Invalid session cookie");
   }
 }
 
 function isValidRefreshLifetime(lifetimeSeconds: number): boolean {
-  return Number.isSafeInteger(lifetimeSeconds) && lifetimeSeconds >= 1 && lifetimeSeconds <= REFRESH_MAX_AGE_SECONDS;
+  return (
+    Number.isSafeInteger(lifetimeSeconds) &&
+    lifetimeSeconds >= 1 &&
+    lifetimeSeconds <= REFRESH_MAX_AGE_SECONDS
+  );
 }
 
 function accessCookie(credential: string): string {
@@ -62,8 +78,14 @@ function refreshCookie(credential: string): string {
   return `${REFRESH_COOKIE_NAME}=${credential}; Max-Age=${REFRESH_MAX_AGE_SECONDS}; Path=/; HttpOnly; Secure; SameSite=Lax`;
 }
 
-function csrfCookie(token: string, remainingRefreshLifetimeSeconds: number): string {
-  const maxAge = Math.min(REFRESH_MAX_AGE_SECONDS, remainingRefreshLifetimeSeconds);
+function csrfCookie(
+  token: string,
+  remainingRefreshLifetimeSeconds: number,
+): string {
+  const maxAge = Math.min(
+    REFRESH_MAX_AGE_SECONDS,
+    remainingRefreshLifetimeSeconds,
+  );
   return `${CSRF_COOKIE_NAME}=${token}; Max-Age=${maxAge}; Path=/; Secure; SameSite=Lax`;
 }
 

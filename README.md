@@ -6,12 +6,15 @@ EstateFlow is a real-estate operations learning and portfolio project. It models
 
 ## Verified progress
 
-EF-101 through EF-107 are completed and verified:
+The following accepted slices are recorded in `docs/CURRENT_HANDOFF.md` with independent verification evidence:
 
-- Workspace/tooling, isolated local/test infrastructure, API health baseline, and Prisma/PostGIS migration baseline.
-- Arabic-first web shell, OpenAPI-derived typed client, and local CI workflow contract.
+- **EF-101 through EF-107:** workspace/tooling, isolated local/test infrastructure, API health baseline, Prisma/PostGIS baseline, Arabic-first web shell, OpenAPI-derived typed client, and local CI workflow.
+- **EF-120 and EF-121:** authentication/session security plus organization persistence and RBAC.
+- **EF-201 through EF-203:** property/listing, lead CRM notes/tasks, and terminal deal outcomes.
+- **EF-231 and EF-232:** ledger core and commission persistence/HTTP/OpenAPI/client plus Arabic command workspace.
+- **EF-233 T0 through T2:** explicit invoice amount authority, durable receivable/payment persistence, idempotency under concurrency, and issued-invoice database immutability.
 
-The next planned task is **EF-120 — Authentication domain**. It has not started. A remote GitHub Actions run has not occurred.
+The next bounded task is **EF-233 T3 — guarded invoice/payment HTTP commands**. This repository has local CI configuration; a remote GitHub Actions run is not claimed as passing until GitHub reports it.
 
 ## Architecture overview
 

@@ -17,7 +17,9 @@ export type SessionCsrfProvider = Readonly<{
   clear(): void;
 }>;
 
-export function createSessionCsrfProvider(client: ApiClient): SessionCsrfProvider {
+export function createSessionCsrfProvider(
+  client: ApiClient,
+): SessionCsrfProvider {
   const session = createSessionHelper(client);
   return {
     async getToken() {

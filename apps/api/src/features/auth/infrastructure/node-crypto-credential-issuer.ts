@@ -43,7 +43,9 @@ export class NodeCryptoCredentialIssuer implements SessionCredentialIssuer {
   }
 
   hash(secret: string): string {
-    return createHmac("sha256", this.hashKey).update(secret).digest("base64url");
+    return createHmac("sha256", this.hashKey)
+      .update(secret)
+      .digest("base64url");
   }
 
   matches(secret: string, expectedHash: string): boolean {

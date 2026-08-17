@@ -6,8 +6,7 @@ import type {
 } from "../application/verification-delivery.js";
 
 type AuthDeliveryEntry =
-  | VerificationDeliveryRequest
-  | PasswordRecoveryDeliveryRequest;
+  VerificationDeliveryRequest | PasswordRecoveryDeliveryRequest;
 
 const MAXIMUM_DELIVERIES = 100;
 
@@ -20,6 +19,9 @@ export class InMemoryAuthDelivery
     if (this.deliveries.length === MAXIMUM_DELIVERIES) {
       this.deliveries.shift();
     }
-    this.deliveries.push({ ...request, expiresAt: new Date(request.expiresAt) });
+    this.deliveries.push({
+      ...request,
+      expiresAt: new Date(request.expiresAt),
+    });
   }
 }

@@ -13,9 +13,7 @@ export function calculateRefreshIdleExpiry(
   now: Date,
   absoluteExpiry: Date,
 ): Date {
-  const idleExpiry = new Date(
-    now.getTime() + REFRESH_IDLE_WINDOW_MILLISECONDS,
-  );
+  const idleExpiry = new Date(now.getTime() + REFRESH_IDLE_WINDOW_MILLISECONDS);
   return idleExpiry < absoluteExpiry ? idleExpiry : new Date(absoluteExpiry);
 }
 

@@ -12,8 +12,10 @@ import { RequireCanonicalOriginGuard } from "../dist/features/auth/http/origin.g
 
 const CANONICAL_ORIGIN = "https://app.estateflow.test";
 const HASH_KEY = "test-hash-key-must-be-at-least-32-bytes";
-const ACCESS_CREDENTIAL = "d5501c01-1ac7-4a5b-b560-5721194e0c90.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
-const REFRESH_CREDENTIAL = "d5501c01-1ac7-4a5b-b560-5721194e0c91.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+const ACCESS_CREDENTIAL =
+  "d5501c01-1ac7-4a5b-b560-5721194e0c90.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+const REFRESH_CREDENTIAL =
+  "d5501c01-1ac7-4a5b-b560-5721194e0c91.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 const CSRF_TOKEN = "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqo";
 const REQUEST_CORRELATION_ID = "550e8400-e29b-41d4-a716-446655440000";
 
@@ -187,14 +189,21 @@ test("unsafe requests require exactly the configured raw Origin", () => {
   for (const origin of rejectedOrigins) {
     const request = {
       method: "POST",
-      headers: { origin, forwarded: CANONICAL_ORIGIN, "x-forwarded-origin": CANONICAL_ORIGIN },
+      headers: {
+        origin,
+        forwarded: CANONICAL_ORIGIN,
+        "x-forwarded-origin": CANONICAL_ORIGIN,
+      },
     };
     assertForbidden(() => guard.canActivate(createExecutionContext(request)));
   }
 
   assert.equal(
     guard.canActivate(
-      createExecutionContext({ method: "PATCH", headers: { origin: CANONICAL_ORIGIN } }),
+      createExecutionContext({
+        method: "PATCH",
+        headers: { origin: CANONICAL_ORIGIN },
+      }),
     ),
     true,
   );
@@ -218,11 +227,29 @@ test("CSRF guard rejects invalid unsafe requests before a mutation callback", ()
   const credentialIssuer = new NodeCryptoCredentialIssuer(HASH_KEY);
   const guard = new CsrfGuard(credentialIssuer);
   const rejectedRequests = [
-    createAuthenticatedRequest({ cookie: `estateflow_csrf=${CSRF_TOKEN}` }, credentialIssuer.hash(CSRF_TOKEN)),
-    createAuthenticatedRequest({ cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": "different" }, credentialIssuer.hash(CSRF_TOKEN)),
-    createAuthenticatedRequest({ cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": CSRF_TOKEN }, credentialIssuer.hash("stale-token")),
-    createAuthenticatedRequest({ cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": [CSRF_TOKEN] }, credentialIssuer.hash(CSRF_TOKEN)),
-    createAuthenticatedRequest({ cookie: `estateflow_csrf=${CSRF_TOKEN}; estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": CSRF_TOKEN }, credentialIssuer.hash(CSRF_TOKEN)),
+    createAuthenticatedRequest(
+      { cookie: `estateflow_csrf=${CSRF_TOKEN}` },
+      credentialIssuer.hash(CSRF_TOKEN),
+    ),
+    createAuthenticatedRequest(
+      { cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": "different" },
+      credentialIssuer.hash(CSRF_TOKEN),
+    ),
+    createAuthenticatedRequest(
+      { cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": CSRF_TOKEN },
+      credentialIssuer.hash("stale-token"),
+    ),
+    createAuthenticatedRequest(
+      { cookie: `estateflow_csrf=${CSRF_TOKEN}`, "x-csrf-token": [CSRF_TOKEN] },
+      credentialIssuer.hash(CSRF_TOKEN),
+    ),
+    createAuthenticatedRequest(
+      {
+        cookie: `estateflow_csrf=${CSRF_TOKEN}; estateflow_csrf=${CSRF_TOKEN}`,
+        "x-csrf-token": CSRF_TOKEN,
+      },
+      credentialIssuer.hash(CSRF_TOKEN),
+    ),
   ];
 
   for (const request of rejectedRequests) {
@@ -246,7 +273,8 @@ test("CSRF guard does not require a token for safe requests", () => {
 // EF-120-III: only the direct socket source may contribute to abuse control.
 test("request context hashes the bounded direct socket source and ignores forwarding headers", async () => {
   const hashedSources = [];
-  const { AuthRequestContextFactory } = await import("../dist/features/auth/http/auth-request-context.factory.js");
+  const { AuthRequestContextFactory } =
+    await import("../dist/features/auth/http/auth-request-context.factory.js");
   const factory = new AuthRequestContextFactory({
     hashClientSource(source) {
       hashedSources.push(source);
@@ -272,14 +300,21 @@ test("request context hashes the bounded direct socket source and ignores forwar
   assert.deepEqual(hashedSources, ["2001:db8::1"]);
 });
 
-
 test("request context fails closed when middleware did not provide a canonical request ID", async () => {
-  const { AuthRequestContextFactory } = await import("../dist/features/auth/http/auth-request-context.factory.js");
-  const factory = new AuthRequestContextFactory({ hashClientSource: () => "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE" });
+  const { AuthRequestContextFactory } =
+    await import("../dist/features/auth/http/auth-request-context.factory.js");
+  const factory = new AuthRequestContextFactory({
+    hashClientSource: () => "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE",
+  });
 
-  for (const requestId of [undefined, "not-a-uuid", "550E8400-E29B-41D4-A716-446655440000"]) {
+  for (const requestId of [
+    undefined,
+    "not-a-uuid",
+    "550E8400-E29B-41D4-A716-446655440000",
+  ]) {
     assert.throws(
-      () => factory.create({ requestId, socket: { remoteAddress: "127.0.0.1" } }),
+      () =>
+        factory.create({ requestId, socket: { remoteAddress: "127.0.0.1" } }),
       /canonical request ID/,
     );
   }
@@ -287,7 +322,8 @@ test("request context fails closed when middleware did not provide a canonical r
 
 test("request context replaces missing and oversized direct sources with its fixed internal sentinel", async () => {
   const hashedSources = [];
-  const { AuthRequestContextFactory } = await import("../dist/features/auth/http/auth-request-context.factory.js");
+  const { AuthRequestContextFactory } =
+    await import("../dist/features/auth/http/auth-request-context.factory.js");
   const factory = new AuthRequestContextFactory({
     hashClientSource(source) {
       hashedSources.push(source);
@@ -296,7 +332,10 @@ test("request context replaces missing and oversized direct sources with its fix
   });
 
   factory.create({ requestId: REQUEST_CORRELATION_ID, socket: {} });
-  factory.create({ requestId: REQUEST_CORRELATION_ID, socket: { remoteAddress: "x".repeat(257) } });
+  factory.create({
+    requestId: REQUEST_CORRELATION_ID,
+    socket: { remoteAddress: "x".repeat(257) },
+  });
 
   assert.deepEqual(hashedSources, [
     "missing-direct-client-source",

@@ -4,7 +4,10 @@ import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Request } from "express";
 import { SESSION_CREDENTIAL_ISSUER } from "../auth.tokens.js";
 import type { SessionCredentialIssuer } from "../domain/session-credentials.js";
-import { InvalidAuthCookieError, parseAuthCookies } from "./auth-cookie-parser.js";
+import {
+  InvalidAuthCookieError,
+  parseAuthCookies,
+} from "./auth-cookie-parser.js";
 import "./auth-request.js";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -22,7 +25,12 @@ export class CsrfGuard implements CanActivate {
 
     const csrfHeader = request.headers["x-csrf-token"];
     const csrfCookie = readCsrfCookie(request.headers.cookie);
-    if (!request.auth || !isSingleToken(csrfHeader) || !csrfCookie || !tokensMatch(csrfHeader, csrfCookie)) {
+    if (
+      !request.auth ||
+      !isSingleToken(csrfHeader) ||
+      !csrfCookie ||
+      !tokensMatch(csrfHeader, csrfCookie)
+    ) {
       throw new ForbiddenException();
     }
     if (!this.credentialIssuer.matches(csrfHeader, request.auth.csrfHash)) {
@@ -32,7 +40,9 @@ export class CsrfGuard implements CanActivate {
   }
 }
 
-function readCsrfCookie(rawCookieHeader: string | undefined): string | undefined {
+function readCsrfCookie(
+  rawCookieHeader: string | undefined,
+): string | undefined {
   try {
     return parseAuthCookies(rawCookieHeader).csrf;
   } catch (error) {

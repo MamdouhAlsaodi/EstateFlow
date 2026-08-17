@@ -15,7 +15,8 @@ coverage/
 *.db-journal
 *.log
 
-# Tool and editor state
+# Local orchestration, tool, and editor state
+.hermes/
 .DS_Store
 .idea/
 .vscode/

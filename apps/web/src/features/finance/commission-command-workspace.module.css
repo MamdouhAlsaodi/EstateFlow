@@ -1,0 +1,65 @@
+.workspace {
+  display: grid;
+  gap: var(--ef-space-5);
+  margin: 0 auto;
+  max-width: 80rem;
+}
+.heading {
+  border-bottom: 1px solid var(--ef-line);
+  padding-bottom: var(--ef-space-5);
+}
+.heading p:last-child {
+  color: var(--ef-ink-muted);
+  margin-bottom: 0;
+}
+.grid {
+  display: grid;
+  gap: var(--ef-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.card {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-medium);
+  display: grid;
+  gap: var(--ef-space-3);
+  min-width: 0;
+  padding: var(--ef-space-5);
+}
+.card h2 {
+  margin-bottom: var(--ef-space-2);
+}
+.card label {
+  margin: 0;
+}
+.card label span {
+  color: var(--ef-ink-muted);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+.card input {
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-small);
+  display: block;
+  min-height: 2.75rem;
+  padding: 0 var(--ef-space-3);
+  width: 100%;
+}
+.card button {
+  margin-top: var(--ef-space-2);
+}
+.message {
+  align-items: center;
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-small);
+  display: flex;
+  gap: var(--ef-space-3);
+  justify-content: space-between;
+  padding: var(--ef-space-4);
+}
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

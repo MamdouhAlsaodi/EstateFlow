@@ -3,6 +3,15 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 
+Object.assign(globalThis.process.env, {
+  NODE_ENV: "test",
+  ESTATEFLOW_BROWSER_ORIGIN: "https://app.estateflow.test",
+  ESTATEFLOW_AUTH_HASH_KEY: "a".repeat(32),
+  ESTATEFLOW_AUDIT_HASH_KEY: "b".repeat(32),
+  ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+});
+delete globalThis.process.env.DATABASE_URL;
+
 const root = globalThis.process.cwd();
 const temporaryDirectory = await mkdtemp(
   resolve(tmpdir(), "estateflow-openapi-"),

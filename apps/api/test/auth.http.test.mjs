@@ -126,7 +126,10 @@ function controller({
         response.append("Set-Cookie", "csrf=");
       },
     },
-    { matches: (token, hash) => token === CSRF_TOKEN && hash === "server-csrf-hash" },
+    {
+      matches: (token, hash) =>
+        token === CSRF_TOKEN && hash === "server-csrf-hash",
+    },
     { now: () => NOW },
     recovery ?? { execute: async () => ({ status: "accepted" }) },
     reset ?? { execute: async () => ({ status: "reset" }) },
@@ -392,25 +395,33 @@ test("logout revokes the authenticated family before clearing cookies and sessio
   assert.equal(await authController.logout({ auth }, response), undefined);
   assert.deepEqual(execution, ["family-id"]);
   assert.deepEqual(response.cookies, ["access=", "refresh=", "csrf="]);
-  assert.deepEqual(authController.session({
-    auth,
-    headers: { cookie: `estateflow_csrf=${CSRF_TOKEN}` },
-  }), {
-    id: "user-id",
-    verified: true,
-    csrfToken: CSRF_TOKEN,
-  });
+  assert.deepEqual(
+    authController.session({
+      auth,
+      headers: { cookie: `estateflow_csrf=${CSRF_TOKEN}` },
+    }),
+    {
+      id: "user-id",
+      verified: true,
+      csrfToken: CSRF_TOKEN,
+    },
+  );
 });
 
 test("session does not expose a mismatched CSRF cookie", () => {
-  assert.deepEqual(controller().session({
-    auth: authentication(),
-    headers: { cookie: "estateflow_csrf=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
-  }), {
-    id: "user-id",
-    verified: true,
-    csrfToken: null,
-  });
+  assert.deepEqual(
+    controller().session({
+      auth: authentication(),
+      headers: {
+        cookie: "estateflow_csrf=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      },
+    }),
+    {
+      id: "user-id",
+      verified: true,
+      csrfToken: null,
+    },
+  );
 });
 
 test("browser guard authenticates a strict access cookie and returns generic 401s without audit persistence", async () => {

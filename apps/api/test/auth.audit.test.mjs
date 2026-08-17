@@ -43,13 +43,15 @@ test("allowed audit persistence writes only the approved safe fields at one cloc
   await service.allowed("LOGIN_ALLOWED", context(), SUBJECT_ID);
 
   assert.equal(clock.calls, 1);
-  assert.deepEqual(repository.auditEvents, [{
-    subjectId: SUBJECT_ID,
-    outcome: "ALLOWED",
-    reason: "LOGIN_ALLOWED",
-    requestCorrelationId: REQUEST_CORRELATION_ID,
-    now: NOW,
-  }]);
+  assert.deepEqual(repository.auditEvents, [
+    {
+      subjectId: SUBJECT_ID,
+      outcome: "ALLOWED",
+      reason: "LOGIN_ALLOWED",
+      requestCorrelationId: REQUEST_CORRELATION_ID,
+      now: NOW,
+    },
+  ]);
   assert.deepEqual(Object.keys(repository.auditEvents[0]).sort(), [
     "now",
     "outcome",
@@ -96,7 +98,12 @@ test("audit persistence rejects malformed UUIDs before repository writes", async
     [context(), "not-a-uuid"],
   ]) {
     await assert.rejects(
-      () => service.allowed("REGISTRATION_ACCEPTED", invalidInput[0], invalidInput[1]),
+      () =>
+        service.allowed(
+          "REGISTRATION_ACCEPTED",
+          invalidInput[0],
+          invalidInput[1],
+        ),
       /canonical UUID/,
     );
   }
@@ -105,9 +112,14 @@ test("audit persistence rejects malformed UUIDs before repository writes", async
 
 test("audit persistence propagates repository operational errors", async () => {
   const outage = new Error("database unavailable");
-  const service = new SecurityAuditService({
-    createSecurityAuditEvent: async () => { throw outage; },
-  }, new RecordingClock(NOW));
+  const service = new SecurityAuditService(
+    {
+      createSecurityAuditEvent: async () => {
+        throw outage;
+      },
+    },
+    new RecordingClock(NOW),
+  );
 
   await assert.rejects(
     () => service.denied("LOGIN_DENIED", context()),

@@ -71,7 +71,10 @@ test("health liveness remains independent from readiness", () => {
 });
 
 test("test-only fake auth delivery is opt-in and rejected outside test", () => {
-  assert.equal(loadRuntimeConfig({ ...authEnvironment }).authFakeDelivery, false);
+  assert.equal(
+    loadRuntimeConfig({ ...authEnvironment }).authFakeDelivery,
+    false,
+  );
   assert.equal(
     loadRuntimeConfig({
       NODE_ENV: "test",
@@ -81,16 +84,21 @@ test("test-only fake auth delivery is opt-in and rejected outside test", () => {
     true,
   );
   assert.throws(
-    () => loadRuntimeConfig({ ESTATEFLOW_AUTH_FAKE_DELIVERY: "true", ...authEnvironment }),
+    () =>
+      loadRuntimeConfig({
+        ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+        ...authEnvironment,
+      }),
     RuntimeConfigError,
   );
   assert.throws(
-    () => loadRuntimeConfig({
-      NODE_ENV: "production",
-      ESTATEFLOW_API_SECRET: "present",
-      ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
-      ...authEnvironment,
-    }),
+    () =>
+      loadRuntimeConfig({
+        NODE_ENV: "production",
+        ESTATEFLOW_API_SECRET: "present",
+        ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+        ...authEnvironment,
+      }),
     RuntimeConfigError,
   );
 });

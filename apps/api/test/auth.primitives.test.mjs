@@ -40,11 +40,16 @@ test("opaque credentials contain a UUID and 256-bit CSPRNG secret hashed with HM
   const credential = issuer.issue();
   const parsed = parseOpaqueCredential(credential.serialized);
 
-  assert.match(parsed.id, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  assert.match(
+    parsed.id,
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  );
   assert.equal(Buffer.from(parsed.secret, "base64url").length, 32);
   assert.equal(
     credential.hash,
-    createHmac("sha256", TEST_HASH_KEY).update(parsed.secret).digest("base64url"),
+    createHmac("sha256", TEST_HASH_KEY)
+      .update(parsed.secret)
+      .digest("base64url"),
   );
   assert.equal(issuer.matches(parsed.secret, credential.hash), true);
   assert.equal(issuer.matches("different-secret", credential.hash), false);
@@ -61,10 +66,18 @@ test("Argon2id hashes retain policy parameters and verify without plaintext pers
   const passwordHash = await hasher.hash("correct horse battery staple");
 
   assert.match(passwordHash, /^argon2id\$v=1\$m=19456,t=2,p=1\$/);
-  assert.equal(await hasher.verify("correct horse battery staple", passwordHash), true);
+  assert.equal(
+    await hasher.verify("correct horse battery staple", passwordHash),
+    true,
+  );
   assert.equal(await hasher.verify("wrong password", passwordHash), false);
   assert.equal(hasher.needsRehash(passwordHash), false);
-  assert.equal(new NodeCryptoPasswordHasher({ memoryKiB: 19457 }).needsRehash(passwordHash), true);
+  assert.equal(
+    new NodeCryptoPasswordHasher({ memoryKiB: 19457 }).needsRehash(
+      passwordHash,
+    ),
+    true,
+  );
 
   assert.equal(
     new NodeCryptoPasswordHasher({ saltBytes: 17 }).needsRehash(passwordHash),
@@ -79,10 +92,7 @@ test("Argon2id hashes retain policy parameters and verify without plaintext pers
       false,
     );
   });
-  assert.throws(
-    () => new NodeCryptoPasswordHasher({ memoryKiB: 0 }),
-    Error,
-  );
+  assert.throws(() => new NodeCryptoPasswordHasher({ memoryKiB: 0 }), Error);
 });
 
 test("Argon2id verification accepts bounded legacy hashes and marks them for rehash", async () => {
@@ -120,14 +130,15 @@ test("Argon2id constructor enforces the approved policy floor", () => {
     assert.throws(() => new NodeCryptoPasswordHasher(policy), Error);
   }
 
-  assert.doesNotThrow(() =>
-    new NodeCryptoPasswordHasher({
-      memoryKiB: 19_457,
-      iterations: 3,
-      parallelism: 2,
-      saltBytes: 17,
-      tagBytes: 33,
-    }),
+  assert.doesNotThrow(
+    () =>
+      new NodeCryptoPasswordHasher({
+        memoryKiB: 19_457,
+        iterations: 3,
+        parallelism: 2,
+        saltBytes: 17,
+        tagBytes: 33,
+      }),
   );
 });
 

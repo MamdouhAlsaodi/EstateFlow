@@ -19,12 +19,17 @@ export class NodeCryptoOneTimeSecretIssuer implements OneTimeSecretIssuer {
   }
 
   hash(secret: string): string {
-    return createHmac("sha256", this.hashKey).update(secret).digest("base64url");
+    return createHmac("sha256", this.hashKey)
+      .update(secret)
+      .digest("base64url");
   }
 
   matches(secret: string, expectedHash: string): boolean {
     const actualHash = Buffer.from(this.hash(secret), "base64url");
     const storedHash = Buffer.from(expectedHash, "base64url");
-    return actualHash.length === storedHash.length && timingSafeEqual(actualHash, storedHash);
+    return (
+      actualHash.length === storedHash.length &&
+      timingSafeEqual(actualHash, storedHash)
+    );
   }
 }

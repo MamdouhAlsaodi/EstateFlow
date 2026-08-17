@@ -25,7 +25,9 @@ export const DEFAULT_AUTH_ABUSE_POLICY = createAuthAbusePolicy({
   refresh: { accountLimit: 60, clientSourceLimit: 200 },
 });
 
-export function createAuthAbusePolicy(policy: AuthAbusePolicy): AuthAbusePolicy {
+export function createAuthAbusePolicy(
+  policy: AuthAbusePolicy,
+): AuthAbusePolicy {
   validatePositiveSafeInteger(policy.windowMs);
   validatePositiveSafeInteger(policy.lockoutThreshold);
   validatePositiveSafeInteger(policy.lockoutMs);

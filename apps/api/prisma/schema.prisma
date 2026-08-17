@@ -84,6 +84,8 @@ enum LeadStage {
   CONTACTED
   QUALIFIED
   NURTURING
+  CLOSED_WON
+  CLOSED_LOST
 }
 
 enum LeadTimelineEventType {
@@ -91,6 +93,39 @@ enum LeadTimelineEventType {
   LEAD_ASSIGNED
   LEAD_STAGE_CHANGED
   LEAD_NEXT_ACTION_CHANGED
+  LEAD_NOTE_ADDED
+  LEAD_TASK_CREATED
+  LEAD_TASK_COMPLETED
+  LEAD_TASK_RESCHEDULED
+  LEAD_CLOSED_WON
+  LEAD_CLOSED_LOST
+}
+enum LeadTaskStatus {
+  OPEN
+  COMPLETED
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum JournalSide {
+  DEBIT
+  CREDIT
+}
+
+enum JournalStatus {
+  DRAFT
+  POSTED
+}
+
+enum AccountingPeriodStatus {
+  OPEN
+  CLOSED
 }
 
 model User {
@@ -118,6 +153,18 @@ model Organization {
   listings               Listing[]
   leads                  Lead[]
   leadIdempotencyRecords LeadIdempotencyRecord[]
+  deals                  Deal[]
+  dealDomainEvents       DealDomainEvent[]
+  accounts               Account[]
+  accountingPeriods      AccountingPeriod[]
+  journalEntries         JournalEntry[]
+  journalLines           JournalLine[]
+  commissionPlans        CommissionPlanVersion[]
+  commissionValues       CommissionableValue[]
+  commissionAccruals     CommissionAccrual[]
+  invoices               Invoice[]
+  receivables            Receivable[]
+  paymentRecords         PaymentRecord[]
 }
 
 model Membership {
@@ -134,6 +181,7 @@ model Membership {
   user             User             @relation("MembershipUser", fields: [userId], references: [id], onDelete: Restrict)
   approvedByUser   User?            @relation("MembershipApprover", fields: [approvedByUserId], references: [id], onDelete: Restrict)
   ownedLeads       Lead[]           @relation("LeadOwnerMembership")
+  brokerDeals      Deal[]           @relation("DealBrokerMembership")
 
   @@unique([organizationId, userId])
   @@index([organizationId, status])
@@ -270,6 +318,7 @@ model Property {
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   listings       Listing[]
+  deals          Deal[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -306,10 +355,113 @@ model Lead {
   ownerMembership    Membership              @relation("LeadOwnerMembership", fields: [organizationId, ownerId], references: [organizationId, userId], onDelete: Restrict)
   timelineEvents     LeadTimelineEvent[]
   idempotencyRecords LeadIdempotencyRecord[]
+  notes              LeadNote[]
+  tasks              LeadTask[]
+  deals              Deal[]
 
   @@unique([organizationId, id])
   @@index([organizationId, ownerId])
   @@index([organizationId, stage])
+}
+
+model Deal {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String            @db.Uuid
+  leadId         String            @db.Uuid
+  propertyId     String            @db.Uuid
+  brokerId       String            @db.Uuid
+  status         String            @default("OPEN")
+  version        Int               @default(1)
+  createdAt      DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(6)
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lead           Lead              @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+  property       Property          @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  broker         Membership        @relation("DealBrokerMembership", fields: [organizationId, brokerId], references: [organizationId, userId], onDelete: Restrict)
+  domainEvents         DealDomainEvent[]
+  commissionableValue  CommissionableValue?
+  commissionAccruals   CommissionAccrual[]
+  invoices             Invoice[]
+  receivables          Receivable[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, leadId])
+}
+
+model Invoice {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String       @db.Uuid
+  dealId          String       @db.Uuid
+  amountMinor     BigInt       @db.BigInt
+  currency        String       @db.VarChar(3)
+  status          String       @db.VarChar(20)
+  draftCreatedBy  String       @db.Uuid
+  draftCreatedAt  DateTime     @db.Timestamptz(6)
+  issuedBy        String?      @db.Uuid
+  issuedAt        DateTime?    @db.Timestamptz(6)
+  dueAt           DateTime?    @db.Timestamptz(6)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal            Deal         @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  receivable      Receivable?
+
+  @@unique([organizationId, id])
+  @@index([organizationId, dealId])
+}
+
+model Receivable {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String          @db.Uuid
+  invoiceId           String          @db.Uuid
+  dealId              String          @db.Uuid
+  originalAmountMinor BigInt          @db.BigInt
+  outstandingMinor    BigInt          @db.BigInt
+  currency            String          @db.VarChar(3)
+  status              String          @db.VarChar(20)
+  issuedAt            DateTime        @db.Timestamptz(6)
+  dueAt               DateTime        @db.Timestamptz(6)
+  organization        Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  invoice             Invoice         @relation(fields: [organizationId, invoiceId], references: [organizationId, id], onDelete: Restrict)
+  deal                Deal            @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  paymentRecords      PaymentRecord[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, invoiceId])
+  @@index([organizationId, dealId])
+}
+
+model PaymentRecord {
+  id                 String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String       @db.Uuid
+  receivableId       String       @db.Uuid
+  amountMinor        BigInt       @db.BigInt
+  currency           String       @db.VarChar(3)
+  recordedAt         DateTime     @db.Timestamptz(6)
+  recordedBy         String       @db.Uuid
+  commandScope       String       @db.VarChar(64)
+  idempotencyKey     String       @db.VarChar(200)
+  commandPayloadHash String       @db.VarChar(64)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  receivable         Receivable   @relation(fields: [organizationId, receivableId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, commandScope, idempotencyKey])
+  @@index([organizationId, receivableId])
+}
+
+model DealDomainEvent {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  dealId         String       @db.Uuid
+  type           String
+  schemaVersion  Int
+  occurredAt     DateTime     @db.Timestamptz(6)
+  data              Json
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal              Deal               @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  commissionAccrual CommissionAccrual?
+
+  @@unique([organizationId, id])
+  @@index([organizationId, dealId, occurredAt])
 }
 
 model LeadTimelineEvent {
@@ -327,6 +479,36 @@ model LeadTimelineEvent {
   @@index([idempotencyId])
 }
 
+model LeadNote {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  leadId         String       @db.Uuid
+  body           String
+  createdByUserId String      @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  lead           Lead         @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, leadId, createdAt])
+}
+
+model LeadTask {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @db.Uuid
+  leadId         String         @db.Uuid
+  title          String
+  dueAt          DateTime       @db.Timestamptz(6)
+  status         LeadTaskStatus @default(OPEN)
+  completedAt    DateTime?      @db.Timestamptz(6)
+  version        Int            @default(1)
+  createdByUserId String        @db.Uuid
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  lead           Lead           @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, leadId, status, dueAt])
+}
+
 model LeadIdempotencyRecord {
   id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   organizationId String              @db.Uuid
@@ -342,6 +524,156 @@ model LeadIdempotencyRecord {
   @@unique([organizationId, id])
   @@unique([organizationId, commandScope, idempotencyKey])
   @@index([organizationId, leadId])
+}
+
+model Account {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  code           String       @db.VarChar(64)
+  name           String       @db.VarChar(200)
+  type           AccountType
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  journalLines   JournalLine[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, code])
+  @@index([organizationId, type])
+}
+
+model AccountingPeriod {
+  id             String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String                    @db.Uuid
+  startsAt       DateTime                  @db.Timestamptz(6)
+  endsAt         DateTime                  @db.Timestamptz(6)
+  status         AccountingPeriodStatus
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  journalEntries JournalEntry[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, startsAt, endsAt, status])
+}
+
+model JournalEntry {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String         @db.Uuid
+  status            JournalStatus  @default(DRAFT)
+  currency          String         @db.VarChar(3)
+  reference         String         @db.VarChar(200)
+  reason            String         @db.VarChar(200)
+  actorId           String         @db.Uuid
+  createdAt         DateTime       @db.Timestamptz(6)
+  postedAt          DateTime?      @db.Timestamptz(6)
+  periodId          String?        @db.Uuid
+  reversalOfEntryId String?        @db.Uuid
+  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  period            AccountingPeriod? @relation(fields: [organizationId, periodId], references: [organizationId, id], onDelete: Restrict)
+  reversalOf        JournalEntry? @relation("JournalReversal", fields: [organizationId, reversalOfEntryId], references: [organizationId, id], onDelete: Restrict)
+  reversals         JournalEntry[] @relation("JournalReversal")
+  lines             JournalLine[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, createdAt])
+  @@index([organizationId, periodId, status])
+  @@index([organizationId, reversalOfEntryId])
+}
+
+model JournalLine {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  entryId        String       @db.Uuid
+  accountId      String       @db.Uuid
+  side           JournalSide
+  amountMinor    BigInt       @db.BigInt
+  currency       String       @db.VarChar(3)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  entry          JournalEntry @relation(fields: [organizationId, entryId], references: [organizationId, id], onDelete: Restrict)
+  account        Account      @relation(fields: [organizationId, accountId], references: [organizationId, id], onDelete: Restrict)
+
+  @@index([organizationId, entryId])
+  @@index([organizationId, accountId])
+}
+
+model CommissionPlanVersion {
+  id             String                    @id @db.Uuid
+  organizationId String                    @db.Uuid
+  version        Int
+  rateBps        Int
+  createdAt      DateTime                  @default(now()) @db.Timestamptz(6)
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  recipients     CommissionPlanRecipient[]
+  accruals       CommissionAccrual[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, version])
+  @@index([organizationId, version])
+}
+
+model CommissionPlanRecipient {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String                @db.Uuid
+  planVersionId  String                @db.Uuid
+  order          Int
+  kind           String                @db.VarChar(20)
+  splitBps       Int
+  plan           CommissionPlanVersion @relation(fields: [organizationId, planVersionId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, planVersionId, order])
+  @@index([organizationId, planVersionId, order])
+}
+
+model CommissionableValue {
+  id             String                 @id @db.Uuid
+  organizationId String                 @db.Uuid
+  dealId         String                 @db.Uuid
+  amountMinor    BigInt                 @db.BigInt
+  currency       String                 @db.VarChar(3)
+  capturedBy     String                 @db.Uuid
+  capturedAt     DateTime               @db.Timestamptz(6)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal           Deal                   @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  accruals       CommissionAccrual[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, dealId])
+}
+
+model CommissionAccrual {
+  id                     String                    @id @db.Uuid
+  organizationId         String                    @db.Uuid
+  dealId                 String                    @db.Uuid
+  dealClosedWonEventId   String                    @db.Uuid
+  commissionableValueId  String                    @db.Uuid
+  commissionPlanVersionId String                   @db.Uuid
+  totalAmountMinor       BigInt                    @db.BigInt
+  currency               String                    @db.VarChar(3)
+  status                 String                    @db.VarChar(20)
+  createdAt              DateTime                  @db.Timestamptz(6)
+  organization            Organization              @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal                    Deal                      @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  event                   DealDomainEvent           @relation(fields: [organizationId, dealClosedWonEventId], references: [organizationId, id], onDelete: Restrict)
+  value                   CommissionableValue       @relation(fields: [organizationId, commissionableValueId], references: [organizationId, id], onDelete: Restrict)
+  plan                    CommissionPlanVersion    @relation(fields: [organizationId, commissionPlanVersionId], references: [organizationId, id], onDelete: Restrict)
+  splits                  CommissionAccrualSplit[]
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, dealClosedWonEventId])
+  @@index([organizationId, dealId])
+}
+
+model CommissionAccrualSplit {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String            @db.Uuid
+  accrualId      String            @db.Uuid
+  order          Int
+  kind           String            @db.VarChar(20)
+  amountMinor    BigInt            @db.BigInt
+  currency       String            @db.VarChar(3)
+  accrual        CommissionAccrual @relation(fields: [organizationId, accrualId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, accrualId, order])
+  @@index([organizationId, accrualId, order])
 }
 
 model ImageMetadata {

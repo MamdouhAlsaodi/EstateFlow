@@ -1,4 +1,7 @@
-import type { AuthRateLimitEndpoint, AuthRepository } from "./auth.repository.js";
+import type {
+  AuthRateLimitEndpoint,
+  AuthRepository,
+} from "./auth.repository.js";
 import type { Clock } from "./clock.js";
 import {
   DEFAULT_AUTH_ABUSE_POLICY,
@@ -154,7 +157,10 @@ export class AuthAbuseControl {
   }
 }
 
-function passwordResetSubject(userId: string | null, secretHash: string): string {
+function passwordResetSubject(
+  userId: string | null,
+  secretHash: string,
+): string {
   return userId
     ? `password-reset-subject:${userId}`
     : `password-reset-subject:unknown:${secretHash}`;
@@ -175,14 +181,18 @@ function validateRequestContext(context: AuthRequestAbuseContext): void {
     decodedHash.length !== 32 ||
     decodedHash.toString("base64url") !== clientSourceKeyHash
   ) {
-    throw new Error("Client source key hash must be a canonical 43-character base64url HMAC digest");
+    throw new Error(
+      "Client source key hash must be a canonical 43-character base64url HMAC digest",
+    );
   }
 }
 
 function validateRequestCorrelationId(requestCorrelationId: unknown): void {
   if (
     typeof requestCorrelationId !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestCorrelationId)
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      requestCorrelationId,
+    )
   ) {
     throw new Error("Request correlation ID must be a canonical UUID");
   }

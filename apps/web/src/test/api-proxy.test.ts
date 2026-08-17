@@ -16,7 +16,13 @@ test("accepts an absolute API origin and maps same-origin API paths without dupl
 });
 
 test("rejects missing or malformed API origins", () => {
-  for (const value of [undefined, "", "   ", "api.example.test", "ftp://api.example.test"]) {
+  for (const value of [
+    undefined,
+    "",
+    "   ",
+    "api.example.test",
+    "ftp://api.example.test",
+  ]) {
     assert.throws(() => resolveApiOrigin(value), /API_ORIGIN/);
   }
 });

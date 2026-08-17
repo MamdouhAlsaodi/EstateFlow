@@ -30,7 +30,11 @@ type ParsedPasswordHash = PasswordHashPolicy & {
   tag: Buffer;
 };
 
-function isSafeIntegerInRange(value: number, minimum: number, maximum: number): boolean {
+function isSafeIntegerInRange(
+  value: number,
+  minimum: number,
+  maximum: number,
+): boolean {
   return Number.isSafeInteger(value) && value >= minimum && value <= maximum;
 }
 
@@ -57,11 +61,7 @@ function isSafeStoredEnvelopePolicy(policy: PasswordHashPolicy): boolean {
       MINIMUM_SALT_BYTES,
       MAXIMUM_SALT_BYTES,
     ) &&
-    isSafeIntegerInRange(
-      policy.tagBytes,
-      MINIMUM_TAG_BYTES,
-      MAXIMUM_TAG_BYTES,
-    )
+    isSafeIntegerInRange(policy.tagBytes, MINIMUM_TAG_BYTES, MAXIMUM_TAG_BYTES)
   );
 }
 
@@ -151,7 +151,11 @@ export class NodeCryptoPasswordHasher implements PasswordHasher {
   async verify(password: string, passwordHash: string): Promise<boolean> {
     const parsedHash = parsePasswordHash(passwordHash);
     if (!parsedHash) return false;
-    const derivedTag = await deriveArgon2id(password, parsedHash.salt, parsedHash);
+    const derivedTag = await deriveArgon2id(
+      password,
+      parsedHash.salt,
+      parsedHash,
+    );
     return (
       derivedTag.length === parsedHash.tag.length &&
       timingSafeEqual(derivedTag, parsedHash.tag)

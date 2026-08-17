@@ -3,9 +3,18 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { format } from "prettier";
 import { generateOpenApiClient } from "./openapi-client-template.mjs";
-import { AppModule } from "../apps/api/dist/app.module.js";
-import { buildOpenApiDocument } from "../apps/api/dist/openapi.js";
 
+Object.assign(globalThis.process.env, {
+  NODE_ENV: "test",
+  ESTATEFLOW_BROWSER_ORIGIN: "https://app.estateflow.test",
+  ESTATEFLOW_AUTH_HASH_KEY: "a".repeat(32),
+  ESTATEFLOW_AUDIT_HASH_KEY: "b".repeat(32),
+  ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+});
+delete globalThis.process.env.DATABASE_URL;
+
+const { AppModule } = await import("../apps/api/dist/app.module.js");
+const { buildOpenApiDocument } = await import("../apps/api/dist/openapi.js");
 const requireApi = createRequire(
   new globalThis.URL("../apps/api/package.json", import.meta.url),
 );

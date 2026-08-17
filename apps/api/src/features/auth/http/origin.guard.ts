@@ -20,7 +20,11 @@ export class RequireCanonicalOriginGuard implements CanActivate {
     if (!UNSAFE_METHODS.has(request.method)) return true;
 
     const origin = request.headers.origin;
-    if (typeof origin !== "string" || origin.includes(",") || origin !== this.canonicalOrigin) {
+    if (
+      typeof origin !== "string" ||
+      origin.includes(",") ||
+      origin !== this.canonicalOrigin
+    ) {
       throw new ForbiddenException();
     }
     return true;

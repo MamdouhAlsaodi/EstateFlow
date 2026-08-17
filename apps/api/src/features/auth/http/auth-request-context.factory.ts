@@ -13,7 +13,9 @@ export class AuthRequestContextFactory {
     @Inject(AUTH_KEY_HASHER) private readonly keyHasher: AuthKeyHasher,
   ) {}
 
-  create(request: Pick<Request, "socket" | "requestId">): AuthRequestAbuseContext {
+  create(
+    request: Pick<Request, "socket" | "requestId">,
+  ): AuthRequestAbuseContext {
     return {
       clientSourceKeyHash: this.keyHasher.hashClientSource(
         directClientSource(request.socket.remoteAddress),
@@ -26,7 +28,9 @@ export class AuthRequestContextFactory {
 function requestCorrelationId(requestId: string | undefined): string {
   if (
     typeof requestId !== "string" ||
-    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      requestId,
+    )
   ) {
     throw new Error("Auth request context requires a canonical request ID");
   }

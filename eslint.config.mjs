@@ -17,10 +17,18 @@ export default tseslint.config(
     languageOptions: {
       globals: {
         console: "readonly",
+        fetch: "readonly",
+        process: "readonly",
+        structuredClone: "readonly",
+        URL: "readonly",
       },
     },
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { ignoreRestSiblings: true },
+      ],
     },
   },
 );

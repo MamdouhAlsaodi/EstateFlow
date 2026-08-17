@@ -17,7 +17,9 @@ export type ParsedAuthCookies = {
   csrf?: string;
 };
 
-export function parseAuthCookies(rawCookieHeader: string | undefined): ParsedAuthCookies {
+export function parseAuthCookies(
+  rawCookieHeader: string | undefined,
+): ParsedAuthCookies {
   if (rawCookieHeader === undefined) return {};
   rejectControlCharacters(rawCookieHeader);
 
@@ -28,7 +30,10 @@ export function parseAuthCookies(rawCookieHeader: string | undefined): ParsedAut
   return cookies;
 }
 
-function parseCookieSegment(rawCookie: string, cookies: ParsedAuthCookies): void {
+function parseCookieSegment(
+  rawCookie: string,
+  cookies: ParsedAuthCookies,
+): void {
   if (!rawCookie.trim()) return;
   const separator = rawCookie.indexOf("=");
   const name = rawCookie.slice(0, Math.max(separator, 0)).trim();
@@ -43,7 +48,11 @@ function parseCookieSegment(rawCookie: string, cookies: ParsedAuthCookies): void
 }
 
 function isAuthCookieName(name: string): boolean {
-  return name === ACCESS_COOKIE_NAME || name === REFRESH_COOKIE_NAME || name === CSRF_COOKIE_NAME;
+  return (
+    name === ACCESS_COOKIE_NAME ||
+    name === REFRESH_COOKIE_NAME ||
+    name === CSRF_COOKIE_NAME
+  );
 }
 
 function decodeCookieComponent(rawValue: string): string {
@@ -68,12 +77,18 @@ function isControlCharacter(character: string): boolean {
   return codePoint !== undefined && (codePoint <= 0x1f || codePoint === 0x7f);
 }
 
-function setAccessCookie(cookies: ParsedAuthCookies, cookieValue: string): void {
+function setAccessCookie(
+  cookies: ParsedAuthCookies,
+  cookieValue: string,
+): void {
   if (cookies.access) throw new InvalidAuthCookieError();
   cookies.access = parseCredential(cookieValue);
 }
 
-function setRefreshCookie(cookies: ParsedAuthCookies, cookieValue: string): void {
+function setRefreshCookie(
+  cookies: ParsedAuthCookies,
+  cookieValue: string,
+): void {
   if (cookies.refresh) throw new InvalidAuthCookieError();
   cookies.refresh = parseCredential(cookieValue);
 }
@@ -86,14 +101,20 @@ function setCsrfCookie(cookies: ParsedAuthCookies, cookieValue: string): void {
 }
 
 export function isCanonicalCsrfToken(token: string): boolean {
-  return /^[A-Za-z0-9_-]{43}$/.test(token) && Buffer.from(token, "base64url").toString("base64url") === token;
+  return (
+    /^[A-Za-z0-9_-]{43}$/.test(token) &&
+    Buffer.from(token, "base64url").toString("base64url") === token
+  );
 }
 
 function parseCredential(cookieValue: string): OpaqueCredential {
   try {
     return parseOpaqueCredential(cookieValue);
   } catch (error) {
-    if (error instanceof Error && error.message === "Malformed opaque credential") {
+    if (
+      error instanceof Error &&
+      error.message === "Malformed opaque credential"
+    ) {
       throw new InvalidAuthCookieError();
     }
     throw error;
