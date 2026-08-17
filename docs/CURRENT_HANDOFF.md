@@ -16,7 +16,7 @@ docs/handoffs/EF-120-III/independent-verification.md
 /home/server/projects/estateflow
 ```
 
-The workspace is a Git repository. No commit, push, deployment, or public exposure is authorized. No live services are required.
+The workspace is a Git repository. The verified EF-233 closure is authorized for commit/push by the user after all local gates pass. No deployment, live-service mutation, or public exposure is authorized.
 
 ## Product scope
 
@@ -67,8 +67,15 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-232 T3 — exact three guarded commission HTTP commands, strict bigint-safe DTO boundary, Owner/Manager matrix, replay, tenant no-mutation proof, and type-safe serialized response boundary: **PASS**. Evidence: `docs/handoffs/EF-232/T3-independent-verification-2026-08-15.md`.
 - EF-232 T4 — closed OpenAPI and generated client for exactly the three accepted commission commands; strict default-or-complete-policy union; generation/drift/client contract proof: **PASS**. Evidence: `docs/handoffs/EF-232/T4-independent-verification-2026-08-15.md`.
 - EF-232 Web — Arabic organization-scoped command workspace for exactly plan creation, commissionable-value capture, and expected accrual; same-origin CSRF transport, strict client preflight, real replay messaging, production Next build: **PASS**. Evidence: `docs/handoffs/EF-232/WEB-independent-verification-2026-08-15.md`.
+- EF-233 T0/T1/T2 — accepted invoice/receivable/payment authority, domain/application contract, guarded persistence, concurrency recovery, durable idempotency, and issued-invoice database immutability: **PASS**. Evidence: `docs/handoffs/EF-233/T0-receivable-invoice-payment-contract.md`, `docs/handoffs/EF-233/T1-independent-verification-2026-08-15.md`, and `docs/handoffs/EF-233/T2-independent-verification-2026-08-16.md`.
+- EF-233 T3 — exactly three guarded Owner/Manager HTTP commands for draft, issue, and payment; strict bigint/UTC DTOs, server-owned replay-safe payment identity, tenant-safe errors, and isolated PostgreSQL runtime proof: **PASS**. Evidence: `docs/handoffs/EF-233/T3-independent-verification-2026-08-17.md`.
+- EF-233 T4 — exact Swagger/OpenAPI publication and closed-world generated client for the same three commands; payment-only idempotency header, exact schemas/statuses, unsupported-operation rejection, deterministic formatted generation, and drift proof: **PASS**. Evidence: `docs/handoffs/EF-233/T4-independent-verification-2026-08-17.md`.
+- EF-233 T5A/T5B — cancellation/aging domain/application and guarded PostgreSQL persistence, immutable one-way cancellation audit, payment race safety, and stable bounded aging cursor: **PASS**. Evidence: `docs/handoffs/EF-233/T5A-independent-verification-2026-08-17.md` and `docs/handoffs/EF-233/T5B-independent-verification-2026-08-17.md`.
+- EF-233 T5C/T5D — guarded cancellation/aging HTTP plus exact OpenAPI and deterministic generated client: **PASS**. Evidence: `docs/handoffs/EF-233/T5C-independent-verification-2026-08-17.md` and `docs/handoffs/EF-233/T5D-independent-verification-2026-08-17.md`.
+- EF-233 T5E — Arabic organization-scoped cancellation and aging workspace with strict client normalization and live visual/DOM review: **PASS**. Evidence: `docs/handoffs/EF-233/T5E-independent-verification-2026-08-17.md`.
+- EF-233 / FIN-03 — complete PRD reconciliation, 12 migrations, isolated unit suites, 14 serial PostgreSQL integration files / 21 tests, production builds, OpenAPI drift, formatting, and cleanup: **CLOSED / PASS**. Evidence: `docs/handoffs/EF-233/EF-233-final-verification-2026-08-17.md`.
 
-EF-120, EF-121, EF-201, EF-202, and EF-203 are closed within their documented boundaries.
+EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, and EF-233 are closed within their documented boundaries.
 
 ## EF-120 authentication decision
 
@@ -109,7 +116,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-231 and EF-232 (T1 through T4 plus accepted Web command workspace) are closed within their documented boundaries. EF-233 T0/T1/T2 are accepted; guarded HTTP is the next unopened boundary.** Invoice amount authority is an explicit Owner/Manager draft amount for an existing organization-scoped Deal—not Deal, Commissionable Value, or Commission Accrual—and becomes immutable at issue. Issuing atomically creates one receivable; partial payments are exact-money, idempotent, same-currency, and cannot overpay. T2 proves database composite ownership, one receivable per invoice, atomic issue, durable idempotency, no-overpayment under concurrency, and issued-invoice database immutability on `estateflow_test` only. Do not extend EF-233 implicitly to draft amendment/cancellation, ledger posting/reversal, receivable reads/aging/dashboard, exports, reminders, gateway/bank reconciliation, provider behavior, OpenAPI/client/Web, or Deal/Lead changes. T3 must be separately packeted for guarded Owner/Manager HTTP only after scoped controller/DTO/auth precedent review. Contract/evidence: `docs/handoffs/EF-233/T0-receivable-invoice-payment-contract.md`, `docs/handoffs/EF-233/T1-independent-verification-2026-08-15.md`, `docs/handoffs/EF-233/T2-independent-verification-2026-08-16.md`.
+**EF-231 and EF-233 are closed within their documented boundaries; FIN-03 is `IMPLEMENTED`. FIN-02 remains partial despite the accepted EF-232 expected-commission slice. EF-234 / FIN-04 is the next roadmap task but has not started.** Before beginning EF-234, recover its PRD/development-plan contract and obtain explicit execution approval. Preserve the accepted EF-233 behavior and do not infer refunds, payment reversals, gateway/bank reconciliation, reminders, exports, ledger automation, or dashboard reporting. Evidence: `docs/handoffs/EF-233/EF-233-final-verification-2026-08-17.md` and `docs/handoffs/EF-233/finance-prd-traceability-2026-08-17.md`.
 
 ## EF-202 verified boundary
 

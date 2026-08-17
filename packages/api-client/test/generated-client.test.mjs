@@ -189,6 +189,248 @@ test("generated client serializes the three Commission commands without invented
   ]);
 });
 
+test("generated client serializes exactly the five Receivable commands", async () => {
+  const requests = [];
+  const client = createEstateFlowClient({
+    baseUrl: "https://example.test/api/",
+    fetch: async (input, init) => {
+      requests.push({ input, init });
+      return { ok: true, json: async () => ({}) };
+    },
+  });
+
+  await client.createInvoiceDraft(
+    { organizationId: "org/1", dealId: "deal?2" },
+    { amountMinor: "9007199254740993", currency: "USD" },
+  );
+  await client.issueInvoice(
+    { organizationId: "org/1", invoiceId: "invoice?2" },
+    {
+      receivableId: "receivable/1",
+      issuedAt: "2026-08-17T10:00:00.000Z",
+      dueAt: "2026-09-17T10:00:00.000Z",
+    },
+  );
+  await client.cancelInvoice(
+    { organizationId: "org/1", invoiceId: "invoice?2" },
+    { reason: "Customer request" },
+  );
+  await client.getReceivableAging({
+    organizationId: "org/1",
+    cursor: "next/page",
+    limit: 25,
+  });
+  await client.getReceivableAging({ organizationId: "org/1" });
+  await client.recordReceivablePayment(
+    {
+      organizationId: "org/1",
+      receivableId: "receivable?2",
+      idempotencyKey: "payment-key",
+    },
+    {
+      amountMinor: "500",
+      currency: "USD",
+      recordedAt: "2026-08-18T10:00:00.000Z",
+    },
+  );
+
+  assert.deepEqual(requests, [
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/deals/deal%3F2/invoices",
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          amountMinor: "9007199254740993",
+          currency: "USD",
+        }),
+      },
+    },
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/invoices/invoice%3F2/issue",
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          receivableId: "receivable/1",
+          issuedAt: "2026-08-17T10:00:00.000Z",
+          dueAt: "2026-09-17T10:00:00.000Z",
+        }),
+      },
+    },
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/invoices/invoice%3F2/cancel",
+      init: {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "Customer request" }),
+      },
+    },
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/receivables/aging?cursor=next%2Fpage&limit=25",
+      init: { method: "GET" },
+    },
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/receivables/aging",
+      init: { method: "GET" },
+    },
+    {
+      input:
+        "https://example.test/api/organizations/org%2F1/finance/receivables/receivable%3F2/payments",
+      init: {
+        method: "POST",
+        headers: {
+          "Idempotency-Key": "payment-key",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          amountMinor: "500",
+          currency: "USD",
+          recordedAt: "2026-08-18T10:00:00.000Z",
+        }),
+      },
+    },
+  ]);
+});
+
+test("generated source exposes exact receivable aging types and signature", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const generated = await readFile(
+    new URL("../src/generated.ts", import.meta.url),
+    "utf8",
+  );
+  assert.ok(generated.includes("export type ReceivableAgingBucket ="));
+  assert.ok(generated.includes("bucket: ReceivableAgingBucket;"));
+  assert.ok(generated.includes("export type ReceivableAgingResponse ="));
+  assert.ok(generated.includes("items: ReceivableAgingItem[];"));
+  assert.match(generated, /getReceivableAging:/);
+});
+
+test("generated client passes through typed aging JSON at runtime", async () => {
+  const expected = {
+    asOf: "2026-08-17T00:00:00.000Z",
+    items: [],
+    nextCursor: "abc_123",
+  };
+  const client = createEstateFlowClient({
+    baseUrl: "https://example.test",
+    fetch: async () => ({ ok: true, json: async () => expected }),
+  });
+  assert.deepEqual(
+    await client.getReceivableAging({ organizationId: "org" }),
+    expected,
+  );
+});
+
+test("generator rejects a Receivable payment contract without its required idempotency header", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const document = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  const operation =
+    document.paths[
+      "/organizations/{organizationId}/finance/receivables/{receivableId}/payments"
+    ].post;
+  operation.parameters = operation.parameters.filter(
+    ({ name }) => name !== "Idempotency-Key",
+  );
+
+  assert.throws(() => generateOpenApiClient(document), {
+    message: /must define exactly its required parameters/,
+  });
+});
+
+test("generator rejects mutated Receivable aging and cancellation contracts", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const document = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  const aging =
+    document.paths["/organizations/{organizationId}/finance/receivables/aging"]
+      .get;
+  aging.parameters.push({
+    name: "asOf",
+    in: "query",
+    required: false,
+    schema: { type: "string" },
+  });
+  assert.throws(
+    () => generateOpenApiClient(document),
+    /must define exactly its required parameters/,
+  );
+  const cancellation = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  const cancel =
+    cancellation.paths[
+      "/organizations/{organizationId}/finance/invoices/{invoiceId}/cancel"
+    ].post;
+  cancel.requestBody.content["application/json"].schema.properties.actor = {
+    type: "string",
+  };
+  assert.throws(
+    () => generateOpenApiClient(cancellation),
+    /exact JSON body contract/,
+  );
+  const response = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  delete response.paths[
+    "/organizations/{organizationId}/finance/receivables/aging"
+  ].get.responses["200"].content["application/json"].schema.properties.items;
+  assert.throws(
+    () => generateOpenApiClient(response),
+    /exact 200 response schema/,
+  );
+  const wrongQuery = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  wrongQuery.paths[
+    "/organizations/{organizationId}/finance/receivables/aging"
+  ].get.parameters.find(({ name }) => name === "limit").schema.maximum = 99;
+  assert.throws(() => generateOpenApiClient(wrongQuery), /required parameters/);
+  const wrongCancel = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  const cancelOperation =
+    wrongCancel.paths[
+      "/organizations/{organizationId}/finance/invoices/{invoiceId}/cancel"
+    ].post;
+  cancelOperation.parameters.push({
+    name: "Idempotency-Key",
+    in: "header",
+    required: true,
+    schema: { type: "string" },
+  });
+  assert.throws(
+    () => generateOpenApiClient(wrongCancel),
+    /required parameters/,
+  );
+  cancelOperation.parameters.pop();
+  delete cancelOperation.responses["409"];
+  assert.throws(() => generateOpenApiClient(wrongCancel), /error status 409/);
+});
+
+test("generator rejects an unsupported ReceivableController operation", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const document = JSON.parse(
+    await readFile(new URL("../openapi.json", import.meta.url), "utf8"),
+  );
+  document.paths["/organizations/{organizationId}/finance/receivables"] = {
+    get: { operationId: "ReceivableController_list" },
+  };
+
+  assert.throws(() => generateOpenApiClient(document), {
+    message:
+      /Unsupported OpenAPI ReceivableController operation GET \/organizations\/{organizationId}\/finance\/receivables/,
+  });
+});
+
 test("generator accepts the two documented Lead close operations", async () => {
   const { readFile } = await import("node:fs/promises");
   const document = JSON.parse(

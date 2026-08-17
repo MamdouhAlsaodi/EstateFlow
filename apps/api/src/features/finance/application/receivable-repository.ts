@@ -23,6 +23,10 @@ export type InvoiceIssueCommand = Readonly<{
   invoice: Invoice;
   receivable: Receivable;
 }>;
+export type InvoiceCancellationCommand = Readonly<{
+  invoice: Invoice;
+  receivable: Receivable;
+}>;
 export type ReceivablePaymentCommandScope = "RECEIVABLE_PAYMENT_RECORD";
 export type PaymentIdempotencyCommand = Readonly<{
   scope: ReceivablePaymentCommandScope;
@@ -45,6 +49,21 @@ export type PaymentIdempotencyResolution =
       receivable: Receivable;
     }>
   | Readonly<{ kind: "conflict"; reason: "idempotency-payload-conflict" }>;
+export type ReceivableCancellationConflictReason =
+  "payments-exist" | "invoice-not-cancellable" | "cancellation-replay-conflict";
+export type ReceivableAgingCursor = Readonly<{
+  dueAt: Date;
+  receivableId: string;
+}>;
+export type OutstandingReceivablesQuery = Readonly<{
+  organizationId: string;
+  after?: ReceivableAgingCursor;
+  limit: number;
+}>;
+export type ReceivableCancellationConflict = Readonly<{
+  kind: "conflict";
+  reason: ReceivableCancellationConflictReason;
+}>;
 export type ReceivableMutationResult =
   | Readonly<{ kind: "created"; invoice: Invoice }>
   | Readonly<{ kind: "issued"; invoice: Invoice; receivable: Receivable }>
@@ -59,7 +78,9 @@ export type ReceivableMutationResult =
       receivable: Receivable;
     }>
   | Readonly<{ kind: "replayed"; invoice: Invoice; receivable: Receivable }>
-  | ReceivablePersistenceConflict;
+  | Readonly<{ kind: "cancelled"; invoice: Invoice; receivable: Receivable }>
+  | ReceivablePersistenceConflict
+  | ReceivableCancellationConflict;
 
 export interface ReceivableRepository {
   findDeal(
@@ -86,4 +107,11 @@ export interface ReceivableRepository {
   ): Promise<ReceivableMutationResult>;
   issueInvoice(input: InvoiceIssueCommand): Promise<ReceivableMutationResult>;
   recordPayment(input: PaymentCommand): Promise<ReceivableMutationResult>;
+  hasPayments(organizationId: string, receivableId: string): Promise<boolean>;
+  cancelInvoice(
+    input: InvoiceCancellationCommand,
+  ): Promise<ReceivableMutationResult>;
+  listOutstandingReceivables(
+    query: OutstandingReceivablesQuery,
+  ): Promise<readonly Receivable[]>;
 }

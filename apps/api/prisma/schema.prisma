@@ -141,6 +141,7 @@ model User {
   memberships         Membership[]        @relation("MembershipUser")
   approvedMemberships Membership[]        @relation("MembershipApprover")
   ownedLeads          Lead[]              @relation("LeadOwner")
+  cancelledInvoices   Invoice[]           @relation("InvoiceCancelledBy")
 }
 
 model Organization {
@@ -397,15 +398,20 @@ model Invoice {
   status          String       @db.VarChar(20)
   draftCreatedBy  String       @db.Uuid
   draftCreatedAt  DateTime     @db.Timestamptz(6)
-  issuedBy        String?      @db.Uuid
-  issuedAt        DateTime?    @db.Timestamptz(6)
-  dueAt           DateTime?    @db.Timestamptz(6)
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  deal            Deal         @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
-  receivable      Receivable?
+  issuedBy          String?       @db.Uuid
+  issuedAt          DateTime?     @db.Timestamptz(6)
+  dueAt             DateTime?     @db.Timestamptz(6)
+  cancelledBy       String?       @db.Uuid
+  cancelledAt       DateTime?     @db.Timestamptz(6)
+  cancellationReason String?
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal              Deal          @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  cancelledByUser   User?         @relation("InvoiceCancelledBy", fields: [cancelledBy], references: [id], onDelete: Restrict)
+  receivable        Receivable?
 
   @@unique([organizationId, id])
   @@index([organizationId, dealId])
+  @@index([cancelledBy])
 }
 
 model Receivable {
@@ -427,6 +433,7 @@ model Receivable {
   @@unique([organizationId, id])
   @@unique([organizationId, invoiceId])
   @@index([organizationId, dealId])
+  @@index([organizationId, status, dueAt, id])
 }
 
 model PaymentRecord {

@@ -34,9 +34,10 @@ try {
     resolve(outputDirectory, "openapi.json"),
     await format(JSON.stringify(document), { parser: "json" }),
   );
+  const generatedPath = resolve(outputDirectory, "src/generated.ts");
   await writeFile(
-    resolve(outputDirectory, "src/generated.ts"),
-    generatedClient,
+    generatedPath,
+    await format(generatedClient, { filepath: generatedPath }),
   );
 } finally {
   await app.close();

@@ -28,6 +28,9 @@ export type Invoice = Readonly<{
   issuedBy?: string;
   issuedAt?: Date;
   dueAt?: Date;
+  cancelledBy?: string;
+  cancelledAt?: Date;
+  cancellationReason?: string;
 }>;
 export type Receivable = Readonly<{
   id: string;
@@ -75,6 +78,25 @@ type PaymentInput = Readonly<{
   idempotencyKey: string;
   commandPayloadHash: string;
 }>;
+export type CancellationAudit = Readonly<{
+  cancelledBy: string;
+  cancelledAt: Date;
+  reason: string;
+}>;
+export type InvoiceCancellationInput = Readonly<{
+  invoice: Invoice;
+  receivable: Receivable;
+  cancelledBy: string;
+  cancelledAt: Date;
+  reason: string;
+  hasPayments: boolean;
+}>;
+export type AgingBucket =
+  "CURRENT" | "DAYS_1_30" | "DAYS_31_60" | "DAYS_61_90" | "DAYS_91_PLUS";
+export type ReceivableAging = Readonly<{
+  daysPastDue: number;
+  bucket: AgingBucket;
+}>;
 
 function text(value: string, field: string): string {
   if (
@@ -98,6 +120,65 @@ function money(amountMinor: bigint, currency: string): Money {
   if (typeof currency !== "string" || !/^[A-Za-z]{3}$/.test(currency))
     throw new ReceivableValidationError("Currency must be a three-letter code");
   return Object.freeze({ amountMinor, currency: currency.toUpperCase() });
+}
+function cancellationReason(value: string): string {
+  if (typeof value !== "string")
+    throw new ReceivableValidationError("Invalid cancellation reason");
+  const canonical = value.trim();
+  if (canonical.length === 0 || Array.from(canonical).length > 500)
+    throw new ReceivableValidationError("Invalid cancellation reason");
+  return canonical;
+}
+export function canonicalCancellationAudit(
+  input: Readonly<{
+    cancelledBy: string;
+    cancelledAt: Date;
+    reason: string;
+  }>,
+): CancellationAudit {
+  return Object.freeze({
+    cancelledBy: text(input.cancelledBy, "cancellation actor"),
+    cancelledAt: date(input.cancelledAt, "cancellation time"),
+    reason: cancellationReason(input.reason),
+  });
+}
+export function sameCancellationAudit(
+  invoice: Invoice,
+  input: Readonly<{
+    cancelledBy: string;
+    cancelledAt: Date;
+    reason: string;
+  }>,
+): boolean {
+  const audit = canonicalCancellationAudit(input);
+  return (
+    invoice.cancelledBy === audit.cancelledBy &&
+    invoice.cancelledAt?.getTime() === audit.cancelledAt.getTime() &&
+    invoice.cancellationReason === audit.reason
+  );
+}
+function sameCancellationResource(
+  invoice: Invoice,
+  receivable: Receivable,
+): boolean {
+  return (
+    invoice.id === receivable.invoiceId &&
+    invoice.organizationId === receivable.organizationId &&
+    invoice.dealId === receivable.dealId &&
+    receivable.originalMoney.amountMinor === invoice.money.amountMinor &&
+    receivable.originalMoney.currency === invoice.money.currency &&
+    invoice.issuedBy !== undefined &&
+    invoice.issuedAt !== undefined &&
+    invoice.dueAt !== undefined &&
+    receivable.issuedAt.getTime() === invoice.issuedAt.getTime() &&
+    receivable.dueAt.getTime() === invoice.dueAt.getTime()
+  );
+}
+function agingBucket(daysPastDue: number): AgingBucket {
+  if (daysPastDue <= 30) return "DAYS_1_30";
+  if (daysPastDue <= 60) return "DAYS_31_60";
+  if (daysPastDue <= 90) return "DAYS_61_90";
+  return "DAYS_91_PLUS";
 }
 
 export function createInvoiceDraft(input: DraftInput): Invoice {
@@ -143,6 +224,65 @@ export function issueInvoice(
     dueAt,
   });
   return Object.freeze({ invoice: issuedInvoice, receivable });
+}
+
+export function cancelInvoice(input: InvoiceCancellationInput): Readonly<{
+  invoice: Invoice;
+  receivable: Receivable;
+}> {
+  const audit = canonicalCancellationAudit(input);
+  validateCancellationState(input, audit);
+  return Object.freeze({
+    invoice: Object.freeze({
+      ...input.invoice,
+      status: "CANCELLED" as const,
+      cancelledBy: audit.cancelledBy,
+      cancelledAt: audit.cancelledAt,
+      cancellationReason: audit.reason,
+    }),
+    receivable: Object.freeze({
+      ...input.receivable,
+      status: "CANCELLED" as const,
+    }),
+  });
+}
+
+function validateCancellationState(
+  input: InvoiceCancellationInput,
+  audit: CancellationAudit,
+): void {
+  if (input.invoice.status !== "ISSUED")
+    throw new ReceivableStateError("Only issued invoices can be cancelled");
+  if (input.receivable.status !== "OPEN")
+    throw new ReceivableStateError("Only open receivables can be cancelled");
+  if (
+    input.receivable.outstandingMinor !==
+    input.receivable.originalMoney.amountMinor
+  )
+    throw new ReceivableStateError("Paid receivables cannot be cancelled");
+  if (input.hasPayments)
+    throw new ReceivableStateError(
+      "Receivables with payments cannot be cancelled",
+    );
+  if (!sameCancellationResource(input.invoice, input.receivable))
+    throw new ReceivableStateError("Invoice and receivable do not match");
+  if (audit.cancelledAt < input.invoice.issuedAt!)
+    throw new ReceivableValidationError(
+      "Cancellation time cannot precede issue time",
+    );
+}
+
+export function classifyReceivableAging(
+  receivable: Receivable,
+  asOf: Date,
+): ReceivableAging | null {
+  const instant = date(asOf, "as of time");
+  if (receivable.status === "PAID" || receivable.status === "CANCELLED")
+    return null;
+  const elapsed = instant.getTime() - receivable.dueAt.getTime();
+  if (elapsed <= 0) return { daysPastDue: 0, bucket: "CURRENT" };
+  const daysPastDue = Math.ceil(elapsed / 86_400_000);
+  return { daysPastDue, bucket: agingBucket(daysPastDue) };
 }
 
 export function recordPayment(

@@ -266,10 +266,11 @@ test(
           },
         ],
       });
-      const owner = await sessionFor(prisma, issuer, ownerId, now);
-      const manager = await sessionFor(prisma, issuer, managerId, now);
-      const broker = await sessionFor(prisma, issuer, brokerId, now);
-      const other = await sessionFor(prisma, issuer, otherOwnerId, now);
+      const sessionNow = new Date();
+      const owner = await sessionFor(prisma, issuer, ownerId, sessionNow);
+      const manager = await sessionFor(prisma, issuer, managerId, sessionNow);
+      const broker = await sessionFor(prisma, issuer, brokerId, sessionNow);
+      const other = await sessionFor(prisma, issuer, otherOwnerId, sessionNow);
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${app.getHttpServer().address().port}`;
       const planPath = `/organizations/${organizationId}/finance/commission-plan-versions`;

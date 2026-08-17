@@ -24,6 +24,7 @@ import type { LedgerRepository } from "./application/ledger-repository.js";
 import { PrismaLedgerRepository } from "./infrastructure/prisma-ledger.repository.js";
 import { LedgerController } from "./http/ledger.controller.js";
 import { CommissionController } from "./http/commission.controller.js";
+import { ReceivableController } from "./http/receivable.controller.js";
 
 class PrismaCommissionMembershipReader implements CommissionMembershipReader {
   constructor(private readonly prisma: PrismaService) {}
@@ -69,7 +70,7 @@ class PrismaLedgerMembershipReader implements LedgerMembershipReader {
 
 @Module({
   imports: [AuthModule],
-  controllers: [LedgerController, CommissionController],
+  controllers: [LedgerController, CommissionController, ReceivableController],
   providers: [
     {
       provide: PrismaCommissionRepository,

@@ -1,0 +1,120 @@
+.workspace {
+  display: grid;
+  gap: var(--ef-space-8);
+}
+.reconciliationGrid {
+  display: grid;
+  gap: var(--ef-space-5);
+  grid-template-columns: minmax(18rem, 0.8fr) minmax(0, 1.8fr);
+}
+.panel {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-medium);
+  box-shadow: 0 0.7rem 2rem rgb(27 44 48 / 6%);
+  display: grid;
+  gap: var(--ef-space-4);
+  min-width: 0;
+  padding: var(--ef-space-5);
+}
+.panelHeading h2 {
+  margin: 0 0 var(--ef-space-1);
+}
+.panelHeading p:last-child {
+  color: var(--ef-ink-muted);
+  margin: 0;
+}
+.form {
+  display: grid;
+  gap: var(--ef-space-3);
+}
+.form label {
+  display: grid;
+  gap: var(--ef-space-1);
+}
+.form input,
+.form textarea {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-small);
+  font: inherit;
+  min-height: 2.8rem;
+  padding: var(--ef-space-2) var(--ef-space-3);
+  width: 100%;
+}
+.form textarea {
+  min-height: 7rem;
+  resize: vertical;
+}
+.form input:focus-visible,
+.form textarea:focus-visible {
+  border-color: var(--ef-gold);
+  outline: 3px solid color-mix(in srgb, var(--ef-gold) 20%, transparent);
+  outline-offset: 1px;
+}
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-3);
+  justify-content: space-between;
+}
+.technical {
+  color: var(--ef-ink-muted);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+}
+.state {
+  border-inline-start: 0.3rem solid var(--ef-gold);
+  margin: 0;
+  padding: var(--ef-space-3);
+}
+.success {
+  border-inline-start-color: var(--ef-success);
+}
+.error {
+  border-inline-start-color: var(--ef-danger);
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.tableWrap table {
+  border-collapse: collapse;
+  min-width: 48rem;
+  width: 100%;
+}
+.tableWrap caption {
+  color: var(--ef-ink-muted);
+  padding-bottom: var(--ef-space-3);
+  text-align: start;
+}
+.tableWrap th,
+.tableWrap td {
+  border-bottom: 1px solid var(--ef-line);
+  padding: var(--ef-space-3);
+  text-align: start;
+  vertical-align: top;
+}
+.tableWrap th {
+  color: var(--ef-ink-muted);
+  font-size: 0.82rem;
+}
+.tableWrap small {
+  color: var(--ef-ink-muted);
+  display: block;
+  font-size: 0.72rem;
+  margin-top: 0.25rem;
+}
+.money {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (max-width: 900px) {
+  .reconciliationGrid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    scroll-behavior: auto;
+  }
+}

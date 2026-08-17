@@ -32,6 +32,29 @@ export type LeadDetailResponse = {
   }>;
 };
 
+export type ReceivableAgingBucket =
+  "CURRENT" | "DAYS_1_30" | "DAYS_31_60" | "DAYS_61_90" | "DAYS_91_PLUS";
+
+export type ReceivableAgingItem = {
+  receivableId: string;
+  invoiceId: string;
+  dealId: string;
+  currency: string;
+  originalAmountMinor: string;
+  outstandingMinor: string;
+  status: "OPEN" | "PARTIALLY_PAID";
+  issuedAt: string;
+  dueAt: string;
+  daysPastDue: number;
+  bucket: ReceivableAgingBucket;
+};
+
+export type ReceivableAgingResponse = {
+  asOf: string;
+  items: ReceivableAgingItem[];
+  nextCursor?: string;
+};
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -268,6 +291,75 @@ export function createEstateFlowClient({
         {
           method: "POST",
           headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    createInvoiceDraft: (
+      params: { organizationId: string; dealId: string },
+      body: { amountMinor: string; currency: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/deals/${encodeURIComponent(params.dealId)}/invoices`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    issueInvoice: (
+      params: { organizationId: string; invoiceId: string },
+      body: { receivableId: string; issuedAt: string; dueAt: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/invoices/${encodeURIComponent(params.invoiceId)}/issue`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    cancelInvoice: (
+      params: { organizationId: string; invoiceId: string },
+      body: { reason: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/invoices/${encodeURIComponent(params.invoiceId)}/cancel`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    getReceivableAging: (params: {
+      organizationId: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<ReceivableAgingResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/receivables/aging` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    recordReceivablePayment: (
+      params: {
+        organizationId: string;
+        receivableId: string;
+        idempotencyKey: string;
+      },
+      body: { amountMinor: string; currency: string; recordedAt: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/receivables/${encodeURIComponent(params.receivableId)}/payments`,
+        {
+          method: "POST",
+          headers: {
+            "Idempotency-Key": params.idempotencyKey,
+            "content-type": "application/json",
+          },
           body: JSON.stringify(body),
         },
       ),

@@ -226,8 +226,14 @@ test(
         ownerId: otherOwnerId,
         now,
       });
-      const owner = await sessionFor(prisma, issuer, ownerId, now);
-      const otherTenant = await sessionFor(prisma, issuer, otherOwnerId, now);
+      const sessionNow = new Date();
+      const owner = await sessionFor(prisma, issuer, ownerId, sessionNow);
+      const otherTenant = await sessionFor(
+        prisma,
+        issuer,
+        otherOwnerId,
+        sessionNow,
+      );
       await app.listen(0, "127.0.0.1");
       baseUrl = `http://127.0.0.1:${app.getHttpServer().address().port}`;
 

@@ -202,6 +202,175 @@ const commissionOperations = new Map([
   ],
 ]);
 
+const uuidSchema = { type: "string", format: "uuid" };
+const amountMinorSchema = { type: "string", pattern: "^[1-9]\\d*$" };
+const currencySchema = { type: "string", pattern: "^[A-Z]{3}$" };
+const instantSchema = {
+  type: "string",
+  format: "date-time",
+  pattern: "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+};
+const agingResponseSchema = {
+  type: "object",
+  required: ["asOf", "items"],
+  additionalProperties: false,
+  properties: {
+    asOf: instantSchema,
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        required: [
+          "receivableId",
+          "invoiceId",
+          "dealId",
+          "currency",
+          "originalAmountMinor",
+          "outstandingMinor",
+          "status",
+          "issuedAt",
+          "dueAt",
+          "daysPastDue",
+          "bucket",
+        ],
+        additionalProperties: false,
+        properties: {
+          receivableId: uuidSchema,
+          invoiceId: uuidSchema,
+          dealId: uuidSchema,
+          currency: currencySchema,
+          originalAmountMinor: amountMinorSchema,
+          outstandingMinor: amountMinorSchema,
+          status: { type: "string", enum: ["OPEN", "PARTIALLY_PAID"] },
+          issuedAt: instantSchema,
+          dueAt: instantSchema,
+          daysPastDue: { type: "integer", minimum: 0 },
+          bucket: {
+            type: "string",
+            enum: [
+              "CURRENT",
+              "DAYS_1_30",
+              "DAYS_31_60",
+              "DAYS_61_90",
+              "DAYS_91_PLUS",
+            ],
+          },
+        },
+      },
+    },
+    nextCursor: {
+      type: "string",
+      minLength: 1,
+      maxLength: 512,
+      pattern: "^[A-Za-z0-9_-]+$",
+    },
+  },
+};
+
+const receivableOperations = new Map([
+  [
+    "post /organizations/{organizationId}/finance/deals/{dealId}/invoices",
+    {
+      operationId: "ReceivableController_createDraft",
+      clientMethod: "createInvoiceDraft",
+      body: {
+        type: "object",
+        required: ["amountMinor", "currency"],
+        additionalProperties: false,
+        properties: {
+          amountMinor: amountMinorSchema,
+          currency: currencySchema,
+        },
+      },
+      successStatuses: ["201"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/invoices/{invoiceId}/issue",
+    {
+      operationId: "ReceivableController_issue",
+      clientMethod: "issueInvoice",
+      body: {
+        type: "object",
+        required: ["receivableId", "issuedAt", "dueAt"],
+        additionalProperties: false,
+        properties: {
+          receivableId: uuidSchema,
+          issuedAt: instantSchema,
+          dueAt: instantSchema,
+        },
+      },
+      successStatuses: ["201", "200"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/invoices/{invoiceId}/cancel",
+    {
+      operationId: "ReceivableController_cancel",
+      clientMethod: "cancelInvoice",
+      body: {
+        type: "object",
+        required: ["reason"],
+        additionalProperties: false,
+        properties: {
+          reason: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/receivables/aging",
+    {
+      operationId: "ReceivableController_getAging",
+      clientMethod: "getReceivableAging",
+      body: null,
+      query: {
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: agingResponseSchema,
+      responseType: "ReceivableAgingResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/receivables/{receivableId}/payments",
+    {
+      operationId: "ReceivableController_recordPayment",
+      clientMethod: "recordReceivablePayment",
+      body: {
+        type: "object",
+        required: ["amountMinor", "currency", "recordedAt"],
+        additionalProperties: false,
+        properties: {
+          amountMinor: amountMinorSchema,
+          currency: currencySchema,
+          recordedAt: instantSchema,
+        },
+      },
+      successStatuses: ["201", "200"],
+      idempotency: true,
+    },
+  ],
+]);
+
 const propertyOperations = [
   {
     method: "post",
@@ -452,6 +621,45 @@ function readSupportedOperations(document) {
     }
   }
 
+  const hasReceivableContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("ReceivableController_"),
+      ),
+  );
+  if (hasReceivableContract) {
+    for (const [key, receivableOperation] of receivableOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (
+        !operation ||
+        operation.operationId !== receivableOperation.operationId
+      )
+        throw new Error(
+          `Unsupported OpenAPI operation ${receivableOperation.operationId} at ${path}`,
+        );
+      validateReceivableOperation({
+        path,
+        operation,
+        contract: receivableOperation,
+      });
+      operations.push({ path, operation, receivableOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("ReceivableController_") &&
+          !receivableOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI ReceivableController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
   for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
     for (const [method, operation] of Object.entries(pathItem).filter(
       ([name]) => httpMethods.has(name),
@@ -537,6 +745,78 @@ function validateCommissionOperation({ path, operation, contract }) {
         `OpenAPI Commission operation ${operation.operationId} at ${path} must define success status ${status}`,
       );
   }
+}
+
+function validateReceivableOperation({ path, operation, contract }) {
+  const expectedParameters = (path.match(/{[^}]+}/g) ?? []).map((name) => ({
+    name: name.slice(1, -1),
+    in: "path",
+    required: true,
+    schema: { type: "string", format: "uuid" },
+  }));
+  for (const [name, schema] of Object.entries(contract.query ?? {}))
+    expectedParameters.push({ name, in: "query", required: false, schema });
+  if (contract.idempotency)
+    expectedParameters.push({
+      name: "Idempotency-Key",
+      in: "header",
+      required: true,
+      schema: { type: "string", minLength: 1, maxLength: 200, pattern: "\\S" },
+    });
+  const actualParameters = (operation.parameters ?? []).map(
+    ({ name, in: location, required, schema }) => ({
+      name,
+      in: location,
+      required,
+      schema,
+    }),
+  );
+  const sortParameters = (parameters) =>
+    parameters
+      .slice()
+      .sort((a, b) => `${a.in}/${a.name}`.localeCompare(`${b.in}/${b.name}`));
+  if (
+    stableJson(sortParameters(actualParameters)) !==
+    stableJson(sortParameters(expectedParameters))
+  )
+    throw new Error(
+      `OpenAPI Receivable operation ${operation.operationId} at ${path} must define exactly its required parameters`,
+    );
+
+  if (contract.body === null) {
+    if (operation.requestBody)
+      throw new Error(
+        `OpenAPI Receivable operation ${operation.operationId} at ${path} must not define a request body`,
+      );
+  } else {
+    const schema = operation.requestBody?.content?.["application/json"]?.schema;
+    if (
+      !operation.requestBody?.required ||
+      !schema ||
+      stableJson(schema) !== stableJson(contract.body)
+    )
+      throw new Error(
+        `OpenAPI Receivable operation ${operation.operationId} at ${path} must define the exact JSON body contract`,
+      );
+  }
+  if (contract.responseSchema) {
+    const response = operation.responses?.["200"];
+    const schema = response?.content?.["application/json"]?.schema;
+    if (!response || stableJson(schema) !== stableJson(contract.responseSchema))
+      throw new Error(
+        `OpenAPI Receivable operation ${operation.operationId} at ${path} must define the exact 200 response schema`,
+      );
+  }
+  for (const status of contract.successStatuses)
+    if (!operation.responses?.[status])
+      throw new Error(
+        `OpenAPI Receivable operation ${operation.operationId} at ${path} must define success status ${status}`,
+      );
+  for (const status of contract.errorStatuses ?? [])
+    if (!operation.responses?.[status])
+      throw new Error(
+        `OpenAPI Receivable operation ${operation.operationId} at ${path} must define error status ${status}`,
+      );
 }
 
 function propertyOperationBodyIsJson(operation) {
@@ -682,6 +962,7 @@ function encodedPath(path) {
 }
 
 function typescriptSchemaType(schema) {
+  if (schema.tsType) return schema.tsType;
   if (schema.type === "integer") return "number";
   if (schema.type === "array") return `${typescriptSchemaType(schema.items)}[]`;
   if (schema.enum)
@@ -811,6 +1092,9 @@ export function generateOpenApiClient(document) {
   const commissionOperationEntries = operations.filter(
     ({ commissionOperation }) => commissionOperation,
   );
+  const receivableOperationEntries = operations.filter(
+    ({ receivableOperation }) => receivableOperation,
+  );
   const statusLiterals = [
     ...new Set(healthOperations.flatMap(readStatusEnum)),
   ].map((status) => JSON.stringify(status));
@@ -879,6 +1163,42 @@ export function generateOpenApiClient(document) {
       return `    ${commissionOperation.clientMethod}: (params: ${parameterType(parameters)}, body: ${renderedBodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
     })
     .join("\n");
+  const receivableMethods = receivableOperationEntries
+    .map(({ path, receivableOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      if (receivableOperation.body !== null) {
+        const parameters = receivableOperation.idempotency
+          ? [...pathParameters, "idempotencyKey"]
+          : pathParameters;
+        const bodyType = typescriptObjectType(receivableOperation.body);
+        const headers = receivableOperation.idempotency
+          ? '{ "Idempotency-Key": params.idempotencyKey, "content-type": "application/json" }'
+          : '{ "content-type": "application/json" }';
+        return `    ${receivableOperation.clientMethod}: (params: ${parameterType(parameters)}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: ${headers}, body: JSON.stringify(body) }),`;
+      }
+      const queryParameters = Object.keys(receivableOperation.query ?? {});
+      const queryBuilder = `const query = new URLSearchParams(); ${queryParameters.map((name) => `if (params.${name} !== undefined) query.set(${JSON.stringify(name)}, String(params.${name}));`).join(" ")} `;
+      return `    ${receivableOperation.clientMethod}: (params: ${parameterType(pathParameters, queryParameters)}) => { ${queryBuilder} return requestJson<${receivableOperation.responseType}>(${encodedPath(path)} + ${queryExpression(queryParameters)}); },`;
+    })
+    .join("\n");
+  const agingItemSchema = {
+    ...agingResponseSchema.properties.items.items,
+    properties: {
+      ...agingResponseSchema.properties.items.items.properties,
+      bucket: { tsType: "ReceivableAgingBucket" },
+    },
+  };
+  const agingResponseType = typescriptObjectType({
+    ...agingResponseSchema,
+    properties: {
+      asOf: agingResponseSchema.properties.asOf,
+      items: { tsType: "ReceivableAgingItem[]" },
+      nextCursor: agingResponseSchema.properties.nextCursor,
+    },
+  });
+  const agingTypes = `export type ReceivableAgingBucket = ${typescriptSchemaType(agingResponseSchema.properties.items.items.properties.bucket)};\n\nexport type ReceivableAgingItem = ${typescriptObjectType(agingItemSchema)};\n\nexport type ReceivableAgingResponse = ${agingResponseType};`;
   const ledgerMethods = ledgerOperationEntries
     .map(({ path, operation, ledgerOperation }) => {
       const parameters = readPropertyPathParameters({ path, operation });
@@ -925,6 +1245,8 @@ export type LeadDetailResponse = {
   tasks: Array<{ id: string; title: string; dueAt: string; status: "OPEN" | "COMPLETED"; createdAt: string; completedAt: string | null; version: number }>;
 };
 
+${agingTypes}
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -956,6 +1278,7 @@ ${healthMethods}
 ${leadMethods}
 ${crmMethods}
 ${commissionMethods}
+${receivableMethods}
 ${ledgerMethods}
 ${propertyMethods}
   };

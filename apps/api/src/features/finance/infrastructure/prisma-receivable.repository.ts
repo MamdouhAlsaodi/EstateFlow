@@ -1,14 +1,11 @@
 import { Prisma, type PrismaClient } from "@prisma/client";
 import {
   issueInvoice as issueDomainInvoice,
+  ReceivableStateError,
   ReceivableValidationError,
   recordPayment as recordDomainPayment,
 } from "../domain/receivable.js";
-import type {
-  Invoice,
-  PaymentRecord,
-  Receivable,
-} from "../domain/receivable.js";
+import type { Invoice, Receivable } from "../domain/receivable.js";
 import type {
   InvoiceDraftCommand,
   InvoiceIssueCommand,
@@ -18,123 +15,22 @@ import type {
   ReceivableDeal,
   ReceivableMutationResult,
   ReceivableRepository,
+  InvoiceCancellationCommand,
+  OutstandingReceivablesQuery,
 } from "../application/receivable-repository.js";
 
-type Db = Prisma.TransactionClient;
-type InvoiceRow = {
-  id: string;
-  organizationId: string;
-  dealId: string;
-  amountMinor: bigint;
-  currency: string;
-  status: string;
-  draftCreatedBy: string;
-  draftCreatedAt: Date;
-  issuedBy: string | null;
-  issuedAt: Date | null;
-  dueAt: Date | null;
-};
-type ReceivableRow = {
-  id: string;
-  organizationId: string;
-  invoiceId: string;
-  dealId: string;
-  originalAmountMinor: bigint;
-  outstandingMinor: bigint;
-  currency: string;
-  status: string;
-  issuedAt: Date;
-  dueAt: Date;
-};
-type PaymentRow = {
-  id: string;
-  organizationId: string;
-  receivableId: string;
-  amountMinor: bigint;
-  currency: string;
-  recordedAt: Date;
-  recordedBy: string;
-  commandScope: string;
-  idempotencyKey: string;
-  commandPayloadHash: string;
-};
-const MAX_RETRIES = 6;
-const PAYMENT_SCOPE = "RECEIVABLE_PAYMENT_RECORD";
+import {
+  mapInvoice,
+  mapPayment,
+  mapReceivable,
+  type PaymentRow,
+  type ReceivableRow,
+} from "./prisma-receivable-mappers.js";
+import { cancelReceivableInTransaction } from "./prisma-receivable-cancellation.js";
+import { listOutstandingReceivablesFromPrisma } from "./prisma-receivable-aging.js";
 
-function invoiceStatus(value: string): Invoice["status"] {
-  if (value === "DRAFT" || value === "ISSUED" || value === "CANCELLED")
-    return value;
-  throw new Error("Persisted invoice status is invalid");
-}
-function receivableStatus(value: string): Receivable["status"] {
-  if (
-    value === "OPEN" ||
-    value === "PARTIALLY_PAID" ||
-    value === "PAID" ||
-    value === "CANCELLED"
-  )
-    return value;
-  throw new Error("Persisted receivable status is invalid");
-}
-function money(
-  amountMinor: bigint,
-  currency: string,
-): { amountMinor: bigint; currency: string } {
-  if (amountMinor <= 0n || !/^[A-Za-z]{3}$/.test(currency))
-    throw new Error("Persisted receivable money is invalid");
-  return { amountMinor, currency: currency.toUpperCase() };
-}
-function mapInvoice(row: InvoiceRow): Invoice {
-  const m = money(row.amountMinor, row.currency);
-  if (row.status !== "DRAFT" && (!row.issuedBy || !row.issuedAt || !row.dueAt))
-    throw new Error("Persisted issued invoice facts are invalid");
-  return Object.freeze({
-    id: row.id,
-    organizationId: row.organizationId,
-    dealId: row.dealId,
-    money: Object.freeze(m),
-    status: invoiceStatus(row.status),
-    draftCreatedBy: row.draftCreatedBy,
-    draftCreatedAt: new Date(row.draftCreatedAt.getTime()),
-    ...(row.issuedBy ? { issuedBy: row.issuedBy } : {}),
-    ...(row.issuedAt ? { issuedAt: new Date(row.issuedAt.getTime()) } : {}),
-    ...(row.dueAt ? { dueAt: new Date(row.dueAt.getTime()) } : {}),
-  });
-}
-function mapReceivable(row: ReceivableRow): Receivable {
-  const original = money(row.originalAmountMinor, row.currency);
-  if (
-    row.outstandingMinor < 0n ||
-    row.outstandingMinor > row.originalAmountMinor
-  )
-    throw new Error("Persisted receivable balance is invalid");
-  return Object.freeze({
-    id: row.id,
-    organizationId: row.organizationId,
-    invoiceId: row.invoiceId,
-    dealId: row.dealId,
-    originalMoney: Object.freeze(original),
-    outstandingMinor: row.outstandingMinor,
-    status: receivableStatus(row.status),
-    issuedAt: new Date(row.issuedAt.getTime()),
-    dueAt: new Date(row.dueAt.getTime()),
-  });
-}
-function mapPayment(row: PaymentRow): PaymentRecord {
-  const m = money(row.amountMinor, row.currency);
-  if (row.commandScope !== PAYMENT_SCOPE)
-    throw new Error("Persisted payment command scope is invalid");
-  return Object.freeze({
-    id: row.id,
-    organizationId: row.organizationId,
-    receivableId: row.receivableId,
-    money: Object.freeze(m),
-    recordedAt: new Date(row.recordedAt.getTime()),
-    recordedBy: row.recordedBy,
-    idempotencyKey: row.idempotencyKey,
-    commandPayloadHash: row.commandPayloadHash,
-  });
-}
+type Db = Prisma.TransactionClient;
+const MAX_RETRIES = 6;
 function isConstraint(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -142,14 +38,16 @@ function isConstraint(error: unknown): boolean {
   );
 }
 function isSerialization(error: unknown): boolean {
-  return (
-    (error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2034") ||
-    (typeof error === "object" &&
-      error !== null &&
-      "code" in error &&
-      error.code === "P2034")
-  );
+  if (typeof error !== "object" || error === null) return false;
+  const directCode = "code" in error ? error.code : undefined;
+  if (directCode === "P2034" || directCode === "40001") return true;
+  if (
+    !("meta" in error) ||
+    typeof error.meta !== "object" ||
+    error.meta === null
+  )
+    return false;
+  return "code" in error.meta && error.meta.code === "40001";
 }
 function isPaymentIdempotencyUniqueConstraint(error: unknown): boolean {
   if (
@@ -382,8 +280,9 @@ export class PrismaReceivableRepository implements ReceivableRepository {
       );
     } catch (error) {
       if (
-        error instanceof ReceivableValidationError &&
-        error.message === "Payment exceeds outstanding amount"
+        (error instanceof ReceivableValidationError &&
+          error.message === "Payment exceeds outstanding amount") ||
+        error instanceof ReceivableStateError
       )
         return {
           kind: "conflict",
@@ -518,6 +417,42 @@ export class PrismaReceivableRepository implements ReceivableRepository {
       receivable: mapReceivable(receivable),
     };
   }
+  async hasPayments(
+    organizationId: string,
+    receivableId: string,
+  ): Promise<boolean> {
+    const payment = await this.prisma.paymentRecord.findFirst({
+      where: { organizationId, receivableId },
+      select: { id: true },
+    });
+    return payment !== null;
+  }
+
+  async cancelInvoice(
+    input: InvoiceCancellationCommand,
+  ): Promise<ReceivableMutationResult> {
+    try {
+      return await this.withRetry(() =>
+        this.prisma.$transaction(
+          (tx) => cancelReceivableInTransaction(tx, input),
+          {
+            isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          },
+        ),
+      );
+    } catch (error) {
+      if (isSerialization(error) || error instanceof ReceivableStateError)
+        return { kind: "conflict", reason: "invoice-not-cancellable" };
+      throw error;
+    }
+  }
+
+  async listOutstandingReceivables(
+    query: OutstandingReceivablesQuery,
+  ): Promise<readonly Receivable[]> {
+    return listOutstandingReceivablesFromPrisma(this.prisma, query);
+  }
+
   private async withRetry<T>(
     operation: () => Promise<T>,
     onSerializationExhausted?: () => T,

@@ -1428,6 +1428,332 @@
         "summary": "",
         "tags": ["Commission"]
       }
+    },
+    "/organizations/{organizationId}/finance/deals/{dealId}/invoices": {
+      "post": {
+        "operationId": "ReceivableController_createDraft",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "dealId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amountMinor", "currency"],
+                "additionalProperties": false,
+                "properties": {
+                  "amountMinor": { "type": "string", "pattern": "^[1-9]\\d*$" },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Receivables"]
+      }
+    },
+    "/organizations/{organizationId}/finance/invoices/{invoiceId}/issue": {
+      "post": {
+        "operationId": "ReceivableController_issue",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["receivableId", "issuedAt", "dueAt"],
+                "additionalProperties": false,
+                "properties": {
+                  "receivableId": { "type": "string", "format": "uuid" },
+                  "issuedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  },
+                  "dueAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Replayed invoice issue" },
+          "201": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Receivables"]
+      }
+    },
+    "/organizations/{organizationId}/finance/invoices/{invoiceId}/cancel": {
+      "post": {
+        "operationId": "ReceivableController_cancel",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "additionalProperties": false,
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Receivables"]
+      }
+    },
+    "/organizations/{organizationId}/finance/receivables/aging": {
+      "get": {
+        "operationId": "ReceivableController_getAging",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "receivableId",
+                          "invoiceId",
+                          "dealId",
+                          "currency",
+                          "originalAmountMinor",
+                          "outstandingMinor",
+                          "status",
+                          "issuedAt",
+                          "dueAt",
+                          "daysPastDue",
+                          "bucket"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "receivableId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "invoiceId": { "type": "string", "format": "uuid" },
+                          "dealId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "originalAmountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "outstandingMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": ["OPEN", "PARTIALLY_PAID"]
+                          },
+                          "issuedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "dueAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "daysPastDue": { "type": "integer", "minimum": 0 },
+                          "bucket": {
+                            "type": "string",
+                            "enum": [
+                              "CURRENT",
+                              "DAYS_1_30",
+                              "DAYS_31_60",
+                              "DAYS_61_90",
+                              "DAYS_91_PLUS"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Receivables"]
+      }
+    },
+    "/organizations/{organizationId}/finance/receivables/{receivableId}/payments": {
+      "post": {
+        "operationId": "ReceivableController_recordPayment",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "receivableId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "\\S"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amountMinor", "currency", "recordedAt"],
+                "additionalProperties": false,
+                "properties": {
+                  "amountMinor": { "type": "string", "pattern": "^[1-9]\\d*$" },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "recordedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Replayed payment" },
+          "201": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Receivables"]
+      }
     }
   },
   "info": {

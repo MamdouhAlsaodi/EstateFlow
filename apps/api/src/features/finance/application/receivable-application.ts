@@ -1,18 +1,34 @@
 import { createHash } from "node:crypto";
 import {
+  canonicalCancellationAudit,
   createInvoiceDraft,
   issueInvoice,
+  cancelInvoice as domainCancelInvoice,
+  sameCancellationAudit,
+  ReceivableStateError,
   ReceivableValidationError,
   recordPayment,
 } from "../domain/receivable.js";
 import type { Invoice, Receivable } from "../domain/receivable.js";
+import {
+  assembleReceivableAging,
+  prepareReceivableAging,
+} from "./receivable-aging-application.js";
+import type {
+  ReceivableAgingCommand,
+  ReceivableAgingResult,
+} from "./receivable-aging-application.js";
 import type {
   ReceivableDeal,
   ReceivableMutationResult,
   ReceivableNotFound,
   ReceivableRepository,
 } from "./receivable-repository.js";
-
+export type {
+  ReceivableAgingCommand,
+  ReceivableAgingItem,
+  ReceivableAgingResult,
+} from "./receivable-aging-application.js";
 export type ReceivableActor = Readonly<{ verified: boolean }>;
 export type ReceivableMembership = Readonly<{
   organizationId: string;
@@ -55,13 +71,13 @@ type PaymentCommand = CommandBase &
     recordedAt: Date;
     idempotencyKey: string;
   }>;
-
+export type CancelInvoiceCommand = CommandBase &
+  Readonly<{ invoiceId: string; cancelledAt: Date; reason: string }>;
 export class ReceivableApplication {
   constructor(
     private readonly repository: ReceivableRepository,
     private readonly membershipReader: ReceivableMembershipReader,
   ) {}
-
   async createInvoiceDraft(
     input: DraftCommand,
   ): Promise<ReceivableMutationResult | AccessDenied | ReceivableNotFound> {
@@ -84,7 +100,6 @@ export class ReceivableApplication {
     });
     return this.repository.createInvoiceDraft({ invoice });
   }
-
   async issueInvoice(
     input: IssueCommand,
   ): Promise<ReceivableMutationResult | AccessDenied | ReceivableNotFound> {
@@ -118,7 +133,48 @@ export class ReceivableApplication {
     });
     return this.repository.issueInvoice(issued);
   }
-
+  async cancelInvoice(
+    input: CancelInvoiceCommand,
+  ): Promise<ReceivableMutationResult | AccessDenied | ReceivableNotFound> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return access.result;
+    canonicalCancellationAudit({
+      cancelledBy: input.userId,
+      cancelledAt: input.cancelledAt,
+      reason: input.reason,
+    });
+    const invoice = await this.repository.findInvoice(
+      input.organizationId,
+      input.invoiceId,
+    );
+    if (
+      !invoice ||
+      !sameInvoice(invoice, input.organizationId, input.invoiceId)
+    )
+      return { kind: "not-found", resource: "invoice" };
+    const receivable = await this.repository.findReceivableByInvoice(
+      input.organizationId,
+      input.invoiceId,
+    );
+    if (!receivable || !sameReceivableInvoice(receivable, invoice))
+      return { kind: "not-found", resource: "receivable" };
+    if (invoice.status === "CANCELLED")
+      return cancellationReplay(invoice, receivable, input);
+    if (invoice.status !== "ISSUED")
+      return { kind: "conflict", reason: "invoice-not-cancellable" };
+    return cancelIssuedInvoice(this.repository, invoice, receivable, input);
+  }
+  async getReceivableAging(
+    input: ReceivableAgingCommand,
+  ): Promise<ReceivableAgingResult | AccessDenied> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return access.result;
+    const prepared = prepareReceivableAging(input);
+    const rows = await this.repository.listOutstandingReceivables(
+      prepared.query,
+    );
+    return assembleReceivableAging(rows, prepared.asOf, prepared.limit);
+  }
   async recordPayment(
     input: PaymentCommand,
   ): Promise<ReceivableMutationResult | AccessDenied | ReceivableNotFound> {
@@ -162,7 +218,6 @@ export class ReceivableApplication {
       commandPayloadHash,
     });
   }
-
   private async authorize(
     input: CommandBase,
   ): Promise<
@@ -184,7 +239,6 @@ export class ReceivableApplication {
     return { kind: "authorized" };
   }
 }
-
 function sameDeal(
   deal: ReceivableDeal,
   organizationId: string,
@@ -198,6 +252,81 @@ function sameInvoice(
   invoiceId: string,
 ): boolean {
   return invoice.organizationId === organizationId && invoice.id === invoiceId;
+}
+function sameReceivableInvoice(
+  receivable: Receivable,
+  invoice: Invoice,
+): boolean {
+  return (
+    receivable.organizationId === invoice.organizationId &&
+    receivable.invoiceId === invoice.id &&
+    receivable.dealId === invoice.dealId
+  );
+}
+async function cancelIssuedInvoice(
+  repository: ReceivableRepository,
+  invoice: Invoice,
+  receivable: Receivable,
+  input: CancelInvoiceCommand,
+): Promise<ReceivableMutationResult> {
+  requireCancellationPorts(repository);
+  if (await repository.hasPayments(input.organizationId, receivable.id))
+    return { kind: "conflict", reason: "payments-exist" };
+  if (!isUntouchedOpenReceivable(receivable))
+    return { kind: "conflict", reason: "invoice-not-cancellable" };
+  return persistDerivedCancellation(repository, invoice, receivable, input);
+}
+function requireCancellationPorts(
+  repository: ReceivableRepository,
+): asserts repository is ReceivableRepository &
+  Required<Pick<ReceivableRepository, "hasPayments" | "cancelInvoice">> {
+  if (!repository.hasPayments || !repository.cancelInvoice)
+    throw new Error("Cancellation repository ports are unavailable");
+}
+function isUntouchedOpenReceivable(receivable: Receivable): boolean {
+  return (
+    receivable.status === "OPEN" &&
+    receivable.outstandingMinor === receivable.originalMoney.amountMinor
+  );
+}
+async function persistDerivedCancellation(
+  repository: ReceivableRepository &
+    Required<Pick<ReceivableRepository, "cancelInvoice">>,
+  invoice: Invoice,
+  receivable: Receivable,
+  input: CancelInvoiceCommand,
+): Promise<ReceivableMutationResult> {
+  try {
+    const cancelled = domainCancelInvoice({
+      invoice,
+      receivable,
+      cancelledBy: input.userId,
+      cancelledAt: input.cancelledAt,
+      reason: input.reason,
+      hasPayments: false,
+    });
+    return repository.cancelInvoice(cancelled);
+  } catch (error) {
+    if (error instanceof ReceivableStateError)
+      return { kind: "conflict", reason: "invoice-not-cancellable" };
+    throw error;
+  }
+}
+function cancellationReplay(
+  invoice: Invoice,
+  receivable: Receivable,
+  input: CancelInvoiceCommand,
+): ReceivableMutationResult {
+  const exact =
+    receivable.status === "CANCELLED" &&
+    invoice.cancelledAt !== undefined &&
+    sameCancellationAudit(invoice, {
+      cancelledBy: input.userId,
+      cancelledAt: invoice.cancelledAt,
+      reason: input.reason,
+    });
+  if (exact) return { kind: "replayed", invoice, receivable };
+  return { kind: "conflict", reason: "cancellation-replay-conflict" };
 }
 function sameReceivable(
   receivable: Receivable,
@@ -238,7 +367,6 @@ function normalizeIdempotencyKey(value: unknown): string {
     throw new ReceivableValidationError("Invalid idempotency key");
   return canonical;
 }
-
 function canonicalPaymentPayloadHash(
   input: PaymentCommand,
   idempotencyKey: string,

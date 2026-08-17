@@ -1,4 +1,5 @@
 import type { SessionResponse } from "./session";
+import { createReceivableAdapter, type ReceivableAdapter } from "./receivable";
 import {
   createCommissionAdapter,
   type CommissionAccrualInput,
@@ -161,7 +162,8 @@ export type ApiClient = Readonly<{
     }>,
     input: CommissionAccrualInput,
   ): Promise<unknown>;
-}>;
+}> &
+  ReceivableAdapter;
 
 export function createApiClient(
   options: Readonly<{
@@ -216,9 +218,11 @@ export function createApiClient(
   }
 
   const commission: CommissionAdapter = createCommissionAdapter({ request });
+  const receivables: ReceivableAdapter = createReceivableAdapter({ request });
   return {
     request,
     ...commission,
+    ...receivables,
     getLeadBoard: ({ organizationId, query = {} }) =>
       request<LeadBoardListResponse>(
         `/organizations/${encodeURIComponent(organizationId)}/leads${serializeLeadBoardListQuery(query)}`,
