@@ -166,6 +166,9 @@ model Organization {
   invoices               Invoice[]
   receivables            Receivable[]
   paymentRecords         PaymentRecord[]
+  expenses               Expense[]
+  expenseEvidence        ExpenseEvidenceMetadata[]
+  expenseApprovalPolicy  ExpenseApprovalPolicy?
 }
 
 model Membership {
@@ -320,6 +323,7 @@ model Property {
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   listings       Listing[]
   deals          Deal[]
+  expenses       Expense[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -384,6 +388,7 @@ model Deal {
   commissionAccruals   CommissionAccrual[]
   invoices             Invoice[]
   receivables          Receivable[]
+  expenses             Expense[]
 
   @@unique([organizationId, id])
   @@unique([organizationId, leadId])
@@ -694,4 +699,61 @@ model ImageMetadata {
   listing   Listing        @relation(fields: [listingId], references: [id], onDelete: Restrict)
 
   @@index([listingId, position])
+}
+
+model Expense {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String   @db.Uuid
+  category          String   @db.VarChar(20)
+  vendorReference   String   @db.VarChar(200)
+  amountMinor       BigInt   @db.BigInt
+  currency          String   @db.VarChar(3)
+  campaignReference String?  @db.VarChar(100)
+  propertyId        String?  @db.Uuid
+  dealId            String?  @db.Uuid
+  status            String   @db.VarChar(20)
+  draftCreatedBy    String   @db.Uuid
+  draftCreatedAt    DateTime @db.Timestamptz(6)
+  submittedBy       String?  @db.Uuid
+  submittedAt       DateTime? @db.Timestamptz(6)
+  decidedBy         String?  @db.Uuid
+  decidedAt         DateTime? @db.Timestamptz(6)
+  decision          String?  @db.VarChar(20)
+  decisionReason    String?  @db.VarChar(500)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property          Property?    @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  deal              Deal?        @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  evidence          ExpenseEvidenceMetadata[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@index([organizationId, category])
+}
+
+model ExpenseEvidenceMetadata {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String   @db.Uuid
+  expenseId          String   @db.Uuid
+  mediaType          String   @db.VarChar(10)
+  byteSize           Int
+  note               String?  @db.VarChar(500)
+  attachedBy         String   @db.Uuid
+  attachedAt         DateTime @db.Timestamptz(6)
+  commandPayloadHash String   @db.VarChar(64)
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  expense            Expense      @relation(fields: [organizationId, expenseId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, expenseId])
+}
+
+model ExpenseApprovalPolicy {
+  organizationId String   @id @db.Uuid
+  thresholdMinor BigInt?  @db.BigInt
+  currency       String   @db.VarChar(3)
+  updatedBy      String   @db.Uuid
+  updatedAt      DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([updatedAt])
 }

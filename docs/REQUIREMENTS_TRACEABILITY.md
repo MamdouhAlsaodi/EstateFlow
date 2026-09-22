@@ -35,7 +35,7 @@ Status legend:
 | FIN-01 balanced immutable ledger/reversal/period governance | EF-231 | property-based balance + immutability + reversal + closed-period/reopen audit tests | MVP/PILOT |
 | FIN-02 commissions/splits/due states/maker-checker | EF-232 | rounding/state/idempotency/approval-threshold tests | MVP |
 | FIN-03 invoices/receivables/partial payments | EF-233 | balance/aging/duplicate-payment tests | MVP |
-| FIN-04 expenses and evidence metadata | EF-234 | authorization/approval/persistence tests | MVP |
+| FIN-04 expenses and evidence metadata | EF-234 | authorization/approval/persistence tests — implemented: `docs/handoffs/EF-234/EF-234-final-verification-2026-09-21.md` (guarded Owner/Manager commands, maker-checker approval threshold policy, evidence metadata idempotency, immutable approval audit on PostgreSQL) | MVP |
 | FIN-05 cashflow, receivables, margin/result | EF-235 | report-to-ledger reconciliation | MVP |
 | FIN-06 financial dimensions | EF-231–EF-235, EF-401 | filtered report/tenant tests | MVP |
 | FIN-07 CSV/PDF export and no destructive edits | EF-235, EF-701 | export structure/formula protection/audit | PILOT |

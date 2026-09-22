@@ -371,6 +371,130 @@ const receivableOperations = new Map([
   ],
 ]);
 
+const expenseOperations = new Map([
+  [
+    "post /organizations/{organizationId}/finance/expenses",
+    {
+      operationId: "ExpenseController_createDraft",
+      clientMethod: "createExpenseDraft",
+      body: {
+        type: "object",
+        required: ["category", "vendorReference", "amountMinor", "currency"],
+        additionalProperties: false,
+        properties: {
+          category: {
+            type: "string",
+            enum: ["OFFICE", "CAMPAIGN", "PROPERTY", "OTHER"],
+          },
+          vendorReference: {
+            type: "string",
+            minLength: 1,
+            maxLength: 200,
+            pattern: "\\S",
+          },
+          amountMinor: amountMinorSchema,
+          currency: currencySchema,
+          campaignReference: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          propertyId: uuidSchema,
+          dealId: uuidSchema,
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/expenses/{expenseId}/evidence",
+    {
+      operationId: "ExpenseController_attachEvidence",
+      clientMethod: "attachExpenseEvidence",
+      body: {
+        type: "object",
+        required: ["evidenceId", "mediaType", "byteSize", "attachedAt"],
+        additionalProperties: false,
+        properties: {
+          evidenceId: uuidSchema,
+          mediaType: {
+            type: "string",
+            enum: ["PDF", "JPEG", "PNG", "WEBP"],
+          },
+          byteSize: { type: "integer", minimum: 1, maximum: 100000000 },
+          note: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+          attachedAt: instantSchema,
+        },
+      },
+      successStatuses: ["201", "200"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/expenses/{expenseId}/submit",
+    {
+      operationId: "ExpenseController_submit",
+      clientMethod: "submitExpenseForApproval",
+      body: null,
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/expenses/{expenseId}/decision",
+    {
+      operationId: "ExpenseController_decideApproval",
+      clientMethod: "decideExpenseApproval",
+      body: {
+        type: "object",
+        required: ["decision"],
+        additionalProperties: false,
+        properties: {
+          decision: { type: "string", enum: ["APPROVED", "REJECTED"] },
+          reason: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/finance/expense-approval-policy",
+    {
+      operationId: "ExpenseController_setApprovalPolicy",
+      clientMethod: "setExpenseApprovalPolicy",
+      body: {
+        type: "object",
+        required: ["currency"],
+        additionalProperties: false,
+        properties: {
+          thresholdMinor: amountMinorSchema,
+          currency: currencySchema,
+        },
+      },
+      successStatuses: ["201", "200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+]);
+
 const propertyOperations = [
   {
     method: "post",
@@ -655,6 +779,42 @@ function readSupportedOperations(document) {
         )
           throw new Error(
             `Unsupported OpenAPI ReceivableController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
+  const hasExpenseContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("ExpenseController_"),
+      ),
+  );
+  if (hasExpenseContract) {
+    for (const [key, expenseOperation] of expenseOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (!operation || operation.operationId !== expenseOperation.operationId)
+        throw new Error(
+          `Unsupported OpenAPI operation ${expenseOperation.operationId} at ${path}`,
+        );
+      validateReceivableOperation({
+        path,
+        operation,
+        contract: expenseOperation,
+      });
+      operations.push({ path, operation, expenseOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("ExpenseController_") &&
+          !expenseOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI ExpenseController operation ${method.toUpperCase()} ${path}`,
           );
       }
     }
@@ -1095,6 +1255,9 @@ export function generateOpenApiClient(document) {
   const receivableOperationEntries = operations.filter(
     ({ receivableOperation }) => receivableOperation,
   );
+  const expenseOperationEntries = operations.filter(
+    ({ expenseOperation }) => expenseOperation,
+  );
   const statusLiterals = [
     ...new Set(healthOperations.flatMap(readStatusEnum)),
   ].map((status) => JSON.stringify(status));
@@ -1181,6 +1344,24 @@ export function generateOpenApiClient(document) {
       const queryParameters = Object.keys(receivableOperation.query ?? {});
       const queryBuilder = `const query = new URLSearchParams(); ${queryParameters.map((name) => `if (params.${name} !== undefined) query.set(${JSON.stringify(name)}, String(params.${name}));`).join(" ")} `;
       return `    ${receivableOperation.clientMethod}: (params: ${parameterType(pathParameters, queryParameters)}) => { ${queryBuilder} return requestJson<${receivableOperation.responseType}>(${encodedPath(path)} + ${queryExpression(queryParameters)}); },`;
+    })
+    .join("\n");
+  const expenseMethods = expenseOperationEntries
+    .map(({ path, expenseOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      if (expenseOperation.body !== null) {
+        const parameters = expenseOperation.idempotency
+          ? [...pathParameters, "idempotencyKey"]
+          : pathParameters;
+        const bodyType = typescriptObjectType(expenseOperation.body);
+        const headers = expenseOperation.idempotency
+          ? '{ "Idempotency-Key": params.idempotencyKey, "content-type": "application/json" }'
+          : '{ "content-type": "application/json" }';
+        return `    ${expenseOperation.clientMethod}: (params: ${parameterType(parameters)}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: ${headers}, body: JSON.stringify(body) }),`;
+      }
+      return `    ${expenseOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson(${encodedPath(path)}, { method: "POST" }),`;
     })
     .join("\n");
   const agingItemSchema = {
@@ -1279,6 +1460,7 @@ ${leadMethods}
 ${crmMethods}
 ${commissionMethods}
 ${receivableMethods}
+${expenseMethods}
 ${ledgerMethods}
 ${propertyMethods}
   };

@@ -33,6 +33,8 @@ jobs:
         run: pnpm check:openapi-drift
       - name: Run build
         run: pnpm build
+        env:
+          API_ORIGIN: http://127.0.0.1:3000
       - name: Check formatting
         run: pnpm format:check
       - name: Create ephemeral test password

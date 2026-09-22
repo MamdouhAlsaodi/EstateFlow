@@ -363,6 +363,76 @@ export function createEstateFlowClient({
           body: JSON.stringify(body),
         },
       ),
+    createExpenseDraft: (
+      params: { organizationId: string },
+      body: {
+        category: "OFFICE" | "CAMPAIGN" | "PROPERTY" | "OTHER";
+        vendorReference: string;
+        amountMinor: string;
+        currency: string;
+        campaignReference?: string;
+        propertyId?: string;
+        dealId?: string;
+      },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/expenses`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    attachExpenseEvidence: (
+      params: { organizationId: string; expenseId: string },
+      body: {
+        evidenceId: string;
+        mediaType: "PDF" | "JPEG" | "PNG" | "WEBP";
+        byteSize: number;
+        note?: string;
+        attachedAt: string;
+      },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/expenses/${encodeURIComponent(params.expenseId)}/evidence`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    submitExpenseForApproval: (params: {
+      organizationId: string;
+      expenseId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/expenses/${encodeURIComponent(params.expenseId)}/submit`,
+        { method: "POST" },
+      ),
+    decideExpenseApproval: (
+      params: { organizationId: string; expenseId: string },
+      body: { decision: "APPROVED" | "REJECTED"; reason?: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/expenses/${encodeURIComponent(params.expenseId)}/decision`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    setExpenseApprovalPolicy: (
+      params: { organizationId: string },
+      body: { thresholdMinor?: string; currency: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/expense-approval-policy`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
     createAccount: (
       params: { organizationId: string },
       body: { code: string; name: string; type: string },

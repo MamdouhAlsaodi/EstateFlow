@@ -69,6 +69,11 @@ test("buildOpenApiDocument includes the composed auth and health paths", async (
         "/organizations/{organizationId}/finance/invoices/{invoiceId}/issue",
         "/organizations/{organizationId}/finance/receivables/aging",
         "/organizations/{organizationId}/finance/receivables/{receivableId}/payments",
+        "/organizations/{organizationId}/finance/expenses",
+        "/organizations/{organizationId}/finance/expenses/{expenseId}/decision",
+        "/organizations/{organizationId}/finance/expenses/{expenseId}/evidence",
+        "/organizations/{organizationId}/finance/expenses/{expenseId}/submit",
+        "/organizations/{organizationId}/finance/expense-approval-policy",
       ].sort(),
     );
 

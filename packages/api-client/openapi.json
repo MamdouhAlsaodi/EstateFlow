@@ -1754,6 +1754,259 @@
         "summary": "",
         "tags": ["Receivables"]
       }
+    },
+    "/organizations/{organizationId}/finance/expenses": {
+      "post": {
+        "operationId": "ExpenseController_createDraft",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "category",
+                  "vendorReference",
+                  "amountMinor",
+                  "currency"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "enum": ["OFFICE", "CAMPAIGN", "PROPERTY", "OTHER"]
+                  },
+                  "vendorReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "amountMinor": { "type": "string", "pattern": "^[1-9]\\d*$" },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "campaignReference": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "propertyId": { "type": "string", "format": "uuid" },
+                  "dealId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Expenses"]
+      }
+    },
+    "/organizations/{organizationId}/finance/expenses/{expenseId}/evidence": {
+      "post": {
+        "operationId": "ExpenseController_attachEvidence",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "expenseId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "evidenceId",
+                  "mediaType",
+                  "byteSize",
+                  "attachedAt"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "evidenceId": { "type": "string", "format": "uuid" },
+                  "mediaType": {
+                    "type": "string",
+                    "enum": ["PDF", "JPEG", "PNG", "WEBP"]
+                  },
+                  "byteSize": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000000
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  },
+                  "attachedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Replayed evidence attach" },
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Expenses"]
+      }
+    },
+    "/organizations/{organizationId}/finance/expenses/{expenseId}/submit": {
+      "post": {
+        "operationId": "ExpenseController_submit",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "expenseId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Expenses"]
+      }
+    },
+    "/organizations/{organizationId}/finance/expenses/{expenseId}/decision": {
+      "post": {
+        "operationId": "ExpenseController_decideApproval",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "expenseId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["decision"],
+                "additionalProperties": false,
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": ["APPROVED", "REJECTED"]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Decision or exact replay" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Expenses"]
+      }
+    },
+    "/organizations/{organizationId}/finance/expense-approval-policy": {
+      "post": {
+        "operationId": "ExpenseController_setApprovalPolicy",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currency"],
+                "additionalProperties": false,
+                "properties": {
+                  "thresholdMinor": {
+                    "type": "string",
+                    "pattern": "^[1-9]\\d*$"
+                  },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Replayed policy upsert" },
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Expenses"]
+      }
     }
   },
   "info": {
