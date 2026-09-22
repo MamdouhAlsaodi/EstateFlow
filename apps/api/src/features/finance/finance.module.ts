@@ -18,6 +18,13 @@ import {
 } from "./application/receivable-application.js";
 import type { ReceivableRepository } from "./application/receivable-repository.js";
 import { PrismaReceivableRepository } from "./infrastructure/prisma-receivable.repository.js";
+import {
+  ExpenseApplication,
+  type ExpenseMembership,
+  type ExpenseMembershipReader,
+} from "./application/expense-application.js";
+import type { ExpenseRepository } from "./application/expense-repository.js";
+import { PrismaExpenseRepository } from "./infrastructure/prisma-expense.repository.js";
 import type { CommissionRepository } from "./application/commission-repository.js";
 import { PrismaCommissionRepository } from "./infrastructure/prisma-commission.repository.js";
 import type { LedgerRepository } from "./application/ledger-repository.js";
@@ -25,6 +32,7 @@ import { PrismaLedgerRepository } from "./infrastructure/prisma-ledger.repositor
 import { LedgerController } from "./http/ledger.controller.js";
 import { CommissionController } from "./http/commission.controller.js";
 import { ReceivableController } from "./http/receivable.controller.js";
+import { ExpenseController } from "./http/expense.controller.js";
 
 class PrismaCommissionMembershipReader implements CommissionMembershipReader {
   constructor(private readonly prisma: PrismaService) {}
@@ -68,9 +76,28 @@ class PrismaLedgerMembershipReader implements LedgerMembershipReader {
   }
 }
 
+class PrismaExpenseMembershipReader implements ExpenseMembershipReader {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<ExpenseMembership | null> {
+    return this.prisma.membership.findUnique({
+      where: { organizationId_userId: { organizationId, userId } },
+      select: { organizationId: true, role: true, status: true },
+    });
+  }
+}
+
 @Module({
   imports: [AuthModule],
-  controllers: [LedgerController, CommissionController, ReceivableController],
+  controllers: [
+    LedgerController,
+    CommissionController,
+    ReceivableController,
+    ExpenseController,
+  ],
   providers: [
     {
       provide: PrismaCommissionRepository,
@@ -111,6 +138,26 @@ class PrismaLedgerMembershipReader implements LedgerMembershipReader {
         repository: ReceivableRepository,
         membershipReader: ReceivableMembershipReader,
       ) => new ReceivableApplication(repository, membershipReader),
+    },
+    {
+      provide: PrismaExpenseRepository,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): ExpenseRepository =>
+        new PrismaExpenseRepository(prisma),
+    },
+    {
+      provide: PrismaExpenseMembershipReader,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): ExpenseMembershipReader =>
+        new PrismaExpenseMembershipReader(prisma),
+    },
+    {
+      provide: ExpenseApplication,
+      inject: [PrismaExpenseRepository, PrismaExpenseMembershipReader],
+      useFactory: (
+        repository: ExpenseRepository,
+        membershipReader: ExpenseMembershipReader,
+      ) => new ExpenseApplication(repository, membershipReader),
     },
     {
       provide: PrismaLedgerRepository,

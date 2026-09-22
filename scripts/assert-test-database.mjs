@@ -30,8 +30,13 @@ if (!acceptedHosts.has(parsed.hostname)) {
   );
 }
 
-if (parsed.port !== "55433") {
-  throw new Error("Destructive integration tests may only target port 55433.");
+const expectedPort =
+  globalThis.process.env.ESTATEFLOW_TEST_DB_PORT ?? "55433";
+
+if (parsed.port !== expectedPort) {
+  throw new Error(
+    `Destructive integration tests may only target port ${expectedPort}.`,
+  );
 }
 
 if (parsed.username !== "estateflow_test") {
@@ -47,5 +52,5 @@ if (parsed.pathname !== "/estateflow_test") {
 }
 
 console.log(
-  "Destructive test database target accepted: estateflow_test on loopback:55433.",
+  `Destructive test database target accepted: estateflow_test on loopback:${expectedPort}.`,
 );

@@ -1,0 +1,164 @@
+.workspace {
+  display: grid;
+  gap: var(--ef-space-6);
+  margin: 0 auto;
+  max-width: 100rem;
+}
+.heading {
+  border-bottom: 1px solid var(--ef-line);
+  padding-bottom: var(--ef-space-5);
+}
+.heading h1 {
+  max-width: 16ch;
+}
+.heading p:last-child {
+  color: var(--ef-ink-muted);
+  margin-bottom: 0;
+  max-width: 64ch;
+}
+.rail {
+  counter-reset: expense-step;
+  display: grid;
+  gap: var(--ef-space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  position: relative;
+}
+.rail::before {
+  background: var(--ef-gold);
+  content: "";
+  height: 2px;
+  inset: 1.65rem 8% auto;
+  opacity: 0.55;
+  position: absolute;
+}
+.step {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-medium);
+  box-shadow: 0 0.7rem 2rem rgb(27 44 48 / 6%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-4);
+  min-width: 0;
+  padding: var(--ef-space-5);
+  position: relative;
+}
+.step::after {
+  background: var(--ef-gold);
+  content: "";
+  height: 0.2rem;
+  inset: auto var(--ef-space-5) 0;
+  opacity: 0;
+  position: absolute;
+  transform: scaleX(0.35);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+.step:focus-within::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+.stepHeading {
+  align-items: flex-start;
+  display: flex;
+  gap: var(--ef-space-3);
+  min-height: 5.5rem;
+  position: relative;
+}
+.stepHeading h2 {
+  margin: 0 0 var(--ef-space-1);
+}
+.stepHeading p {
+  color: var(--ef-ink-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+.index {
+  align-items: center;
+  background: var(--ef-surface);
+  border: 2px solid var(--ef-gold);
+  border-radius: 999px;
+  color: var(--ef-gold);
+  display: inline-flex;
+  flex: 0 0 3.3rem;
+  font-weight: 800;
+  height: 3.3rem;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.fields {
+  display: grid;
+  gap: var(--ef-space-3);
+}
+.fields label {
+  margin: 0;
+}
+.fields input,
+.fields select {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-small);
+  display: block;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 500;
+  min-height: 2.8rem;
+  padding: 0 var(--ef-space-3);
+  width: 100%;
+}
+.fields input:focus-visible,
+.fields select:focus-visible {
+  border-color: var(--ef-gold);
+  outline: 3px solid color-mix(in srgb, var(--ef-gold) 20%, transparent);
+  outline-offset: 1px;
+}
+.step > button {
+  margin-top: auto;
+}
+.message {
+  align-items: center;
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-inline-start: 0.3rem solid var(--ef-gold);
+  border-radius: var(--ef-radius-small);
+  display: flex;
+  gap: var(--ef-space-3);
+  justify-content: space-between;
+  padding: var(--ef-space-4);
+}
+.success {
+  border-inline-start-color: var(--ef-success);
+}
+.error,
+.validation {
+  border-inline-start-color: var(--ef-danger);
+}
+@media (max-width: 1020px) {
+  .rail {
+    grid-template-columns: 1fr;
+  }
+  .rail::before {
+    height: auto;
+    inset: 2rem 1.6rem 2rem auto;
+    width: 2px;
+  }
+  .stepHeading {
+    min-height: auto;
+  }
+}
+@media (max-width: 560px) {
+  .step {
+    padding: var(--ef-space-4);
+  }
+  .message {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step::after {
+    transition: none;
+  }
+}

@@ -74,8 +74,9 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-233 T5C/T5D — guarded cancellation/aging HTTP plus exact OpenAPI and deterministic generated client: **PASS**. Evidence: `docs/handoffs/EF-233/T5C-independent-verification-2026-08-17.md` and `docs/handoffs/EF-233/T5D-independent-verification-2026-08-17.md`.
 - EF-233 T5E — Arabic organization-scoped cancellation and aging workspace with strict client normalization and live visual/DOM review: **PASS**. Evidence: `docs/handoffs/EF-233/T5E-independent-verification-2026-08-17.md`.
 - EF-233 / FIN-03 — complete PRD reconciliation, 12 migrations, isolated unit suites, 14 serial PostgreSQL integration files / 21 tests, production builds, OpenAPI drift, formatting, and cleanup: **CLOSED / PASS**. Evidence: `docs/handoffs/EF-233/EF-233-final-verification-2026-08-17.md`.
+- EF-234 / FIN-04 — expenses with category, vendor/payee reference, campaign/property/deal dimensions, approval threshold policy (maker-checker with recorded below-threshold auto-approval), metadata-only evidence attachments with idempotent replay, guarded five-command HTTP boundary, exact OpenAPI + closed-world generated client, Arabic-first expense workspace, and database-enforced snapshot/audit immutability (migration thirteen): **PASS**. Evidence: `docs/handoffs/EF-234/EF-234-final-verification-2026-09-21.md`.
 
-EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, and EF-233 are closed within their documented boundaries.
+EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-233, and EF-234 are closed within their documented boundaries.
 
 ## EF-120 authentication decision
 
@@ -116,7 +117,9 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-231 and EF-233 are closed within their documented boundaries; FIN-03 is `IMPLEMENTED`. FIN-02 remains partial despite the accepted EF-232 expected-commission slice. EF-234 / FIN-04 is the next roadmap task but has not started.** Before beginning EF-234, recover its PRD/development-plan contract and obtain explicit execution approval. Preserve the accepted EF-233 behavior and do not infer refunds, payment reversals, gateway/bank reconciliation, reminders, exports, ledger automation, or dashboard reporting. Evidence: `docs/handoffs/EF-233/EF-233-final-verification-2026-08-17.md` and `docs/handoffs/EF-233/finance-prd-traceability-2026-08-17.md`.
+**EF-234 / FIN-04 is implemented and verified within its documented boundary (`IMPLEMENTED`); EF-231, EF-232, and EF-233 remain closed. FIN-02 remains partial despite the accepted EF-232 expected-commission slice. The next roadmap task is EF-235 (Owner Finance Dashboard), which depends on EF-232, EF-233, and EF-234.** Before beginning EF-235, recover its PRD/development-plan contract and obtain explicit execution approval. Preserve the accepted EF-233/EF-234 behavior and do not infer refunds, payment reversals, expense journal posting, gateway/bank reconciliation, reminders, exports, ledger automation, or CSV/PDF dashboard reporting. Evidence: `docs/handoffs/EF-234/EF-234-final-verification-2026-09-21.md` and `docs/handoffs/EF-233/finance-prd-traceability-2026-08-17.md`.
+
+Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 
 ## EF-202 verified boundary
 
