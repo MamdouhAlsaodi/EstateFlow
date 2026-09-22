@@ -166,7 +166,12 @@ test(
             role: "MANAGER",
             status: "ACTIVE",
           },
-          { organizationId, userId: brokerId, role: "BROKER", status: "ACTIVE" },
+          {
+            organizationId,
+            userId: brokerId,
+            role: "BROKER",
+            status: "ACTIVE",
+          },
           {
             organizationId: otherOrganizationId,
             userId: ownerId,
@@ -204,7 +209,10 @@ test(
         dealId,
       };
 
-      assert.equal((await post(base, expensePath, null, draftBody)).status, 401);
+      assert.equal(
+        (await post(base, expensePath, null, draftBody)).status,
+        401,
+      );
       assert.equal(
         (await post(base, expensePath, owner, draftBody, { csrf: false }))
           .status,
@@ -246,18 +254,13 @@ test(
 
       // Owner holds memberships in both organizations; the org-A-scoped
       // lookup of an org-B property must produce an opaque tenant-safe 404.
-      const foreignExpense = await post(
-        base,
-        expensePath,
-        owner,
-        {
-          category: "OFFICE",
-          vendorReference: "Foreign",
-          amountMinor: "100",
-          currency: "SAR",
-          propertyId: foreign.propertyId,
-        },
-      );
+      const foreignExpense = await post(base, expensePath, owner, {
+        category: "OFFICE",
+        vendorReference: "Foreign",
+        amountMinor: "100",
+        currency: "SAR",
+        propertyId: foreign.propertyId,
+      });
       assert.equal(foreignExpense.status, 404);
 
       const evidenceId = randomUUID();

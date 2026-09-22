@@ -78,8 +78,13 @@ test(
     const repository = new PrismaExpenseRepository(prisma);
     try {
       await cleanupDatabase(prisma, TABLES);
-      const { organizationId, otherOrganizationId, userId, propertyId, dealId } =
-        await seed(prisma);
+      const {
+        organizationId,
+        otherOrganizationId,
+        userId,
+        propertyId,
+        dealId,
+      } = await seed(prisma);
 
       assert.deepEqual(
         await repository.createExpenseDraft({
@@ -145,10 +150,13 @@ test(
         await repository.findExpense(otherOrganizationId, expense.id),
         null,
       );
-      assert.deepEqual(await repository.findProperty(organizationId, propertyId), {
-        id: propertyId,
-        organizationId,
-      });
+      assert.deepEqual(
+        await repository.findProperty(organizationId, propertyId),
+        {
+          id: propertyId,
+          organizationId,
+        },
+      );
       assert.deepEqual(await repository.findDeal(organizationId, dealId), {
         id: dealId,
         organizationId,
@@ -183,50 +191,73 @@ test(
         byteSize: 8192,
         commandPayloadHash: "c".repeat(64),
       });
-      assert.deepEqual(await repository.attachExpenseEvidence({ evidence: reused }), {
-        kind: "conflict",
-        reason: "evidence-idempotency-payload-conflict",
-      });
+      assert.deepEqual(
+        await repository.attachExpenseEvidence({ evidence: reused }),
+        {
+          kind: "conflict",
+          reason: "evidence-idempotency-payload-conflict",
+        },
+      );
 
       const policy = createExpenseApprovalPolicy({
         organizationId,
         thresholdMinor: 1000n,
         currency: "SAR",
       });
-      assert.deepEqual(await repository.saveApprovalPolicy({ policy, updatedBy: userId }), {
-        kind: "saved",
+      assert.deepEqual(
+        await repository.saveApprovalPolicy({ policy, updatedBy: userId }),
+        {
+          kind: "saved",
+          policy,
+        },
+      );
+      assert.deepEqual(
+        await repository.saveApprovalPolicy({ policy, updatedBy: userId }),
+        {
+          kind: "replayed",
+          policy,
+        },
+      );
+      assert.deepEqual(
+        await repository.findApprovalPolicy(organizationId),
         policy,
-      });
-      assert.deepEqual(await repository.saveApprovalPolicy({ policy, updatedBy: userId }), {
-        kind: "replayed",
-        policy,
-      });
-      assert.deepEqual(await repository.findApprovalPolicy(organizationId), policy);
+      );
 
       const submitted = submitExpenseWithPolicy(expense, policy, {
         submittedBy: userId,
         submittedAt: now,
       });
       assert.equal(submitted.status, "SUBMITTED");
-      assert.deepEqual(await repository.submitExpense({
-        expense: submitted,
-        policy,
-        submittedBy: userId,
-        submittedAt: now,
-      }), { kind: "submitted", expense: submitted });
-      assert.deepEqual(await repository.submitExpense({
-        expense: submitted,
-        policy,
-        submittedBy: userId,
-        submittedAt: now,
-      }), { kind: "conflict", reason: "expense-state-conflict" });
+      assert.deepEqual(
+        await repository.submitExpense({
+          expense: submitted,
+          policy,
+          submittedBy: userId,
+          submittedAt: now,
+        }),
+        { kind: "submitted", expense: submitted },
+      );
+      assert.deepEqual(
+        await repository.submitExpense({
+          expense: submitted,
+          policy,
+          submittedBy: userId,
+          submittedAt: now,
+        }),
+        { kind: "conflict", reason: "expense-state-conflict" },
+      );
 
       const approver = uuid();
       await prisma.user.create({
         data: { id: approver, accountIdentifier: `${approver}@test.invalid` },
       });
       await prisma.membership.create({
-        data: { organizationId, userId: approver, role: "MANAGER", status: "ACTIVE" },
+        data: {
+          organizationId,
+          userId: approver,
+          role: "MANAGER",
+          status: "ACTIVE",
+        },
       });
       const decided = decideExpense(submitted, {
         decidedBy: approver,
@@ -234,28 +265,34 @@ test(
         decision: "APPROVED",
         reason: "Campaign receipt verified",
       });
-      assert.deepEqual(await repository.decideExpense({
-        expense: decided,
-        decidedBy: approver,
-        decidedAt: decided.decidedAt,
-        decision: "APPROVED",
-        reason: "Campaign receipt verified",
-      }), { kind: "decided", expense: decided });
-      assert.deepEqual(await repository.decideExpense({
-        expense: decided,
-        decidedBy: approver,
-        decidedAt: decided.decidedAt,
-        decision: "APPROVED",
-        reason: "Campaign receipt verified",
-      }), { kind: "replayed", expense: decided });
+      assert.deepEqual(
+        await repository.decideExpense({
+          expense: decided,
+          decidedBy: approver,
+          decidedAt: decided.decidedAt,
+          decision: "APPROVED",
+          reason: "Campaign receipt verified",
+        }),
+        { kind: "decided", expense: decided },
+      );
+      assert.deepEqual(
+        await repository.decideExpense({
+          expense: decided,
+          decidedBy: approver,
+          decidedAt: decided.decidedAt,
+          decision: "APPROVED",
+          reason: "Campaign receipt verified",
+        }),
+        { kind: "replayed", expense: decided },
+      );
 
-      const persisted = await repository.findExpense(organizationId, expense.id);
+      const persisted = await repository.findExpense(
+        organizationId,
+        expense.id,
+      );
       assert.equal(persisted.status, "APPROVED");
       assert.equal(persisted.decidedBy, approver);
-      assert.equal(
-        persisted.decisionReason,
-        "Campaign receipt verified",
-      );
+      assert.equal(persisted.decisionReason, "Campaign receipt verified");
 
       const tamper = prisma.$executeRaw`UPDATE "Expense" SET "decisionReason" = 'tampered' WHERE "organizationId" = ${organizationId}::uuid AND "id" = ${expense.id}::uuid`;
       await assert.rejects(tamper, /approval audit trail is immutable/);

@@ -86,7 +86,9 @@ function repository(overrides = {}, calls = []) {
     },
     async findDeal(organizationId, id) {
       calls.push(["deal", organizationId, id]);
-      return overrides.deal === undefined ? { id, organizationId } : overrides.deal;
+      return overrides.deal === undefined
+        ? { id, organizationId }
+        : overrides.deal;
     },
     async findExpense(organizationId, id) {
       calls.push(["expense", organizationId, id]);
@@ -111,7 +113,8 @@ function repository(overrides = {}, calls = []) {
     async submitExpense(input) {
       calls.push(["submit", input.expense.status]);
       return {
-        kind: input.expense.status === "APPROVED" ? "auto-approved" : "submitted",
+        kind:
+          input.expense.status === "APPROVED" ? "auto-approved" : "submitted",
         expense: input.expense,
       };
     },
@@ -224,7 +227,10 @@ test("createExpenseDraft resolves dimensions inside the organization and rejects
     }),
     { kind: "not-found", resource: "property" },
   );
-  const foreign = repository({ deal: { id: deal, organizationId: otherOrg } }, []);
+  const foreign = repository(
+    { deal: { id: deal, organizationId: otherOrg } },
+    [],
+  );
   assert.deepEqual(
     await new ExpenseApplication(foreign, {
       async findMembership() {

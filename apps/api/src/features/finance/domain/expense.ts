@@ -116,11 +116,13 @@ type EvidenceInput = Readonly<{
   commandPayloadHash: string;
 }>;
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH = /^[0-9a-f]{64}$/;
 
 function text(value: string, field: string, limit: number): string {
-  if (typeof value !== "string") throw new ExpenseValidationError(`Invalid ${field}`);
+  if (typeof value !== "string")
+    throw new ExpenseValidationError(`Invalid ${field}`);
   const canonical = value.trim();
   if (canonical.length === 0 || canonical.length > limit)
     throw new ExpenseValidationError(`Invalid ${field}`);
@@ -154,11 +156,7 @@ function mediaType(value: ExpenseEvidenceMediaType): ExpenseEvidenceMediaType {
   return value;
 }
 function byteSize(value: number): number {
-  if (
-    !Number.isInteger(value) ||
-    value <= 0 ||
-    value > MAX_EVIDENCE_BYTE_SIZE
-  )
+  if (!Number.isInteger(value) || value <= 0 || value > MAX_EVIDENCE_BYTE_SIZE)
     throw new ExpenseValidationError("Invalid evidence byte size");
   return value;
 }
@@ -263,7 +261,10 @@ export function canonicalDecisionAudit(input: DecideInput): Readonly<{
   if (input.decision !== "APPROVED" && input.decision !== "REJECTED")
     throw new ExpenseValidationError("Invalid approval decision");
   const reason = decisionReason(input.reason);
-  if (input.decision === "REJECTED" && (reason === undefined || reason.length === 0))
+  if (
+    input.decision === "REJECTED" &&
+    (reason === undefined || reason.length === 0)
+  )
     throw new ExpenseValidationError("A rejected expense requires a reason");
   return Object.freeze({
     decidedBy: identifier(input.decidedBy, "deciding actor"),
@@ -286,10 +287,7 @@ export function sameDecisionAudit(
   );
 }
 
-export function decideExpense(
-  expense: Expense,
-  input: DecideInput,
-): Expense {
+export function decideExpense(expense: Expense, input: DecideInput): Expense {
   if (expense.status !== "SUBMITTED")
     throw new ExpenseStateError(
       "Only submitted expenses can receive an approval decision",
@@ -322,7 +320,9 @@ export function createExpenseEvidenceMetadata(
     expenseId: identifier(input.expenseId, "expense id"),
     mediaType: mediaType(input.mediaType),
     byteSize: byteSize(input.byteSize),
-    ...(input.note === undefined ? {} : { note: text(input.note, "evidence note", 500) }),
+    ...(input.note === undefined
+      ? {}
+      : { note: text(input.note, "evidence note", 500) }),
     attachedBy: identifier(input.attachedBy, "attaching actor"),
     attachedAt: date(input.attachedAt, "attachment time"),
     commandPayloadHash: payloadHash(input.commandPayloadHash),

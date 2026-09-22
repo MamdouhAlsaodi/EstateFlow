@@ -238,10 +238,7 @@ test("decision and policy DTOs are strict and bigint-safe", async () => {
     validate(DecideExpenseDto, { decision: "MAYBE" }),
     BadRequestException,
   );
-  await assert.rejects(
-    validate(DecideExpenseDto, {}),
-    BadRequestException,
-  );
+  await assert.rejects(validate(DecideExpenseDto, {}), BadRequestException);
   const policy = await validate(SetExpenseApprovalPolicyDto, {
     thresholdMinor: "1000000",
     currency: "SAR",

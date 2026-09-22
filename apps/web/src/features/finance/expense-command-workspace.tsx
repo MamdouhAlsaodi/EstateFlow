@@ -201,7 +201,9 @@ export function ExpenseCommandWorkspace() {
       (form.thresholdMinor !== "" && !isAmount(form.thresholdMinor)) ||
       !isCurrency(form.policyCurrency)
     ) {
-      validation("تحقق من قيمة الحد والعملة؛ الحد الفارغ يعني اعتمادًا مستقلًا دائمًا.");
+      validation(
+        "تحقق من قيمة الحد والعملة؛ الحد الفارغ يعني اعتمادًا مستقلًا دائمًا.",
+      );
       return;
     }
     void run(
@@ -231,8 +233,8 @@ export function ExpenseCommandWorkspace() {
         <h1 id="expense-title">مسار المصروف</h1>
         <p>
           خمسة أوامر مالية محصورة: مسودة بأبعاد الحملة والعقار والصفقة، إرفاق
-          بيانات المستند المؤيد، إرسال للاعتماد وفق حد المؤسسة، قرار نهائي بموافقة
-          مستقلة، وسياسة الحد التي يملكها المالك وحده.
+          بيانات المستند المؤيد، إرسال للاعتماد وفق حد المؤسسة، قرار نهائي
+          بموافقة مستقلة، وسياسة الحد التي يملكها المالك وحده.
         </p>
       </header>
 
@@ -431,7 +433,9 @@ export function ExpenseCommandWorkspace() {
           )}
         </div>
       )}
-      <span hidden aria-hidden="true">{evidenceKey}</span>
+      <span hidden aria-hidden="true">
+        {evidenceKey}
+      </span>
     </section>
   );
 }

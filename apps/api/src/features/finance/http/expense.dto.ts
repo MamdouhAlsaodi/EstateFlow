@@ -150,10 +150,7 @@ export function expenseResponse(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(expenseResponse);
   if (value && typeof value === "object")
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        expenseResponse(item),
-      ]),
+      Object.entries(value).map(([key, item]) => [key, expenseResponse(item)]),
     );
   return value;
 }

@@ -57,7 +57,10 @@ export type ExpenseMutationResult =
 export type ExpenseEvidenceResolution =
   | Readonly<{ kind: "absent" }>
   | Readonly<{ kind: "replayed"; evidence: ExpenseEvidenceMetadata }>
-  | Readonly<{ kind: "conflict"; reason: "evidence-idempotency-payload-conflict" }>;
+  | Readonly<{
+      kind: "conflict";
+      reason: "evidence-idempotency-payload-conflict";
+    }>;
 
 export interface ExpenseRepository {
   findProperty(
@@ -81,13 +84,17 @@ export interface ExpenseRepository {
     evidenceId: string;
     commandPayloadHash: string;
   }): Promise<ExpenseEvidenceResolution>;
-  createExpenseDraft(input: ExpenseDraftCommand): Promise<ExpenseMutationResult>;
+  createExpenseDraft(
+    input: ExpenseDraftCommand,
+  ): Promise<ExpenseMutationResult>;
   attachExpenseEvidence(
     input: ExpenseEvidenceCommand,
   ): Promise<ExpenseMutationResult>;
   submitExpense(input: ExpenseSubmitCommand): Promise<ExpenseMutationResult>;
   decideExpense(input: ExpenseDecisionCommand): Promise<ExpenseMutationResult>;
-  saveApprovalPolicy(input: ExpensePolicyCommand): Promise<ExpenseMutationResult>;
+  saveApprovalPolicy(
+    input: ExpensePolicyCommand,
+  ): Promise<ExpenseMutationResult>;
 }
 
 export type ExpenseDecisionKind = ExpenseDecision;

@@ -1,11 +1,7 @@
 import type { ApiError } from "../../lib/api-client/index";
 
 export type ExpenseCommand =
-  | "draft"
-  | "evidence"
-  | "submit"
-  | "decision"
-  | "policy";
+  "draft" | "evidence" | "submit" | "decision" | "policy";
 export type ExpenseMessage = Readonly<{
   kind: "success" | "error" | "validation";
   text: string;

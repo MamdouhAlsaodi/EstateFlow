@@ -34,7 +34,11 @@ function draft(overrides = {}) {
     vendorReference: "Office supplies co",
     amountMinor: 50000n,
     currency: "SAR",
-    dimensions: { propertyId: property, dealId: deal, campaignReference: "ramadan-2026" },
+    dimensions: {
+      propertyId: property,
+      dealId: deal,
+      campaignReference: "ramadan-2026",
+    },
     createdBy: actor,
     createdAt: now,
     ...overrides,
@@ -131,11 +135,10 @@ test("submission below the threshold auto-approves with the recorded reason", ()
   assert.equal(submitted.status, "APPROVED");
   assert.equal(submitted.decisionReason, AUTO_APPROVAL_REASON);
   assert.equal(submitted.decidedBy, actor);
-  const above = submitExpenseWithPolicy(
-    draft({ amountMinor: 5000n }),
-    policy,
-    { submittedBy: actor, submittedAt: now },
-  );
+  const above = submitExpenseWithPolicy(draft({ amountMinor: 5000n }), policy, {
+    submittedBy: actor,
+    submittedAt: now,
+  });
   assert.equal(above.status, "SUBMITTED");
   const absentPolicy = submitExpenseWithPolicy(draft(), null, {
     submittedBy: actor,
@@ -145,11 +148,10 @@ test("submission below the threshold auto-approves with the recorded reason", ()
 });
 
 test("decisions require an independent approver and are one-way", () => {
-  const expense = submitExpenseWithPolicy(
-    draft({ amountMinor: 5000n }),
-    null,
-    { submittedBy: actor, submittedAt: now },
-  );
+  const expense = submitExpenseWithPolicy(draft({ amountMinor: 5000n }), null, {
+    submittedBy: actor,
+    submittedAt: now,
+  });
   assert.throws(
     () =>
       decideExpense(expense, {
@@ -236,7 +238,19 @@ test("only undecided expenses accept evidence metadata", () => {
     submittedAt: now,
   });
   assert.ok(expenseAcceptsEvidence(submitted));
-  assert.ok(!expenseAcceptsEvidence(submitExpenseWithPolicy(draft({ amountMinor: 900n }), createExpenseApprovalPolicy({ organizationId: org, thresholdMinor: 1000n, currency: "SAR" }), { submittedBy: actor, submittedAt: now })));
+  assert.ok(
+    !expenseAcceptsEvidence(
+      submitExpenseWithPolicy(
+        draft({ amountMinor: 900n }),
+        createExpenseApprovalPolicy({
+          organizationId: org,
+          thresholdMinor: 1000n,
+          currency: "SAR",
+        }),
+        { submittedBy: actor, submittedAt: now },
+      ),
+    ),
+  );
   const rejected = decideExpense(submitted, {
     decidedBy: other,
     decidedAt: now,

@@ -73,9 +73,7 @@ type DecideCommand = CommandBase &
 type SetPolicyCommand = CommandBase &
   Readonly<{ thresholdMinor: bigint | null; currency: string }>;
 export type ExpenseCommandResult =
-  | ExpenseMutationResult
-  | AccessDenied
-  | ExpenseNotFound;
+  ExpenseMutationResult | AccessDenied | ExpenseNotFound;
 
 export class ExpenseApplication {
   constructor(
@@ -318,9 +316,7 @@ function canonicalDecisionAudit(input: {
   }
 }
 
-function canonicalEvidencePayloadHash(
-  input: AttachEvidenceCommand,
-): string {
+function canonicalEvidencePayloadHash(input: AttachEvidenceCommand): string {
   const canonicalPayload = JSON.stringify({
     organizationId: input.organizationId,
     expenseId: input.expenseId,

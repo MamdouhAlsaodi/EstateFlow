@@ -30,8 +30,7 @@ if (!acceptedHosts.has(parsed.hostname)) {
   );
 }
 
-const expectedPort =
-  globalThis.process.env.ESTATEFLOW_TEST_DB_PORT ?? "55433";
+const expectedPort = globalThis.process.env.ESTATEFLOW_TEST_DB_PORT ?? "55433";
 
 if (parsed.port !== expectedPort) {
   throw new Error(

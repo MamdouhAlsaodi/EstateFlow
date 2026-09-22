@@ -61,7 +61,8 @@ type PolicyRow = {
   updatedBy: string;
   updatedAt: Date;
 };
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_RETRIES = 6;
 
 function isConstraint(error: unknown): boolean {
@@ -74,7 +75,11 @@ function isSerialization(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
   const directCode = "code" in error ? error.code : undefined;
   if (directCode === "P2034" || directCode === "40001") return true;
-  if (!("meta" in error) || typeof error.meta !== "object" || error.meta === null)
+  if (
+    !("meta" in error) ||
+    typeof error.meta !== "object" ||
+    error.meta === null
+  )
     return false;
   return "code" in error.meta && error.meta.code === "40001";
 }
@@ -218,9 +223,9 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     return { kind: "replayed", evidence: mapEvidence(row) };
   }
 
-  async createExpenseDraft(
-    input: { expense: Expense },
-  ): Promise<ExpenseMutationResult> {
+  async createExpenseDraft(input: {
+    expense: Expense;
+  }): Promise<ExpenseMutationResult> {
     try {
       await this.prisma.expense.create({
         data: {
@@ -330,14 +335,10 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     const authoritative = mapExpense(existing);
     if (authoritative.status !== "DRAFT")
       return { kind: "conflict", reason: "expense-state-conflict" };
-    const submitted = submitExpenseWithPolicy(
-      authoritative,
-      input.policy,
-      {
-        submittedBy: input.submittedBy,
-        submittedAt: input.submittedAt,
-      },
-    );
+    const submitted = submitExpenseWithPolicy(authoritative, input.policy, {
+      submittedBy: input.submittedBy,
+      submittedAt: input.submittedAt,
+    });
     await tx.expense.update({
       where: {
         organizationId_id: {

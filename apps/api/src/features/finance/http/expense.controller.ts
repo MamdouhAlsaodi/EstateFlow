@@ -92,7 +92,9 @@ export class ExpenseController {
           ...(input.campaignReference === undefined
             ? {}
             : { campaignReference: input.campaignReference }),
-          ...(input.propertyId === undefined ? {} : { propertyId: input.propertyId }),
+          ...(input.propertyId === undefined
+            ? {}
+            : { propertyId: input.propertyId }),
           ...(input.dealId === undefined ? {} : { dealId: input.dealId }),
         },
         createdAt: new Date(),
@@ -106,7 +108,10 @@ export class ExpenseController {
   @ApiParam({ name: "expenseId", required: true, schema: uuidParameter })
   @ApiBody({ schema: evidenceBody })
   @ApiResponse({ status: HttpStatus.CREATED })
-  @ApiResponse({ status: HttpStatus.OK, description: "Replayed evidence attach" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: "Replayed evidence attach",
+  })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
   @ApiResponse({ status: HttpStatus.FORBIDDEN })
@@ -175,7 +180,10 @@ export class ExpenseController {
   @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
   @ApiParam({ name: "expenseId", required: true, schema: uuidParameter })
   @ApiBody({ schema: decisionBody })
-  @ApiResponse({ status: HttpStatus.OK, description: "Decision or exact replay" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: "Decision or exact replay",
+  })
   @ApiResponse({ status: HttpStatus.BAD_REQUEST })
   @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
   @ApiResponse({ status: HttpStatus.FORBIDDEN })
