@@ -495,6 +495,92 @@ const expenseOperations = new Map([
   ],
 ]);
 
+const automationDefinitionSchema = {
+  type: "object",
+  required: ["trigger", "conditions", "action"],
+  additionalProperties: false,
+  properties: {
+    trigger: { type: "object", additionalProperties: true },
+    conditions: {
+      type: "array",
+      items: { type: "object", additionalProperties: true },
+    },
+    action: { type: "object", additionalProperties: true },
+  },
+};
+const automationOperations = new Map([
+  [
+    "post /organizations/{organizationId}/automation/rules",
+    {
+      operationId: "AutomationRuleController_create",
+      clientMethod: "createAutomationRule",
+      body: {
+        type: "object",
+        required: ["name", "definition"],
+        additionalProperties: false,
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          definition: automationDefinitionSchema,
+        },
+      },
+      successStatuses: ["201"],
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/automation/rules/{ruleId}/versions",
+    {
+      operationId: "AutomationRuleController_addVersion",
+      clientMethod: "addAutomationRuleVersion",
+      body: {
+        type: "object",
+        required: ["definition"],
+        additionalProperties: false,
+        properties: {
+          definition: automationDefinitionSchema,
+          note: { type: "string", minLength: 1, maxLength: 500 },
+        },
+      },
+      successStatuses: ["201"],
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/automation/rules/{ruleId}/enable",
+    {
+      operationId: "AutomationRuleController_enable",
+      clientMethod: "enableAutomationRule",
+      body: null,
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/automation/rules/{ruleId}/disable",
+    {
+      operationId: "AutomationRuleController_disable",
+      clientMethod: "disableAutomationRule",
+      body: null,
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/automation/rules",
+    {
+      operationId: "AutomationRuleController_list",
+      clientMethod: "listAutomationRules",
+      body: null,
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/automation/rules/{ruleId}",
+    {
+      operationId: "AutomationRuleController_find",
+      clientMethod: "findAutomationRule",
+      body: null,
+      successStatuses: ["200"],
+    },
+  ],
+]);
+
 const reportBucketSchema = {
   type: "string",
   enum: ["CURRENT", "DAYS_1_30", "DAYS_31_60", "DAYS_61_90", "DAYS_91_PLUS"],
@@ -1211,6 +1297,45 @@ function readSupportedOperations(document) {
     }
   }
 
+  const hasAutomationContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("AutomationRuleController_"),
+      ),
+  );
+  if (hasAutomationContract) {
+    for (const [key, automationOperation] of automationOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (
+        !operation ||
+        operation.operationId !== automationOperation.operationId
+      )
+        throw new Error(
+          `Unsupported OpenAPI operation ${automationOperation.operationId} at ${path}`,
+        );
+      validateAutomationOperation({
+        path,
+        operation,
+        contract: automationOperation,
+      });
+      operations.push({ path, operation, automationOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("AutomationRuleController_") &&
+          !automationOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI AutomationRuleController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
   const hasReportContract = Object.values(document.paths ?? {}).some(
     (pathItem) =>
       Object.values(pathItem).some((operation) =>
@@ -1461,6 +1586,42 @@ function validateReportOperation({ path, operation, contract }) {
     if (!operation.responses?.[status])
       throw new Error(
         `OpenAPI Report operation ${operation.operationId} at ${path} must define error status ${status}`,
+      );
+}
+
+function validateAutomationOperation({ path, operation, contract }) {
+  const expectedParameters = (path.match(/{[^}]+}/g) ?? []).map((name) => ({
+    name: name.slice(1, -1),
+    in: "path",
+    required: true,
+    schema: { type: "string", format: "uuid" },
+  }));
+  const actualParameters = (operation.parameters ?? []).map(
+    ({ name, in: location, required, schema }) => ({
+      name,
+      in: location,
+      required,
+      schema,
+    }),
+  );
+  if (JSON.stringify(actualParameters) !== JSON.stringify(expectedParameters))
+    throw new Error(
+      `OpenAPI Automation operation ${operation.operationId} at ${path} must define its required path parameters`,
+    );
+  if (contract.body === null) {
+    if (operation.requestBody)
+      throw new Error(
+        `OpenAPI Automation operation ${operation.operationId} at ${path} must not define a request body`,
+      );
+  } else if (!propertyOperationBodyIsJson(operation)) {
+    throw new Error(
+      `OpenAPI Automation operation ${operation.operationId} at ${path} must define an application/json request body`,
+    );
+  }
+  for (const status of contract.successStatuses)
+    if (!operation.responses?.[status])
+      throw new Error(
+        `OpenAPI Automation operation ${operation.operationId} at ${path} must define success status ${status}`,
       );
 }
 
@@ -1746,6 +1907,9 @@ export function generateOpenApiClient(document) {
   const reportOperationEntries = operations.filter(
     ({ reportOperation }) => reportOperation,
   );
+  const automationOperationEntries = operations.filter(
+    ({ automationOperation }) => automationOperation,
+  );
   const statusLiterals = [
     ...new Set(healthOperations.flatMap(readStatusEnum)),
   ].map((status) => JSON.stringify(status));
@@ -1852,6 +2016,26 @@ export function generateOpenApiClient(document) {
       return `    ${expenseOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson(${encodedPath(path)}, { method: "POST" }),`;
     })
     .join("\n");
+  const automationMethods = automationOperationEntries
+    .map(({ path, automationOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      const paramsType = parameterType(pathParameters);
+      if (automationOperation.body === null) {
+        const method =
+          automationOperation.operationId.endsWith("_list") ||
+          automationOperation.operationId.endsWith("_find")
+            ? "GET"
+            : "POST";
+        return `    ${automationOperation.clientMethod}: (params: ${paramsType}) => requestJson(${encodedPath(path)}, { method: ${JSON.stringify(method)} }),`;
+      }
+      const bodyType = automationOperation.operationId.endsWith("_create")
+        ? "{ name: string; definition: AutomationRuleDefinitionInput }"
+        : "{ definition: AutomationRuleDefinitionInput; note?: string }";
+      return `    ${automationOperation.clientMethod}: (params: ${paramsType}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
+    })
+    .join("\n");
   const reportMethods = reportOperationEntries
     .map(({ path, reportOperation }) => {
       const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
@@ -1887,6 +2071,20 @@ export function generateOpenApiClient(document) {
       return `export type ${responseType} = ${typescriptObjectType(schema)};`;
     })
     .join("\n\n");
+  const automationTypes = `export type AutomationRuleDefinitionInput = {
+  trigger:
+    | { kind: "DOMAIN_EVENT"; eventType: string }
+    | { kind: "SCHEDULE"; cadence: "DAILY"; timeOfDayUtc: string };
+  conditions: Array<{
+    field: string;
+    op: "equals" | "not_equals" | "in" | "not_in" | "is_empty" | "is_not_empty";
+    value?: string | number | boolean | string[];
+  }>;
+  action: {
+    actionType: "CREATE_LEAD_TASK" | "CREATE_INTERNAL_NOTIFICATION" | "ADD_LEAD_TIMELINE_NOTE";
+    payload?: Record<string, string>;
+  };
+};`;
   const agingItemSchema = {
     ...agingResponseSchema.properties.items.items,
     properties: {
@@ -1953,6 +2151,8 @@ ${agingTypes}
 
 ${reportTypes}
 
+${automationTypes}
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -1987,6 +2187,7 @@ ${commissionMethods}
 ${receivableMethods}
 ${expenseMethods}
 ${reportMethods}
+${automationMethods}
 ${ledgerMethods}
 ${propertyMethods}
   };

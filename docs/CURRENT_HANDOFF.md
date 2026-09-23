@@ -76,8 +76,9 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-233 / FIN-03 — complete PRD reconciliation, 12 migrations, isolated unit suites, 14 serial PostgreSQL integration files / 21 tests, production builds, OpenAPI drift, formatting, and cleanup: **CLOSED / PASS**. Evidence: `docs/handoffs/EF-233/EF-233-final-verification-2026-08-17.md`.
 - EF-234 / FIN-04 — expenses with category, vendor/payee reference, campaign/property/deal dimensions, approval threshold policy (maker-checker with recorded below-threshold auto-approval), metadata-only evidence attachments with idempotent replay, guarded five-command HTTP boundary, exact OpenAPI + closed-world generated client, Arabic-first expense workspace, and database-enforced snapshot/audit immutability (migration thirteen): **PASS**. Evidence: `docs/handoffs/EF-234/EF-234-final-verification-2026-09-21.md`.
 - EF-235 / FIN-05 — Owner-only read-only finance dashboard: cash-in/out, receivables aging (exact EF-233 bucket semantics), commissions due/paid/expected, revenue/margin by deal and by property, freshness timestamp on every payload, bounded tenant-scoped drill-down for every figure, exact OpenAPI + closed-world generated client, Arabic-first reports page, and a seeded report-to-ledger reconciliation test proving every figure equals the exact sum of its source rows including a cancellation period (CSV/PDF deferred to FIN-07): **PASS**. Evidence: `docs/handoffs/EF-235/EF-235-implementation-2026-09-23.md`.
+- EF-301 + EF-302 — versioned tenant-scoped automation rules, guarded Owner/Manager rule commands, durable idempotent jobs, bounded retry/backoff, typed failed-job visibility, and callable API-side scheduler: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-301/implementation.md` and `docs/handoffs/EF-302/implementation.md`.
 
-EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, and EF-235 are closed within their documented boundaries.
+EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, EF-235, EF-301, and EF-302 are closed within their documented boundaries.
 
 ## EF-120 authentication decision
 
@@ -118,7 +119,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-235 / FIN-05 is implemented and verified within its documented boundary (`IMPLEMENTED`): Phase 2 finance (EF-231 ledger, EF-232 commissions, EF-233 receivables, EF-234 expenses, EF-235 owner reporting) is closed. FIN-02 remains partial (commission lifecycle `DUE`/`PAID` transitions are typed but not durably persisted — the database still enforces `status = 'EXPECTED'` — and the dashboard reports the persisted state honestly). FIN-06 remains partial (deal/property dimensions report today; Lead/Broker/Campaign arrive with EF-401).** The next roadmap task is the Phase 2 demo slice and the viewing/booking milestone (EF-204/EF-205 per the development plan), or the Phase 2 closure gate with Mamdouh. Preserve the accepted EF-235 behavior: the reporting surface stays read-only, Owner-only, and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-235/EF-235-implementation-2026-09-23.md`.
+**EF-301 + EF-302 are implemented and verified within this packet boundary:** EF-301 owns versioned Trigger/Condition/Action rule definitions and guarded Owner/Manager lifecycle/version commands; EF-302 owns durable idempotent job persistence, separated schedule evaluation/action execution, bounded exponential backoff, and typed failed-job visibility. The scheduler is an API-side callable module; `apps/worker` remains empty and EF-303 must provide the long-lived worker loop plus concrete action executors. The next task is **EF-303 Lead SLA and inactivity automations**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-301/implementation.md` and `docs/handoffs/EF-302/implementation.md`.
 
 Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 
@@ -134,7 +135,7 @@ Environment note: the isolated `estateflow_test` stack on this machine listens o
 - Web: Next.js, Arabic-first.
 - API: NestJS modular monolith.
 - Data: PostgreSQL/PostGIS with Prisma baseline; business models begin in their owning tasks.
-- Async: Redis/BullMQ worker shell; transactional outbox begins in EF-302.
+- Async: EF-301/302 provide durable API-side scheduler callables; `apps/worker` remains empty. EF-303 owns the long-lived worker loop, concrete action executors, and any future queue adapter/outbox wiring.
 - `btree_gist` remains deferred until the viewing exclusion-constraint task.
 - No real customer data, credentials, external providers, production mutation, or deployment.
 

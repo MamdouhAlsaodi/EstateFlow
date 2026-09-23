@@ -166,6 +166,24 @@ export type OwnerPerformanceResponse = {
   }[];
 };
 
+export type AutomationRuleDefinitionInput = {
+  trigger:
+    | { kind: "DOMAIN_EVENT"; eventType: string }
+    | { kind: "SCHEDULE"; cadence: "DAILY"; timeOfDayUtc: string };
+  conditions: Array<{
+    field: string;
+    op: "equals" | "not_equals" | "in" | "not_in" | "is_empty" | "is_not_empty";
+    value?: string | number | boolean | string[];
+  }>;
+  action: {
+    actionType:
+      | "CREATE_LEAD_TASK"
+      | "CREATE_INTERNAL_NOTIFICATION"
+      | "ADD_LEAD_TIMELINE_NOTE";
+    payload?: Record<string, string>;
+  };
+};
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -660,6 +678,56 @@ export function createEstateFlowClient({
           (query.toString() ? `?${query}` : ""),
       );
     },
+    createAutomationRule: (
+      params: { organizationId: string },
+      body: { name: string; definition: AutomationRuleDefinitionInput },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    addAutomationRuleVersion: (
+      params: { organizationId: string; ruleId: string },
+      body: { definition: AutomationRuleDefinitionInput; note?: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}/versions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    enableAutomationRule: (params: {
+      organizationId: string;
+      ruleId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}/enable`,
+        { method: "POST" },
+      ),
+    disableAutomationRule: (params: {
+      organizationId: string;
+      ruleId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}/disable`,
+        { method: "POST" },
+      ),
+    listAutomationRules: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules`,
+        { method: "GET" },
+      ),
+    findAutomationRule: (params: { organizationId: string; ruleId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}`,
+        { method: "GET" },
+      ),
     createAccount: (
       params: { organizationId: string },
       body: { code: string; name: string; type: string },
