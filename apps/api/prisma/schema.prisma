@@ -169,6 +169,170 @@ model Organization {
   expenses               Expense[]
   expenseEvidence        ExpenseEvidenceMetadata[]
   expenseApprovalPolicy  ExpenseApprovalPolicy?
+  campaigns                        Campaign[]
+  campaignTransitions              CampaignTransition[]
+  campaignBudgetCorrections        CampaignBudgetCorrection[]
+  campaignPerformanceEntries       CampaignPerformanceEntry[]
+  leadTouches                      LeadTouch[]
+  leadAttributionCorrections       LeadAttributionCorrection[]
+}
+
+// EF-401 — Campaigns and attribution.
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignChannel {
+  META
+  GOOGLE
+  SNAPCHAT
+  TIKTOK
+  X
+  LINKEDIN
+  PRINT
+  OUTDOOR
+  REFERRAL
+  OTHER
+}
+
+enum TouchChannel {
+  WEBSITE
+  WHATSAPP
+  PHONE_CALL
+  WALK_IN
+  REFERRAL
+  META
+  GOOGLE
+  SNAPCHAT
+  TIKTOK
+  X
+  OTHER
+}
+
+model Campaign {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String          @db.Uuid
+  name               String          @db.VarChar(200)
+  objective          String          @db.VarChar(500)
+  channel            CampaignChannel
+  status             CampaignStatus  @default(DRAFT)
+  startsAt           DateTime        @db.Timestamptz(6)
+  endsAt             DateTime        @db.Timestamptz(6)
+  budgetPlannedMinor BigInt          @db.BigInt
+  currency           String          @db.VarChar(3)
+  utmSource          String?         @db.VarChar(100)
+  utmMedium          String?         @db.VarChar(100)
+  utmCampaign        String?         @db.VarChar(100)
+  utmContent         String?         @db.VarChar(100)
+  utmTerm            String?         @db.VarChar(100)
+  createdBy          String          @db.Uuid
+  createdAt          DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt          DateTime        @updatedAt @db.Timestamptz(6)
+  organization       Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  transitions        CampaignTransition[]
+  budgetCorrections  CampaignBudgetCorrection[]
+  performanceEntries CampaignPerformanceEntry[]
+  touches            LeadTouch[]
+  attributionCorrections LeadAttributionCorrection[]
+  expenses           Expense[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+  @@index([organizationId, createdAt])
+}
+
+model CampaignTransition {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String         @db.Uuid
+  campaignId     String         @db.Uuid
+  fromStatus     CampaignStatus
+  toStatus       CampaignStatus
+  reason         String?        @db.VarChar(500)
+  actorId        String         @db.Uuid
+  createdAt      DateTime       @default(now()) @db.Timestamptz(6)
+  campaign       Campaign       @relation(fields: [organizationId, campaignId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, campaignId, createdAt])
+}
+
+model CampaignBudgetCorrection {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @db.Uuid
+  campaignId     String   @db.Uuid
+  previousMinor  BigInt   @db.BigInt
+  correctedMinor BigInt   @db.BigInt
+  currency       String   @db.VarChar(3)
+  reason         String   @db.VarChar(500)
+  createdBy      String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  campaign       Campaign @relation(fields: [organizationId, campaignId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, campaignId, createdAt])
+}
+
+model CampaignPerformanceEntry {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @db.Uuid
+  campaignId     String   @db.Uuid
+  occurredAt     DateTime @db.Timestamptz(6)
+  impressions    Int
+  clicks         Int
+  leadsCount     Int
+  note           String?  @db.VarChar(500)
+  createdBy      String   @db.Uuid
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  campaign       Campaign @relation(fields: [organizationId, campaignId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, campaignId, occurredAt])
+}
+
+model LeadTouch {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String       @db.Uuid
+  leadId         String       @db.Uuid
+  campaignId     String?      @db.Uuid
+  channel        TouchChannel
+  source         String?      @db.VarChar(200)
+  utmSource      String?      @db.VarChar(100)
+  utmMedium      String?      @db.VarChar(100)
+  utmCampaign    String?      @db.VarChar(100)
+  utmContent     String?      @db.VarChar(100)
+  utmTerm        String?      @db.VarChar(100)
+  occurredAt     DateTime     @db.Timestamptz(6)
+  createdBy      String       @db.Uuid
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  campaign       Campaign?    @relation(fields: [organizationId, campaignId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, leadId, occurredAt])
+  @@index([organizationId, campaignId])
+}
+
+model LeadAttributionCorrection {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String   @db.Uuid
+  leadId              String   @db.Uuid
+  previousCampaignId  String?  @db.Uuid
+  correctedCampaignId String?  @db.Uuid
+  reason              String   @db.VarChar(500)
+  createdBy           String   @db.Uuid
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+  campaign            Campaign? @relation(fields: [organizationId, correctedCampaignId], references: [organizationId, id], onDelete: Restrict)
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, leadId, createdAt])
 }
 
 model Membership {
@@ -709,6 +873,7 @@ model Expense {
   amountMinor       BigInt   @db.BigInt
   currency          String   @db.VarChar(3)
   campaignReference String?  @db.VarChar(100)
+  campaignId        String?  @db.Uuid
   propertyId        String?  @db.Uuid
   dealId            String?  @db.Uuid
   status            String   @db.VarChar(20)
@@ -723,11 +888,13 @@ model Expense {
   organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   property          Property?    @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   deal              Deal?        @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  campaign          Campaign?    @relation(fields: [organizationId, campaignId], references: [organizationId, id], onDelete: Restrict)
   evidence          ExpenseEvidenceMetadata[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
   @@index([organizationId, category])
+  @@index([organizationId, campaignId])
 }
 
 model ExpenseEvidenceMetadata {

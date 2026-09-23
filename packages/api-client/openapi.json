@@ -4035,6 +4035,7 @@
                     "maxLength": 100,
                     "pattern": "\\S"
                   },
+                  "campaignId": { "type": "string", "format": "uuid" },
                   "propertyId": { "type": "string", "format": "uuid" },
                   "dealId": { "type": "string", "format": "uuid" }
                 }
@@ -4552,6 +4553,12 @@
             }
           },
           {
+            "name": "campaignId",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
             "name": "propertyId",
             "required": false,
             "in": "query",
@@ -4620,6 +4627,7 @@
                             "minLength": 1,
                             "maxLength": 100
                           },
+                          "campaignId": { "type": "string", "format": "uuid" },
                           "dealId": { "type": "string", "format": "uuid" },
                           "propertyId": { "type": "string", "format": "uuid" }
                         }
@@ -5230,6 +5238,1545 @@
         },
         "summary": "",
         "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/campaigns/performance": {
+      "get": {
+        "operationId": "ReportController_getCampaignPerformance",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "model",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["FIRST_TOUCH", "LAST_TOUCH"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "model", "campaigns"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "model": {
+                      "type": "string",
+                      "enum": ["FIRST_TOUCH", "LAST_TOUCH"]
+                    },
+                    "campaigns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "keyId",
+                          "currency",
+                          "revenueMinor",
+                          "costsMinor",
+                          "marginMinor",
+                          "paymentCount",
+                          "expenseCount"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "keyId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "revenueMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "costsMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "marginMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "paymentCount": { "type": "integer", "minimum": 0 },
+                          "expenseCount": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns": {
+      "post": {
+        "operationId": "CampaignController_create",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "objective",
+                  "channel",
+                  "startsAt",
+                  "endsAt",
+                  "budgetPlannedMinor",
+                  "currency"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "objective": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "META",
+                      "GOOGLE",
+                      "SNAPCHAT",
+                      "TIKTOK",
+                      "X",
+                      "LINKEDIN",
+                      "PRINT",
+                      "OUTDOOR",
+                      "REFERRAL",
+                      "OTHER"
+                    ]
+                  },
+                  "startsAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  },
+                  "endsAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  },
+                  "budgetPlannedMinor": {
+                    "type": "string",
+                    "pattern": "^[1-9]\\d*$"
+                  },
+                  "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+                  "utmSource": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmMedium": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmCampaign": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmContent": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmTerm": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      },
+      "get": {
+        "operationId": "CampaignController_list",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["DRAFT", "ACTIVE", "COMPLETED", "CANCELLED"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "objective",
+                          "channel",
+                          "status",
+                          "startsAt",
+                          "endsAt",
+                          "budgetPlannedMinor",
+                          "currency",
+                          "touchCount",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "name": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "objective": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "META",
+                              "GOOGLE",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "X",
+                              "LINKEDIN",
+                              "PRINT",
+                              "OUTDOOR",
+                              "REFERRAL",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "ACTIVE",
+                              "COMPLETED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "startsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "endsAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "budgetPlannedMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "budgetActualMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "touchCount": { "type": "integer", "minimum": 0 },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns/{campaignId}": {
+      "get": {
+        "operationId": "CampaignController_find",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "campaign",
+                    "actualByCurrency",
+                    "transitions",
+                    "budgetCorrections"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "campaign": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "name",
+                        "objective",
+                        "channel",
+                        "status",
+                        "startsAt",
+                        "endsAt",
+                        "budget",
+                        "utm",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "objective": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "META",
+                            "GOOGLE",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "X",
+                            "LINKEDIN",
+                            "PRINT",
+                            "OUTDOOR",
+                            "REFERRAL",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": ["DRAFT", "ACTIVE", "COMPLETED", "CANCELLED"]
+                        },
+                        "startsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "endsAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "budget": {
+                          "type": "object",
+                          "required": ["amountMinor", "currency"],
+                          "additionalProperties": false,
+                          "properties": {
+                            "amountMinor": {
+                              "type": "string",
+                              "pattern": "^[1-9]\\d*$"
+                            },
+                            "currency": {
+                              "type": "string",
+                              "pattern": "^[A-Z]{3}$"
+                            }
+                          }
+                        },
+                        "utm": {
+                          "type": "object",
+                          "required": [],
+                          "additionalProperties": false,
+                          "properties": {
+                            "utmSource": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "utmMedium": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "utmCampaign": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "utmContent": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            },
+                            "utmTerm": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 100
+                            }
+                          }
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    },
+                    "actualByCurrency": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    },
+                    "transitions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "campaignId",
+                          "fromStatus",
+                          "toStatus",
+                          "actorId",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "fromStatus": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "ACTIVE",
+                              "COMPLETED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "toStatus": {
+                            "type": "string",
+                            "enum": [
+                              "DRAFT",
+                              "ACTIVE",
+                              "COMPLETED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "actorId": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "budgetCorrections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "campaignId",
+                          "previousMinor",
+                          "correctedMinor",
+                          "currency",
+                          "reason",
+                          "createdBy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "previousMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "correctedMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "createdBy": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns/{campaignId}/transition": {
+      "post": {
+        "operationId": "CampaignController_transition",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["toStatus"],
+                "additionalProperties": false,
+                "properties": {
+                  "toStatus": {
+                    "type": "string",
+                    "enum": ["ACTIVE", "COMPLETED", "CANCELLED"]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns/{campaignId}/budget-corrections": {
+      "post": {
+        "operationId": "CampaignController_correctBudget",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["correctedMinor", "reason"],
+                "additionalProperties": false,
+                "properties": {
+                  "correctedMinor": {
+                    "type": "string",
+                    "pattern": "^[1-9]\\d*$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns/{campaignId}/performance-entries": {
+      "post": {
+        "operationId": "CampaignController_recordPerformance",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "occurredAt",
+                  "impressions",
+                  "clicks",
+                  "leadsCount"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  },
+                  "impressions": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "clicks": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "leadsCount": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1000000000
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      },
+      "get": {
+        "operationId": "CampaignController_listPerformance",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "campaignId",
+                          "occurredAt",
+                          "impressions",
+                          "clicks",
+                          "leadsCount",
+                          "createdBy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "impressions": { "type": "integer", "minimum": 0 },
+                          "clicks": { "type": "integer", "minimum": 0 },
+                          "leadsCount": { "type": "integer", "minimum": 0 },
+                          "note": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "createdBy": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/leads/{leadId}/touches": {
+      "post": {
+        "operationId": "CampaignController_recordTouch",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "leadId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["channel"],
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "WEBSITE",
+                      "WHATSAPP",
+                      "PHONE_CALL",
+                      "WALK_IN",
+                      "REFERRAL",
+                      "META",
+                      "GOOGLE",
+                      "SNAPCHAT",
+                      "TIKTOK",
+                      "X",
+                      "OTHER"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "campaignId": { "type": "string", "format": "uuid" },
+                  "utmSource": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmMedium": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmCampaign": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmContent": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "utmTerm": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "pattern": "\\S"
+                  },
+                  "occurredAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      },
+      "get": {
+        "operationId": "CampaignController_listTouches",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "leadId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "leadId",
+                          "channel",
+                          "utm",
+                          "occurredAt",
+                          "createdBy",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "leadId": { "type": "string", "format": "uuid" },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "WEBSITE",
+                              "WHATSAPP",
+                              "PHONE_CALL",
+                              "WALK_IN",
+                              "REFERRAL",
+                              "META",
+                              "GOOGLE",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "X",
+                              "OTHER"
+                            ]
+                          },
+                          "source": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "utm": {
+                            "type": "object",
+                            "required": [],
+                            "additionalProperties": false,
+                            "properties": {
+                              "utmSource": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "utmMedium": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "utmCampaign": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "utmContent": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              },
+                              "utmTerm": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 100
+                              }
+                            }
+                          },
+                          "occurredAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "createdBy": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/leads/{leadId}/attribution": {
+      "get": {
+        "operationId": "CampaignController_getAttribution",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "leadId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["attribution"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "attribution": {
+                      "type": "object",
+                      "required": [],
+                      "additionalProperties": false,
+                      "properties": {
+                        "firstTouch": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "organizationId",
+                            "leadId",
+                            "channel",
+                            "utm",
+                            "occurredAt",
+                            "createdBy",
+                            "createdAt"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "leadId": { "type": "string", "format": "uuid" },
+                            "campaignId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "channel": {
+                              "type": "string",
+                              "enum": [
+                                "WEBSITE",
+                                "WHATSAPP",
+                                "PHONE_CALL",
+                                "WALK_IN",
+                                "REFERRAL",
+                                "META",
+                                "GOOGLE",
+                                "SNAPCHAT",
+                                "TIKTOK",
+                                "X",
+                                "OTHER"
+                              ]
+                            },
+                            "source": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "utm": {
+                              "type": "object",
+                              "required": [],
+                              "additionalProperties": false,
+                              "properties": {
+                                "utmSource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmMedium": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmCampaign": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmContent": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmTerm": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "occurredAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                            },
+                            "createdBy": { "type": "string", "format": "uuid" },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                            }
+                          }
+                        },
+                        "lastTouch": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "organizationId",
+                            "leadId",
+                            "channel",
+                            "utm",
+                            "occurredAt",
+                            "createdBy",
+                            "createdAt"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "leadId": { "type": "string", "format": "uuid" },
+                            "campaignId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "channel": {
+                              "type": "string",
+                              "enum": [
+                                "WEBSITE",
+                                "WHATSAPP",
+                                "PHONE_CALL",
+                                "WALK_IN",
+                                "REFERRAL",
+                                "META",
+                                "GOOGLE",
+                                "SNAPCHAT",
+                                "TIKTOK",
+                                "X",
+                                "OTHER"
+                              ]
+                            },
+                            "source": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 200
+                            },
+                            "utm": {
+                              "type": "object",
+                              "required": [],
+                              "additionalProperties": false,
+                              "properties": {
+                                "utmSource": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmMedium": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmCampaign": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmContent": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                },
+                                "utmTerm": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 100
+                                }
+                              }
+                            },
+                            "occurredAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                            },
+                            "createdBy": { "type": "string", "format": "uuid" },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                            }
+                          }
+                        },
+                        "firstCampaignId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "lastCampaignId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "override": {
+                          "type": "object",
+                          "required": [
+                            "id",
+                            "organizationId",
+                            "leadId",
+                            "reason",
+                            "createdBy",
+                            "createdAt"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "id": { "type": "string", "format": "uuid" },
+                            "organizationId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "leadId": { "type": "string", "format": "uuid" },
+                            "previousCampaignId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "correctedCampaignId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "reason": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            },
+                            "createdBy": { "type": "string", "format": "uuid" },
+                            "createdAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/leads/{leadId}/attribution-corrections": {
+      "post": {
+        "operationId": "CampaignController_correctAttribution",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "leadId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "additionalProperties": false,
+                "properties": {
+                  "correctedCampaignId": { "type": "string", "format": "uuid" },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "" },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
       }
     }
   },

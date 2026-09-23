@@ -88,6 +88,7 @@ export class ExpenseApplication {
     if (access.kind !== "authorized") return access.result;
     const dimensions: {
       campaignReference?: string;
+      campaignId?: string;
       propertyId?: string;
       dealId?: string;
     } = {};
@@ -116,6 +117,19 @@ export class ExpenseApplication {
       )
         return { kind: "not-found", resource: "deal" };
       dimensions.dealId = deal.id;
+    }
+    if (input.dimensions.campaignId !== undefined) {
+      const campaign = await this.repository.findCampaign(
+        input.organizationId,
+        input.dimensions.campaignId,
+      );
+      if (
+        !campaign ||
+        campaign.organizationId !== input.organizationId ||
+        campaign.id !== input.dimensions.campaignId
+      )
+        return { kind: "not-found", resource: "campaign" };
+      dimensions.campaignId = campaign.id;
     }
     if (input.dimensions.campaignReference !== undefined)
       dimensions.campaignReference = input.dimensions.campaignReference;

@@ -31,6 +31,7 @@ type ExpenseRow = {
   amountMinor: bigint;
   currency: string;
   campaignReference: string | null;
+  campaignId: string | null;
   propertyId: string | null;
   dealId: string | null;
   status: string;
@@ -89,6 +90,7 @@ function mapDimensions(row: ExpenseRow): Expense["dimensions"] {
     ...(row.campaignReference === null
       ? {}
       : { campaignReference: row.campaignReference }),
+    ...(row.campaignId === null ? {} : { campaignId: row.campaignId }),
     ...(row.propertyId === null ? {} : { propertyId: row.propertyId }),
     ...(row.dealId === null ? {} : { dealId: row.dealId }),
   });
@@ -177,6 +179,16 @@ export class PrismaExpenseRepository implements ExpenseRepository {
     });
   }
 
+  async findCampaign(
+    organizationId: string,
+    campaignId: string,
+  ): Promise<ExpenseScopedReference | null> {
+    return this.prisma.campaign.findUnique({
+      where: { organizationId_id: { organizationId, id: campaignId } },
+      select: { id: true, organizationId: true },
+    });
+  }
+
   async findExpense(
     organizationId: string,
     expenseId: string,
@@ -236,6 +248,7 @@ export class PrismaExpenseRepository implements ExpenseRepository {
           amountMinor: input.expense.money.amountMinor,
           currency: input.expense.money.currency,
           campaignReference: input.expense.dimensions.campaignReference ?? null,
+          campaignId: input.expense.dimensions.campaignId ?? null,
           propertyId: input.expense.dimensions.propertyId ?? null,
           dealId: input.expense.dimensions.dealId ?? null,
           status: input.expense.status,

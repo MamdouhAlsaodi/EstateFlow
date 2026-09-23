@@ -7,6 +7,7 @@ import { LeadsModule } from "./features/leads/leads.module.js";
 import { PropertiesModule } from "./features/properties/properties.module.js";
 import { FinanceModule } from "./features/finance/finance.module.js";
 import { AutomationModule } from "./features/automation/automation.module.js";
+import { CampaignsModule } from "./features/campaigns/campaigns.module.js";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { AutomationModule } from "./features/automation/automation.module.js";
     PropertiesModule,
     FinanceModule,
     AutomationModule,
+    CampaignsModule,
   ],
 })
 export class AppModule {}

@@ -400,6 +400,7 @@ const expenseOperations = new Map([
             maxLength: 100,
             pattern: "\\S",
           },
+          campaignId: uuidSchema,
           propertyId: uuidSchema,
           dealId: uuidSchema,
         },
@@ -490,6 +491,640 @@ const expenseOperations = new Map([
       },
       successStatuses: ["201", "200"],
       errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+]);
+
+// EF-401 — campaigns and attribution contract.
+const campaignChannelSchema = {
+  type: "string",
+  enum: [
+    "META",
+    "GOOGLE",
+    "SNAPCHAT",
+    "TIKTOK",
+    "X",
+    "LINKEDIN",
+    "PRINT",
+    "OUTDOOR",
+    "REFERRAL",
+    "OTHER",
+  ],
+};
+const touchChannelSchema = {
+  type: "string",
+  enum: [
+    "WEBSITE",
+    "WHATSAPP",
+    "PHONE_CALL",
+    "WALK_IN",
+    "REFERRAL",
+    "META",
+    "GOOGLE",
+    "SNAPCHAT",
+    "TIKTOK",
+    "X",
+    "OTHER",
+  ],
+};
+const campaignStatusSchema = {
+  type: "string",
+  enum: ["DRAFT", "ACTIVE", "COMPLETED", "CANCELLED"],
+};
+const utmSchema = {
+  type: "object",
+  required: [],
+  additionalProperties: false,
+  properties: {
+    utmSource: { type: "string", minLength: 1, maxLength: 100 },
+    utmMedium: { type: "string", minLength: 1, maxLength: 100 },
+    utmCampaign: { type: "string", minLength: 1, maxLength: 100 },
+    utmContent: { type: "string", minLength: 1, maxLength: 100 },
+    utmTerm: { type: "string", minLength: 1, maxLength: 100 },
+  },
+};
+const campaignMoneyRowSchema = {
+  type: "object",
+  required: ["currency", "count", "amountMinor"],
+  additionalProperties: false,
+  properties: {
+    currency: currencySchema,
+    count: { type: "integer", minimum: 0 },
+    amountMinor: amountMinorSchema,
+  },
+};
+const campaignSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "name",
+    "objective",
+    "channel",
+    "status",
+    "startsAt",
+    "endsAt",
+    "budget",
+    "utm",
+    "createdBy",
+    "createdAt",
+    "updatedAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    name: { type: "string", minLength: 1, maxLength: 200 },
+    objective: { type: "string", minLength: 1, maxLength: 500 },
+    channel: campaignChannelSchema,
+    status: campaignStatusSchema,
+    startsAt: instantSchema,
+    endsAt: instantSchema,
+    budget: {
+      type: "object",
+      required: ["amountMinor", "currency"],
+      additionalProperties: false,
+      properties: {
+        amountMinor: amountMinorSchema,
+        currency: currencySchema,
+      },
+    },
+    utm: utmSchema,
+    createdBy: uuidSchema,
+    createdAt: instantSchema,
+    updatedAt: instantSchema,
+  },
+};
+const campaignTransitionSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "campaignId",
+    "fromStatus",
+    "toStatus",
+    "actorId",
+    "createdAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    campaignId: uuidSchema,
+    fromStatus: campaignStatusSchema,
+    toStatus: campaignStatusSchema,
+    reason: { type: "string", minLength: 1, maxLength: 500 },
+    actorId: uuidSchema,
+    createdAt: instantSchema,
+  },
+};
+const budgetCorrectionSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "campaignId",
+    "previousMinor",
+    "correctedMinor",
+    "currency",
+    "reason",
+    "createdBy",
+    "createdAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    campaignId: uuidSchema,
+    previousMinor: amountMinorSchema,
+    correctedMinor: amountMinorSchema,
+    currency: currencySchema,
+    reason: { type: "string", minLength: 1, maxLength: 500 },
+    createdBy: uuidSchema,
+    createdAt: instantSchema,
+  },
+};
+const performanceEntrySchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "campaignId",
+    "occurredAt",
+    "impressions",
+    "clicks",
+    "leadsCount",
+    "createdBy",
+    "createdAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    campaignId: uuidSchema,
+    occurredAt: instantSchema,
+    impressions: { type: "integer", minimum: 0 },
+    clicks: { type: "integer", minimum: 0 },
+    leadsCount: { type: "integer", minimum: 0 },
+    note: { type: "string", minLength: 1, maxLength: 500 },
+    createdBy: uuidSchema,
+    createdAt: instantSchema,
+  },
+};
+const touchSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "leadId",
+    "channel",
+    "utm",
+    "occurredAt",
+    "createdBy",
+    "createdAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    leadId: uuidSchema,
+    campaignId: uuidSchema,
+    channel: touchChannelSchema,
+    source: { type: "string", minLength: 1, maxLength: 200 },
+    utm: utmSchema,
+    occurredAt: instantSchema,
+    createdBy: uuidSchema,
+    createdAt: instantSchema,
+  },
+};
+const attributionCorrectionSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "leadId",
+    "reason",
+    "createdBy",
+    "createdAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    leadId: uuidSchema,
+    previousCampaignId: uuidSchema,
+    correctedCampaignId: uuidSchema,
+    reason: { type: "string", minLength: 1, maxLength: 500 },
+    createdBy: uuidSchema,
+    createdAt: instantSchema,
+  },
+};
+const campaignPagedSchema = (itemsSchema) => ({
+  type: "object",
+  required: ["items"],
+  additionalProperties: false,
+  properties: {
+    items: { type: "array", items: itemsSchema },
+    nextCursor: {
+      type: "string",
+      minLength: 1,
+      maxLength: 512,
+      pattern: "^[A-Za-z0-9_-]+$",
+    },
+  },
+});
+
+const campaignOperations = new Map([
+  [
+    "post /organizations/{organizationId}/campaigns",
+    {
+      operationId: "CampaignController_create",
+      clientMethod: "createCampaign",
+      body: {
+        type: "object",
+        required: [
+          "name",
+          "objective",
+          "channel",
+          "startsAt",
+          "endsAt",
+          "budgetPlannedMinor",
+          "currency",
+        ],
+        additionalProperties: false,
+        properties: {
+          name: {
+            type: "string",
+            minLength: 1,
+            maxLength: 200,
+            pattern: "\\S",
+          },
+          objective: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+          channel: campaignChannelSchema,
+          startsAt: instantSchema,
+          endsAt: instantSchema,
+          budgetPlannedMinor: amountMinorSchema,
+          currency: currencySchema,
+          utmSource: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmMedium: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmCampaign: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmContent: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmTerm: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/campaigns",
+    {
+      operationId: "CampaignController_list",
+      clientMethod: "listCampaigns",
+      body: null,
+      query: {
+        status: campaignStatusSchema,
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: campaignPagedSchema({
+        type: "object",
+        required: [
+          "id",
+          "name",
+          "objective",
+          "channel",
+          "status",
+          "startsAt",
+          "endsAt",
+          "budgetPlannedMinor",
+          "currency",
+          "touchCount",
+          "createdAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          id: uuidSchema,
+          name: { type: "string", minLength: 1, maxLength: 200 },
+          objective: { type: "string", minLength: 1, maxLength: 500 },
+          channel: campaignChannelSchema,
+          status: campaignStatusSchema,
+          startsAt: instantSchema,
+          endsAt: instantSchema,
+          budgetPlannedMinor: amountMinorSchema,
+          currency: currencySchema,
+          budgetActualMinor: amountMinorSchema,
+          touchCount: { type: "integer", minimum: 0 },
+          createdAt: instantSchema,
+        },
+      }),
+      responseType: "CampaignListPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/campaigns/{campaignId}",
+    {
+      operationId: "CampaignController_find",
+      clientMethod: "findCampaign",
+      body: null,
+      responseSchema: {
+        type: "object",
+        required: [
+          "campaign",
+          "actualByCurrency",
+          "transitions",
+          "budgetCorrections",
+        ],
+        additionalProperties: false,
+        properties: {
+          campaign: campaignSchema,
+          actualByCurrency: {
+            type: "array",
+            items: campaignMoneyRowSchema,
+          },
+          transitions: { type: "array", items: campaignTransitionSchema },
+          budgetCorrections: {
+            type: "array",
+            items: budgetCorrectionSchema,
+          },
+        },
+      },
+      responseType: "CampaignDetailResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["401", "403", "404"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/campaigns/{campaignId}/transition",
+    {
+      operationId: "CampaignController_transition",
+      clientMethod: "transitionCampaign",
+      body: {
+        type: "object",
+        required: ["toStatus"],
+        additionalProperties: false,
+        properties: {
+          toStatus: {
+            type: "string",
+            enum: ["ACTIVE", "COMPLETED", "CANCELLED"],
+          },
+          reason: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/campaigns/{campaignId}/budget-corrections",
+    {
+      operationId: "CampaignController_correctBudget",
+      clientMethod: "correctCampaignBudget",
+      body: {
+        type: "object",
+        required: ["correctedMinor", "reason"],
+        additionalProperties: false,
+        properties: {
+          correctedMinor: amountMinorSchema,
+          reason: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/campaigns/{campaignId}/performance-entries",
+    {
+      operationId: "CampaignController_recordPerformance",
+      clientMethod: "recordCampaignPerformance",
+      body: {
+        type: "object",
+        required: ["occurredAt", "impressions", "clicks", "leadsCount"],
+        additionalProperties: false,
+        properties: {
+          occurredAt: instantSchema,
+          impressions: { type: "integer", minimum: 0, maximum: 1000000000 },
+          clicks: { type: "integer", minimum: 0, maximum: 1000000000 },
+          leadsCount: { type: "integer", minimum: 0, maximum: 1000000000 },
+          note: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403", "404", "409"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/campaigns/{campaignId}/performance-entries",
+    {
+      operationId: "CampaignController_listPerformance",
+      clientMethod: "listCampaignPerformanceEntries",
+      body: null,
+      query: {
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: campaignPagedSchema(performanceEntrySchema),
+      responseType: "CampaignPerformanceEntryPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/leads/{leadId}/touches",
+    {
+      operationId: "CampaignController_recordTouch",
+      clientMethod: "recordLeadTouch",
+      body: {
+        type: "object",
+        required: ["channel"],
+        additionalProperties: false,
+        properties: {
+          channel: touchChannelSchema,
+          source: {
+            type: "string",
+            minLength: 1,
+            maxLength: 200,
+            pattern: "\\S",
+          },
+          campaignId: uuidSchema,
+          utmSource: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmMedium: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmCampaign: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmContent: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          utmTerm: {
+            type: "string",
+            minLength: 1,
+            maxLength: 100,
+            pattern: "\\S",
+          },
+          occurredAt: instantSchema,
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403", "404"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/leads/{leadId}/touches",
+    {
+      operationId: "CampaignController_listTouches",
+      clientMethod: "listLeadTouches",
+      body: null,
+      query: {
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: campaignPagedSchema(touchSchema),
+      responseType: "LeadTouchPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403", "404"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/leads/{leadId}/attribution",
+    {
+      operationId: "CampaignController_getAttribution",
+      clientMethod: "getLeadAttribution",
+      body: null,
+      responseSchema: {
+        type: "object",
+        required: ["attribution"],
+        additionalProperties: false,
+        properties: {
+          attribution: {
+            type: "object",
+            required: [],
+            additionalProperties: false,
+            properties: {
+              firstTouch: touchSchema,
+              lastTouch: touchSchema,
+              firstCampaignId: uuidSchema,
+              lastCampaignId: uuidSchema,
+              override: attributionCorrectionSchema,
+            },
+          },
+        },
+      },
+      responseType: "LeadAttributionResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["401", "403", "404"],
+      idempotency: false,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/leads/{leadId}/attribution-corrections",
+    {
+      operationId: "CampaignController_correctAttribution",
+      clientMethod: "correctLeadAttribution",
+      body: {
+        type: "object",
+        required: ["reason"],
+        additionalProperties: false,
+        properties: {
+          correctedCampaignId: uuidSchema,
+          reason: {
+            type: "string",
+            minLength: 1,
+            maxLength: 500,
+            pattern: "\\S",
+          },
+        },
+      },
+      successStatuses: ["201"],
+      errorStatuses: ["400", "401", "403", "404"],
       idempotency: false,
     },
   ],
@@ -871,6 +1506,7 @@ const reportOperations = new Map([
       query: {
         dealId: uuidSchema,
         propertyId: uuidSchema,
+        campaignId: uuidSchema,
         from: instantSchema,
         to: instantSchema,
         cursor: {
@@ -903,6 +1539,7 @@ const reportOperations = new Map([
           amountMinor: amountMinorSchema,
           decidedAt: instantSchema,
           campaignReference: { type: "string", minLength: 1, maxLength: 100 },
+          campaignId: uuidSchema,
           dealId: uuidSchema,
           propertyId: uuidSchema,
         },
@@ -1107,6 +1744,35 @@ const reportOperations = new Map([
         },
       },
       responseType: "OwnerPerformanceResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  // EF-401 — revenue/margin by campaign dimension (first/last-touch).
+  [
+    "get /organizations/{organizationId}/finance/reports/campaigns/performance",
+    {
+      operationId: "ReportController_getCampaignPerformance",
+      clientMethod: "getOwnerCampaignPerformance",
+      body: null,
+      queryRequired: ["model"],
+      query: {
+        model: { type: "string", enum: ["FIRST_TOUCH", "LAST_TOUCH"] },
+        from: instantSchema,
+        to: instantSchema,
+      },
+      responseSchema: {
+        type: "object",
+        required: ["asOf", "model", "campaigns"],
+        additionalProperties: false,
+        properties: {
+          asOf: instantSchema,
+          model: { type: "string", enum: ["FIRST_TOUCH", "LAST_TOUCH"] },
+          campaigns: { type: "array", items: reportPerformanceRowSchema },
+        },
+      },
+      responseType: "OwnerCampaignPerformanceResponse",
       successStatuses: ["200"],
       errorStatuses: ["400", "401", "403"],
       idempotency: false,
@@ -1543,6 +2209,42 @@ function readSupportedOperations(document) {
         )
           throw new Error(
             `Unsupported OpenAPI ReportController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
+  const hasCampaignContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("CampaignController_"),
+      ),
+  );
+  if (hasCampaignContract) {
+    for (const [key, campaignOperation] of campaignOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (!operation || operation.operationId !== campaignOperation.operationId)
+        throw new Error(
+          `Unsupported OpenAPI operation ${campaignOperation.operationId} at ${path}`,
+        );
+      validateReceivableOperation({
+        path,
+        operation,
+        contract: campaignOperation,
+      });
+      operations.push({ path, operation, campaignOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("CampaignController_") &&
+          !campaignOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI CampaignController operation ${method.toUpperCase()} ${path}`,
           );
       }
     }
@@ -2089,6 +2791,9 @@ export function generateOpenApiClient(document) {
   const automationOperationEntries = operations.filter(
     ({ automationOperation }) => automationOperation,
   );
+  const campaignOperationEntries = operations.filter(
+    ({ campaignOperation }) => campaignOperation,
+  );
   const statusLiterals = [
     ...new Set(healthOperations.flatMap(readStatusEnum)),
   ].map((status) => JSON.stringify(status));
@@ -2216,6 +2921,24 @@ export function generateOpenApiClient(document) {
       return `    ${automationOperation.clientMethod}: (params: ${paramsType}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
     })
     .join("\n");
+  const campaignMethods = campaignOperationEntries
+    .map(({ path, campaignOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      if (campaignOperation.body !== null) {
+        const bodyType = typescriptObjectType(campaignOperation.body);
+        return `    ${campaignOperation.clientMethod}: (params: ${parameterType(pathParameters)}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
+      }
+      const queryParameters = Object.keys(campaignOperation.query ?? {});
+      const queryBuilder = queryParameters.length
+        ? `const query = new URLSearchParams(); ${queryParameters.map((name) => `if (params.${name} !== undefined) query.set(${JSON.stringify(name)}, String(params.${name}));`).join(" ")} `
+        : "";
+      if (queryParameters.length)
+        return `    ${campaignOperation.clientMethod}: (params: ${parameterType(pathParameters, queryParameters)}) => { ${queryBuilder} return requestJson<${campaignOperation.responseType}>(${encodedPath(path)} + ${queryExpression(queryParameters)}); },`;
+      return `    ${campaignOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson<${campaignOperation.responseType}>(${encodedPath(path)}),`;
+    })
+    .join("\n");
   const notificationMethods = notificationOperationEntries
     .map(({ path, notificationOperation }) => {
       const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
@@ -2245,6 +2968,26 @@ export function generateOpenApiClient(document) {
       return `    ${reportOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson<${reportOperation.responseType}>(${encodedPath(path)}),`;
     })
     .join("\n");
+  const campaignTypes = [
+    "CampaignListPage",
+    "CampaignDetailResponse",
+    "CampaignPerformanceEntryPage",
+    "LeadTouchPage",
+    "LeadAttributionResponse",
+  ]
+    .map((responseType) => {
+      const entry = campaignOperationEntries.find(
+        ({ campaignOperation }) =>
+          campaignOperation.responseType === responseType,
+      );
+      if (!entry)
+        throw new Error(`Missing campaign schema for ${responseType}`);
+      const schema = JSON.parse(
+        JSON.stringify(entry.campaignOperation.responseSchema),
+      );
+      return `export type ${responseType} = ${typescriptObjectType(schema)};`;
+    })
+    .join("\n\n");
   const reportTypes = [
     "OwnerCashFlowResponse",
     "OwnerPaymentItemPage",
@@ -2254,6 +2997,7 @@ export function generateOpenApiClient(document) {
     "OwnerCommissionSummaryResponse",
     "OwnerCommissionItemPage",
     "OwnerPerformanceResponse",
+    "OwnerCampaignPerformanceResponse",
   ]
     .map((responseType) => {
       const entry = reportOperationEntries.find(
@@ -2346,6 +3090,8 @@ ${agingTypes}
 
 ${reportTypes}
 
+${campaignTypes}
+
 ${automationTypes}
 
 export type FetchLike = (
@@ -2381,6 +3127,7 @@ ${crmMethods}
 ${commissionMethods}
 ${receivableMethods}
 ${expenseMethods}
+${campaignMethods}
 ${reportMethods}
 ${notificationMethods}
 ${automationMethods}

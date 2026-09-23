@@ -69,6 +69,12 @@ export type CommissionItemsCommand = ReportBaseCommand &
 export type PerformanceCommand = ReportBaseCommand &
   Readonly<{ window: ReportQueryWindow }>;
 
+export type CampaignPerformanceCommand = ReportBaseCommand &
+  Readonly<{
+    model: "FIRST_TOUCH" | "LAST_TOUCH";
+    window: ReportQueryWindow;
+  }>;
+
 export type ReportAccessDenied = Readonly<{ kind: "access-denied" }>;
 
 export type CashFlowResult = Readonly<{
@@ -124,6 +130,12 @@ export type PerformanceResult = Readonly<{
   asOf: Date;
   deals: readonly ReportPerformanceRow[];
   properties: readonly ReportPerformanceRow[];
+}>;
+
+export type CampaignPerformanceResult = Readonly<{
+  asOf: Date;
+  model: "FIRST_TOUCH" | "LAST_TOUCH";
+  campaigns: readonly ReportPerformanceRow[];
 }>;
 
 export const AGING_BUCKET_ORDER: readonly AgingBucket[] = [
@@ -233,12 +245,14 @@ export function prepareReportDimension(
   const keys = Object.keys(dimension);
   if (keys.length > 1)
     throw new ReceivableValidationError(
-      "Report dimension accepts only one of dealId or propertyId",
+      "Report dimension accepts only one of dealId, propertyId, or campaignId",
     );
   if (dimension.dealId !== undefined && !UUID.test(dimension.dealId))
     throw new ReceivableValidationError("Invalid report deal dimension");
   if (dimension.propertyId !== undefined && !UUID.test(dimension.propertyId))
     throw new ReceivableValidationError("Invalid report property dimension");
+  if (dimension.campaignId !== undefined && !UUID.test(dimension.campaignId))
+    throw new ReceivableValidationError("Invalid report campaign dimension");
   return dimension;
 }
 
@@ -430,6 +444,27 @@ export class ReportApplication {
       this.repository.getPropertyPerformance(input.organizationId, window),
     ]);
     return assemblePerformance(deals, properties, asOf);
+  }
+
+  /** EF-401: revenue/margin by campaign dimension (first/last-touch). */
+  async getCampaignPerformance(
+    input: CampaignPerformanceCommand,
+  ): Promise<CampaignPerformanceResult | ReportAccessDenied> {
+    const access = await this.authorizeOwner(input);
+    if (access.kind !== "authorized") return access.result;
+    if (input.model !== "FIRST_TOUCH" && input.model !== "LAST_TOUCH")
+      throw new ReceivableValidationError("Invalid attribution model");
+    const asOf = new Date();
+    const rows = await this.repository.getCampaignPerformance({
+      organizationId: input.organizationId,
+      model: input.model,
+      window: prepareReportWindow(input.window),
+    });
+    return {
+      asOf,
+      model: input.model,
+      campaigns: rows.map(mergePerformanceRow),
+    };
   }
 
   private async paymentPage(

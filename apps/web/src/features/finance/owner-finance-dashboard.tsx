@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   getOwnerAgingSummary,
+  getOwnerCampaignPerformance,
   getOwnerCashFlow,
   getOwnerCommissionSummary,
   getOwnerPerformance,
@@ -15,7 +16,9 @@ import {
 import {
   AGING_BUCKET_LABELS,
   COMMISSION_STATUS_LABELS,
+  attributionModelLabelsAr,
   type OwnerAgingSummary,
+  type OwnerCampaignPerformance,
   type OwnerCashFlow,
   type OwnerCommissionSummary,
   type OwnerPerformance,
@@ -52,6 +55,10 @@ export function OwnerFinanceDashboard() {
     null,
   );
   const [performance, setPerformance] = useState<OwnerPerformance | null>(null);
+  const [campaignFirstTouch, setCampaignFirstTouch] =
+    useState<OwnerCampaignPerformance | null>(null);
+  const [campaignLastTouch, setCampaignLastTouch] =
+    useState<OwnerCampaignPerformance | null>(null);
   const [loading, setLoading] = useState(false);
   const [drillLoading, setDrillLoading] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
@@ -62,16 +69,33 @@ export function OwnerFinanceDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [cash, receivables, commission, margin] = await Promise.all([
+      const [
+        cash,
+        receivables,
+        commission,
+        margin,
+        campaignsFirst,
+        campaignsLast,
+      ] = await Promise.all([
         getOwnerCashFlow({ organizationId }),
         getOwnerAgingSummary({ organizationId }),
         getOwnerCommissionSummary({ organizationId }),
         getOwnerPerformance({ organizationId }),
+        getOwnerCampaignPerformance({
+          organizationId,
+          model: "FIRST_TOUCH",
+        }),
+        getOwnerCampaignPerformance({
+          organizationId,
+          model: "LAST_TOUCH",
+        }),
       ]);
       setCashFlow(cash);
       setAging(receivables);
       setCommissions(commission);
       setPerformance(margin);
+      setCampaignFirstTouch(campaignsFirst);
+      setCampaignLastTouch(campaignsLast);
     } catch {
       setError("تعذر تحميل التقرير من الخادم. بقيت البيانات كما هي.");
     } finally {
@@ -154,6 +178,7 @@ export function OwnerFinanceDashboard() {
     (dimension?: {
       dealId?: string;
       propertyId?: string;
+      campaignId?: string;
     }): DrillConfig["fetch"] =>
     async (page) => {
       const result = await listOwnerExpenseItems({
@@ -603,6 +628,58 @@ export function OwnerFinanceDashboard() {
                   </button>
                 ))}
               </div>
+              <h3>حسب الحملة (EF-401)</h3>
+              {campaignFirstTouch === null || campaignLastTouch === null ? (
+                <p className={styles.state}>
+                  اضغط «تحديث التقرير» لعرض الإيراد والهامش حسب الحملة.
+                </p>
+              ) : (
+                (
+                  [
+                    ["FIRST_TOUCH", campaignFirstTouch],
+                    ["LAST_TOUCH", campaignLastTouch],
+                  ] as const
+                ).map(([model, report]) => (
+                  <div key={model}>
+                    <h4>{attributionModelLabelsAr[model]}</h4>
+                    <PerformanceTable
+                      rows={report.campaigns}
+                      emptyLabel="لا توجد حركات مُسندة لحملات بعد."
+                    />
+                    <div className={styles.buttonRow}>
+                      {report.campaigns.slice(0, 5).map((row) => (
+                        <button
+                          key={`${model}-${row.keyId}`}
+                          className="button button-secondary"
+                          type="button"
+                          disabled={drillLoading || pending !== null}
+                          onClick={() =>
+                            void run(`campaign-${model}-${row.keyId}`, () =>
+                              loadDrill(
+                                {
+                                  kind: `campaign-costs-${model}-${row.keyId}`,
+                                  title: `مصروفات الحملة ${shortId(row.keyId)} — ${attributionModelLabelsAr[model]}`,
+                                  head: [
+                                    "معرّف المصروف",
+                                    "المبلغ",
+                                    "الفئة",
+                                    "الجهة",
+                                    "وقت الاعتماد",
+                                  ],
+                                  fetch: expenseRows({ campaignId: row.keyId }),
+                                },
+                                false,
+                              ),
+                            )
+                          }
+                        >
+                          مصروفات {shortId(row.keyId)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              )}
             </>
           )}
         </section>

@@ -53,6 +53,7 @@ export type OwnerExpenseItem = Readonly<{
   amountMinor: string;
   decidedAt: string;
   campaignReference?: string;
+  campaignId?: string;
   dealId?: string;
   propertyId?: string;
 }>;
@@ -125,6 +126,14 @@ export type OwnerPerformance = Readonly<{
   properties: readonly OwnerPerformanceRow[];
 }>;
 
+/** EF-401: the campaign dimension is now a real report dimension. */
+export type CampaignAttributionModel = "FIRST_TOUCH" | "LAST_TOUCH";
+export type OwnerCampaignPerformance = Readonly<{
+  asOf: string;
+  model: CampaignAttributionModel;
+  campaigns: readonly OwnerPerformanceRow[];
+}>;
+
 export const AGING_BUCKET_LABELS: Readonly<Record<AgingBucket, string>> =
   Object.freeze({
     CURRENT: "غير مستحق بعد",
@@ -142,6 +151,14 @@ export const COMMISSION_STATUS_LABELS: Readonly<
   DUE: "مستحقة",
   PAID: "مدفوعة",
   CANCELLED: "ملغاة",
+});
+
+/** EF-401 — Arabic labels for the campaign attribution models. */
+export const attributionModelLabelsAr: Readonly<
+  Record<CampaignAttributionModel, string>
+> = Object.freeze({
+  FIRST_TOUCH: "أول لمسة",
+  LAST_TOUCH: "آخر لمسة",
 });
 
 export function normalizeOwnerCashFlow(value: unknown): OwnerCashFlow {
@@ -199,7 +216,12 @@ export function normalizeOwnerExpensePage(value: unknown): {
   const body = record(value, "expenses");
   const items = array(body.items).map((item) => {
     const row = record(item, "expense item");
-    const optionalKeys = new Set(["campaignReference", "dealId", "propertyId"]);
+    const optionalKeys = new Set([
+      "campaignReference",
+      "campaignId",
+      "dealId",
+      "propertyId",
+    ]);
     assertKeys(
       row,
       [
@@ -222,6 +244,7 @@ export function normalizeOwnerExpensePage(value: unknown): {
     };
     if (row.campaignReference !== undefined)
       output.campaignReference = text(row.campaignReference);
+    if (row.campaignId !== undefined) output.campaignId = uuid(row.campaignId);
     if (row.dealId !== undefined) output.dealId = uuid(row.dealId);
     if (row.propertyId !== undefined) output.propertyId = uuid(row.propertyId);
     return output as OwnerExpenseItem;
@@ -386,6 +409,41 @@ export function normalizeOwnerPerformance(value: unknown): OwnerPerformance {
     asOf: utc(body.asOf),
     deals: rows(body.deals),
     properties: rows(body.properties),
+  };
+}
+
+export function normalizeOwnerCampaignPerformance(
+  value: unknown,
+): OwnerCampaignPerformance {
+  const body = record(value, "campaign performance");
+  assertKeys(body, ["asOf", "model", "campaigns"]);
+  if (body.model !== "FIRST_TOUCH" && body.model !== "LAST_TOUCH")
+    throw new TypeError("Invalid attribution model");
+  const campaigns = array(body.campaigns).map((item) => {
+    const row = record(item, "campaign performance row");
+    assertKeys(row, [
+      "keyId",
+      "currency",
+      "revenueMinor",
+      "costsMinor",
+      "marginMinor",
+      "paymentCount",
+      "expenseCount",
+    ]);
+    return {
+      keyId: uuid(row.keyId),
+      currency: currencyCode(row.currency),
+      revenueMinor: signedMoney(row.revenueMinor),
+      costsMinor: signedMoney(row.costsMinor),
+      marginMinor: signedMoney(row.marginMinor),
+      paymentCount: nonNegativeInt(row.paymentCount),
+      expenseCount: nonNegativeInt(row.expenseCount),
+    };
+  });
+  return {
+    asOf: utc(body.asOf),
+    model: body.model,
+    campaigns,
   };
 }
 

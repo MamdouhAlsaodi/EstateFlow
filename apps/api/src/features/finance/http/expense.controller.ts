@@ -92,6 +92,9 @@ export class ExpenseController {
           ...(input.campaignReference === undefined
             ? {}
             : { campaignReference: input.campaignReference }),
+          ...(input.campaignId === undefined
+            ? {}
+            : { campaignId: input.campaignId }),
           ...(input.propertyId === undefined
             ? {}
             : { propertyId: input.propertyId }),

@@ -80,6 +80,10 @@ export class CreateExpenseDto {
 
   @IsOptional()
   @IsUUID()
+  campaignId?: string;
+
+  @IsOptional()
+  @IsUUID()
   propertyId?: string;
 
   @IsOptional()

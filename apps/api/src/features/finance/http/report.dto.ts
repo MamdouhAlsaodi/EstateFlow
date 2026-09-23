@@ -93,6 +93,10 @@ export class ReportDimensionQueryDto {
   @IsOptional()
   @IsUUID()
   propertyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
 }
 
 export class ReportItemsQueryDto extends ReportWindowQueryDto {
@@ -103,6 +107,10 @@ export class ReportItemsQueryDto extends ReportWindowQueryDto {
   @IsOptional()
   @IsUUID()
   propertyId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
 
   @IsOptional()
   @Transform(parseCursor)
@@ -119,16 +127,34 @@ export class ReportItemsQueryDto extends ReportWindowQueryDto {
   static dimension(input: ReportItemsQueryDto): {
     dealId?: string;
     propertyId?: string;
+    campaignId?: string;
   } {
-    if (input.dealId !== undefined && input.propertyId !== undefined)
-      throw new BadRequestException();
+    const provided = [input.dealId, input.propertyId, input.campaignId].filter(
+      (value) => value !== undefined,
+    ).length;
+    if (provided > 1) throw new BadRequestException();
     return {
       ...(input.dealId === undefined ? {} : { dealId: input.dealId }),
       ...(input.propertyId === undefined
         ? {}
         : { propertyId: input.propertyId }),
+      ...(input.campaignId === undefined
+        ? {}
+        : { campaignId: input.campaignId }),
     };
   }
+}
+
+export const REPORT_ATTRIBUTION_MODEL_VALUES = [
+  "FIRST_TOUCH",
+  "LAST_TOUCH",
+] as const;
+
+export class ReportCampaignPerformanceQueryDto extends ReportWindowQueryDto {
+  @IsDefined()
+  @IsString()
+  @IsIn(REPORT_ATTRIBUTION_MODEL_VALUES)
+  model!: string;
 }
 
 export class ReportAgingItemsQueryDto {

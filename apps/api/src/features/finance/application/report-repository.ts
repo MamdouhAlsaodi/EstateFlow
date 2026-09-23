@@ -64,6 +64,8 @@ export type ReportExpenseRow = Readonly<{
   amountMinor: bigint;
   decidedAt: Date;
   campaignReference?: string;
+  /** EF-401: present when the expense is bound to a real campaign. */
+  campaignId?: string;
   dealId?: string;
   propertyId?: string;
 }>;
@@ -124,6 +126,8 @@ export type ReportPerformanceRow = Readonly<{
 export type ReportDimension = Readonly<{
   dealId?: string;
   propertyId?: string;
+  /** EF-401: the campaign dimension is now a real aggregate reference. */
+  campaignId?: string;
 }>;
 
 export type ReportListQuery = Readonly<{
@@ -150,6 +154,15 @@ export type ReportCommissionQuery = Readonly<{
   status: ReportCommissionItemStatus;
   after?: ReportCursor;
   limit: number;
+}>;
+
+/** EF-401: attribution model used to assign deals to campaigns. */
+export type CampaignAttributionModel = "FIRST_TOUCH" | "LAST_TOUCH";
+
+export type CampaignPerformanceQuery = Readonly<{
+  organizationId: string;
+  model: CampaignAttributionModel;
+  window: ReportQueryWindow;
 }>;
 
 export interface ReportRepository {
@@ -179,5 +192,9 @@ export interface ReportRepository {
   getPropertyPerformance(
     organizationId: string,
     window: ReportQueryWindow,
+  ): Promise<readonly ReportPerformanceRow[]>;
+  /** EF-401: revenue/costs/margin by campaign under first/last-touch attribution. */
+  getCampaignPerformance(
+    query: CampaignPerformanceQuery,
   ): Promise<readonly ReportPerformanceRow[]>;
 }
