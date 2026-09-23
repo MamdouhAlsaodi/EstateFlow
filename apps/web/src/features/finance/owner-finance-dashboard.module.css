@@ -1,0 +1,115 @@
+.workspace {
+  display: grid;
+  gap: var(--ef-space-8);
+}
+.header {
+  display: grid;
+  gap: var(--ef-space-2);
+}
+.header h1 {
+  margin: 0;
+}
+.header > p {
+  color: var(--ef-ink-muted);
+  margin: 0;
+}
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-3);
+  margin-block-start: var(--ef-space-2);
+}
+.freshness {
+  color: var(--ef-ink-muted);
+  font-size: 0.9rem;
+}
+.error {
+  background: color-mix(in srgb, #b3261e 8%, transparent);
+  border: 1px solid #b3261e;
+  border-radius: var(--ef-radius-small);
+  color: #b3261e;
+  display: flex;
+  gap: var(--ef-space-3);
+  padding: var(--ef-space-3) var(--ef-space-4);
+}
+.grid {
+  display: grid;
+  gap: var(--ef-space-5);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
+}
+.panel {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius-medium);
+  box-shadow: 0 0.7rem 2rem rgb(27 44 48 / 6%);
+  display: grid;
+  gap: var(--ef-space-3);
+  min-width: 0;
+  padding: var(--ef-space-5);
+}
+.panel h2 {
+  margin: 0;
+}
+.panel h3 {
+  border-block-start: 1px dashed var(--ef-line);
+  margin: var(--ef-space-2) 0 0;
+  padding-block-start: var(--ef-space-3);
+}
+.state {
+  color: var(--ef-ink-muted);
+  margin: 0;
+}
+.buttonRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-2);
+}
+.hint {
+  color: var(--ef-ink-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+.tableWrap {
+  overflow-x: auto;
+}
+.tableWrap table {
+  border-collapse: collapse;
+  inline-size: 100%;
+}
+.tableWrap caption {
+  caption-side: top;
+  color: var(--ef-ink-muted);
+  font-size: 0.85rem;
+  padding-block-end: var(--ef-space-2);
+  text-align: start;
+}
+.tableWrap th,
+.tableWrap td {
+  border-block-end: 1px solid var(--ef-line);
+  padding: var(--ef-space-2) var(--ef-space-3);
+  text-align: start;
+  white-space: nowrap;
+}
+.tableWrap thead th {
+  color: var(--ef-ink-muted);
+  font-size: 0.85rem;
+}
+.drillDown {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-gold);
+  border-radius: var(--ef-radius-medium);
+  display: grid;
+  gap: var(--ef-space-3);
+  padding: var(--ef-space-5);
+}
+.drillHead {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-3);
+  justify-content: space-between;
+}
+.drillHead h2 {
+  margin: 0;
+}

@@ -2007,6 +2007,993 @@
         "summary": "",
         "tags": ["Expenses"]
       }
+    },
+    "/organizations/{organizationId}/finance/reports/cash-flow": {
+      "get": {
+        "operationId": "ReportController_getCashFlow",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "cashIn", "cashOut", "netCash"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "cashIn": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    },
+                    "cashOut": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    },
+                    "netCash": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/payments": {
+      "get": {
+        "operationId": "ReportController_listPayments",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "propertyId",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "dealId",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "paymentId",
+                          "receivableId",
+                          "invoiceId",
+                          "dealId",
+                          "propertyId",
+                          "currency",
+                          "amountMinor",
+                          "recordedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "paymentId": { "type": "string", "format": "uuid" },
+                          "receivableId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "invoiceId": { "type": "string", "format": "uuid" },
+                          "dealId": { "type": "string", "format": "uuid" },
+                          "propertyId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "recordedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/expenses": {
+      "get": {
+        "operationId": "ReportController_listExpenses",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "propertyId",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "dealId",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "expenseId",
+                          "category",
+                          "vendorReference",
+                          "currency",
+                          "amountMinor",
+                          "decidedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "expenseId": { "type": "string", "format": "uuid" },
+                          "category": {
+                            "type": "string",
+                            "enum": ["OFFICE", "CAMPAIGN", "PROPERTY", "OTHER"]
+                          },
+                          "vendorReference": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "decidedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "campaignReference": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100
+                          },
+                          "dealId": { "type": "string", "format": "uuid" },
+                          "propertyId": { "type": "string", "format": "uuid" }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/receivables/aging": {
+      "get": {
+        "operationId": "ReportController_getAgingSummary",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "buckets"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "buckets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "bucket",
+                          "currency",
+                          "count",
+                          "outstandingMinor"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "bucket": {
+                            "type": "string",
+                            "enum": [
+                              "CURRENT",
+                              "DAYS_1_30",
+                              "DAYS_31_60",
+                              "DAYS_61_90",
+                              "DAYS_91_PLUS"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "outstandingMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/receivables/aging/items": {
+      "get": {
+        "operationId": "ReportController_listAgingItems",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "bucket",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "CURRENT",
+                "DAYS_1_30",
+                "DAYS_31_60",
+                "DAYS_61_90",
+                "DAYS_91_PLUS"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "receivableId",
+                          "invoiceId",
+                          "dealId",
+                          "currency",
+                          "originalAmountMinor",
+                          "outstandingMinor",
+                          "status",
+                          "issuedAt",
+                          "dueAt",
+                          "daysPastDue",
+                          "bucket"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "receivableId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "invoiceId": { "type": "string", "format": "uuid" },
+                          "dealId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "originalAmountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "outstandingMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": ["OPEN", "PARTIALLY_PAID"]
+                          },
+                          "issuedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "dueAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "daysPastDue": { "type": "integer", "minimum": 0 },
+                          "bucket": {
+                            "type": "string",
+                            "enum": [
+                              "CURRENT",
+                              "DAYS_1_30",
+                              "DAYS_31_60",
+                              "DAYS_61_90",
+                              "DAYS_91_PLUS"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/commissions": {
+      "get": {
+        "operationId": "ReportController_getCommissionSummary",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "expected", "due", "paid"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "expected": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    },
+                    "due": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    },
+                    "paid": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["currency", "count", "amountMinor"],
+                        "additionalProperties": false,
+                        "properties": {
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "count": { "type": "integer", "minimum": 0 },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/commissions/items": {
+      "get": {
+        "operationId": "ReportController_listCommissionItems",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["EXPECTED", "CONFIRMED", "DUE", "PAID", "CANCELLED"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "accrualId",
+                          "dealId",
+                          "status",
+                          "currency",
+                          "amountMinor",
+                          "createdAt",
+                          "splits"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "accrualId": { "type": "string", "format": "uuid" },
+                          "dealId": { "type": "string", "format": "uuid" },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "EXPECTED",
+                              "CONFIRMED",
+                              "DUE",
+                              "PAID",
+                              "CANCELLED"
+                            ]
+                          },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "amountMinor": {
+                            "type": "string",
+                            "pattern": "^[1-9]\\d*$"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "splits": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": ["order", "kind", "amountMinor"],
+                              "additionalProperties": false,
+                              "properties": {
+                                "order": { "type": "integer", "minimum": 1 },
+                                "kind": {
+                                  "type": "string",
+                                  "enum": ["BROKER", "OFFICE"]
+                                },
+                                "amountMinor": {
+                                  "type": "string",
+                                  "pattern": "^[1-9]\\d*$"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
+    },
+    "/organizations/{organizationId}/finance/reports/performance": {
+      "get": {
+        "operationId": "ReportController_getPerformance",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "deals", "properties"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "deals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "keyId",
+                          "currency",
+                          "revenueMinor",
+                          "costsMinor",
+                          "marginMinor",
+                          "paymentCount",
+                          "expenseCount"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "keyId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "revenueMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "costsMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "marginMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "paymentCount": { "type": "integer", "minimum": 0 },
+                          "expenseCount": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    },
+                    "properties": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "keyId",
+                          "currency",
+                          "revenueMinor",
+                          "costsMinor",
+                          "marginMinor",
+                          "paymentCount",
+                          "expenseCount"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "keyId": { "type": "string", "format": "uuid" },
+                          "currency": {
+                            "type": "string",
+                            "pattern": "^[A-Z]{3}$"
+                          },
+                          "revenueMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "costsMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "marginMinor": {
+                            "type": "string",
+                            "pattern": "^-?(0|[1-9]\\d*)$"
+                          },
+                          "paymentCount": { "type": "integer", "minimum": 0 },
+                          "expenseCount": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "Invalid report query" },
+          "401": { "description": "Missing or invalid session" },
+          "403": { "description": "Owner role required" }
+        },
+        "summary": "",
+        "tags": ["Owner reports"]
+      }
     }
   },
   "info": {

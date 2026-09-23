@@ -55,6 +55,117 @@ export type ReceivableAgingResponse = {
   nextCursor?: string;
 };
 
+export type OwnerCashFlowResponse = {
+  asOf: string;
+  cashIn: { currency: string; count: number; amountMinor: string }[];
+  cashOut: { currency: string; count: number; amountMinor: string }[];
+  netCash: { currency: string; amountMinor: string }[];
+};
+
+export type OwnerPaymentItemPage = {
+  asOf: string;
+  items: {
+    paymentId: string;
+    receivableId: string;
+    invoiceId: string;
+    dealId: string;
+    propertyId: string;
+    currency: string;
+    amountMinor: string;
+    recordedAt: string;
+  }[];
+  nextCursor?: string;
+};
+
+export type OwnerExpenseItemPage = {
+  asOf: string;
+  items: {
+    expenseId: string;
+    category: "OFFICE" | "CAMPAIGN" | "PROPERTY" | "OTHER";
+    vendorReference: string;
+    currency: string;
+    amountMinor: string;
+    decidedAt: string;
+    campaignReference: string;
+    dealId: string;
+    propertyId: string;
+  }[];
+  nextCursor?: string;
+};
+
+export type OwnerAgingSummaryResponse = {
+  asOf: string;
+  buckets: {
+    bucket:
+      "CURRENT" | "DAYS_1_30" | "DAYS_31_60" | "DAYS_61_90" | "DAYS_91_PLUS";
+    currency: string;
+    count: number;
+    outstandingMinor: string;
+  }[];
+};
+
+export type OwnerAgingItemPage = {
+  asOf: string;
+  items: {
+    receivableId: string;
+    invoiceId: string;
+    dealId: string;
+    currency: string;
+    originalAmountMinor: string;
+    outstandingMinor: string;
+    status: "OPEN" | "PARTIALLY_PAID";
+    issuedAt: string;
+    dueAt: string;
+    daysPastDue: number;
+    bucket:
+      "CURRENT" | "DAYS_1_30" | "DAYS_31_60" | "DAYS_61_90" | "DAYS_91_PLUS";
+  }[];
+  nextCursor?: string;
+};
+
+export type OwnerCommissionSummaryResponse = {
+  asOf: string;
+  expected: { currency: string; count: number; amountMinor: string }[];
+  due: { currency: string; count: number; amountMinor: string }[];
+  paid: { currency: string; count: number; amountMinor: string }[];
+};
+
+export type OwnerCommissionItemPage = {
+  asOf: string;
+  items: {
+    accrualId: string;
+    dealId: string;
+    status: "EXPECTED" | "CONFIRMED" | "DUE" | "PAID" | "CANCELLED";
+    currency: string;
+    amountMinor: string;
+    createdAt: string;
+    splits: { order: number; kind: "BROKER" | "OFFICE"; amountMinor: string }[];
+  }[];
+  nextCursor?: string;
+};
+
+export type OwnerPerformanceResponse = {
+  asOf: string;
+  deals: {
+    keyId: string;
+    currency: string;
+    revenueMinor: string;
+    costsMinor: string;
+    marginMinor: string;
+    paymentCount: number;
+    expenseCount: number;
+  }[];
+  properties: {
+    keyId: string;
+    currency: string;
+    revenueMinor: string;
+    costsMinor: string;
+    marginMinor: string;
+    paymentCount: number;
+    expenseCount: number;
+  }[];
+};
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -433,6 +544,122 @@ export function createEstateFlowClient({
           body: JSON.stringify(body),
         },
       ),
+    getOwnerCashFlow: (params: {
+      organizationId: string;
+      from?: string;
+      to?: string;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.from !== undefined) query.set("from", String(params.from));
+      if (params.to !== undefined) query.set("to", String(params.to));
+      return requestJson<OwnerCashFlowResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/cash-flow` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    listOwnerPaymentItems: (params: {
+      organizationId: string;
+      dealId?: string;
+      propertyId?: string;
+      from?: string;
+      to?: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.dealId !== undefined)
+        query.set("dealId", String(params.dealId));
+      if (params.propertyId !== undefined)
+        query.set("propertyId", String(params.propertyId));
+      if (params.from !== undefined) query.set("from", String(params.from));
+      if (params.to !== undefined) query.set("to", String(params.to));
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<OwnerPaymentItemPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/payments` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    listOwnerExpenseItems: (params: {
+      organizationId: string;
+      dealId?: string;
+      propertyId?: string;
+      from?: string;
+      to?: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.dealId !== undefined)
+        query.set("dealId", String(params.dealId));
+      if (params.propertyId !== undefined)
+        query.set("propertyId", String(params.propertyId));
+      if (params.from !== undefined) query.set("from", String(params.from));
+      if (params.to !== undefined) query.set("to", String(params.to));
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<OwnerExpenseItemPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/expenses` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    getOwnerAgingSummary: (params: { organizationId: string }) =>
+      requestJson<OwnerAgingSummaryResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/receivables/aging`,
+      ),
+    listOwnerAgingItems: (params: {
+      organizationId: string;
+      bucket?: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.bucket !== undefined)
+        query.set("bucket", String(params.bucket));
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<OwnerAgingItemPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/receivables/aging/items` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    getOwnerCommissionSummary: (params: { organizationId: string }) =>
+      requestJson<OwnerCommissionSummaryResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/commissions`,
+      ),
+    listOwnerCommissionItems: (params: {
+      organizationId: string;
+      status?: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.status !== undefined)
+        query.set("status", String(params.status));
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<OwnerCommissionItemPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/commissions/items` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    getOwnerPerformance: (params: {
+      organizationId: string;
+      from?: string;
+      to?: string;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.from !== undefined) query.set("from", String(params.from));
+      if (params.to !== undefined) query.set("to", String(params.to));
+      return requestJson<OwnerPerformanceResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/performance` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
     createAccount: (
       params: { organizationId: string },
       body: { code: string; name: string; type: string },

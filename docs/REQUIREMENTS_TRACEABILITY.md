@@ -36,8 +36,8 @@ Status legend:
 | FIN-02 commissions/splits/due states/maker-checker | EF-232 | rounding/state/idempotency/approval-threshold tests | MVP |
 | FIN-03 invoices/receivables/partial payments | EF-233 | balance/aging/duplicate-payment tests | MVP |
 | FIN-04 expenses and evidence metadata | EF-234 | authorization/approval/persistence tests — implemented: `docs/handoffs/EF-234/EF-234-final-verification-2026-09-21.md` (guarded Owner/Manager commands, maker-checker approval threshold policy, evidence metadata idempotency, immutable approval audit on PostgreSQL) | MVP |
-| FIN-05 cashflow, receivables, margin/result | EF-235 | report-to-ledger reconciliation | MVP |
-| FIN-06 financial dimensions | EF-231–EF-235, EF-401 | filtered report/tenant tests | MVP |
+| FIN-05 cashflow, receivables, margin/result | EF-235 | report-to-ledger reconciliation — implemented: `docs/handoffs/EF-235/EF-235-implementation-2026-09-23.md` (Owner-only read-only reports, freshness timestamp on every payload, per-figure drill-down, seeded reconciliation test proves every figure equals the exact sum of source rows incl. a cancellation period) | MVP |
+| FIN-06 financial dimensions | EF-231–EF-235, EF-401 | filtered report/tenant tests — partial: EF-235 ships by-deal and by-property revenue/margin reporting with tenant-isolation proof; Lead/Broker/Campaign dimensions arrive fully with EF-401 | MVP |
 | FIN-07 CSV/PDF export and no destructive edits | EF-235, EF-701 | export structure/formula protection/audit | PILOT |
 | FIN-08 future provider references | EF-233 domain contract | migration/compatibility review | LATER |
 

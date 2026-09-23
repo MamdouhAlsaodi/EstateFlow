@@ -64,7 +64,7 @@ EF-700 Pilot hardening and launch
 | EF-232 | Commission plan/accrual/payable workflow                                         | EF-203, EF-231         |
 | EF-233 | Invoice, receivable, partial payment, overdue status                             | EF-231                 |
 | EF-234 | Expense and campaign/property/deal dimensions                                    | EF-231                 | done — FIN-04 expenses implemented (see `docs/handoffs/EF-234/`) |
-| EF-235 | Owner finance dashboard and export                                               | EF-232, EF-233, EF-234 |
+| EF-235 | Owner finance dashboard and export                                               | EF-232, EF-233, EF-234 | done — FIN-05 owner dashboard implemented, read-only, export deferred to FIN-07 (see `docs/handoffs/EF-235/`) |
 
 ## Phase 3 tasks
 
