@@ -79,8 +79,9 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-301 + EF-302 — versioned tenant-scoped automation rules, guarded Owner/Manager rule commands, durable idempotent jobs, bounded retry/backoff, typed failed-job visibility, and callable API-side scheduler: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-301/implementation.md` and `docs/handoffs/EF-302/implementation.md`.
 - EF-304 — receivable due-soon/overdue and commission-due rules, deterministic payment/paid-reset occurrences, durable fake-delivery-compatible in-app notifications, API-owned scheduler sweep, worker replay safety, and Arabic finance-job visibility: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-304/implementation.md`.
 - EF-305 — organization-scoped Arabic/English notification templates with immutable approved versions, Owner/Manager approval-gated sends, audited transitions, DST-safe quiet hours, recipient consent/opt-out suppression, in-app fake provider port, templated finance worker delivery, and Arabic notification visibility: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-305/implementation.md`.
+- EF-306 — Arabic-first automation UI closing Phase 3: rule list/detail with immutable version timeline, organization/rule execution history with typed states and failure reasons, guarded job history/detail/retry/cancel endpoints (retry creates a NEW idempotent job occurrence; cancel only for queued/retrying; Owner/Manager authority), OpenAPI/client regeneration, and web/backend tests: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-306/implementation.md`.
 
-EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, EF-235, EF-301, EF-302, EF-304, and EF-305 are closed within their documented boundaries.
+EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, EF-235, EF-301, EF-302, EF-303, EF-304, EF-305, and EF-306 are closed within their documented boundaries. **Phase 3 (Automation & Reminders) is COMPLETE.**
 
 ## EF-120 authentication decision
 
@@ -121,7 +122,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-305 is CLOSED / PASS within this packet:** versioned bilingual notification templates, immutable approved content, audited Owner/Manager send approvals, DST-safe organization quiet hours, recipient consent/opt-out suppression, explicit provider port, templated finance worker delivery, and Arabic notification visibility are complete. The next product task is **EF-306 Automation UI**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-305/implementation.md`.
+**EF-306 is CLOSED / PASS within this packet and Phase 3 is COMPLETE:** rule list/detail with version timeline, typed execution history per rule and per organization, and Owner/Manager-gated retry (new idempotent occurrence) and cancel (queued/retrying only) are live behind guarded routes. The five new public automation job routes await the supervisor-owned `openapi.test.mjs` inventory update. The next product task is **EF-401 Campaigns and attribution** (Phase 4). Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-306/implementation.md`.
 
 Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 

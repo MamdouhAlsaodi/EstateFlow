@@ -37,6 +37,11 @@
   gap: 0.15rem;
 }
 
+.list li > div.actions {
+  align-items: center;
+  display: flex;
+}
+
 .list span,
 .list time {
   color: var(--ef-ink-muted);
@@ -52,9 +57,73 @@
   color: var(--ef-ink-muted);
 }
 
+.failed {
+  color: var(--ef-danger, #b3261e);
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-2);
+  justify-content: flex-end;
+}
+
+.ruleLink {
+  color: var(--ef-teal);
+  font-weight: 700;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.timeline {
+  display: grid;
+  gap: var(--ef-space-3);
+  list-style: none;
+  margin: var(--ef-space-4) 0 0;
+  padding: 0;
+}
+
+.timeline li {
+  border-inline-start: 3px solid var(--ef-line);
+  display: grid;
+  gap: 0.15rem;
+  padding-inline-start: var(--ef-space-3);
+}
+
+.timeline li > span {
+  color: var(--ef-ink-muted);
+  font-size: 0.86rem;
+}
+
+.definitionGrid {
+  display: grid;
+  gap: var(--ef-space-4);
+  margin-top: var(--ef-space-4);
+}
+
+.definitionGrid > div {
+  border-top: 1px solid var(--ef-line);
+  display: grid;
+  gap: 0.25rem;
+  padding-top: var(--ef-space-3);
+}
+
+.definitionGrid span {
+  color: var(--ef-ink-muted);
+}
+
 @media (max-width: 640px) {
   .list li {
     align-items: start;
     flex-direction: column;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+
+  .definitionGrid {
+    grid-template-columns: 1fr;
   }
 }

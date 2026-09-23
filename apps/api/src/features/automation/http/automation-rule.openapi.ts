@@ -314,3 +314,96 @@ export const ruleDetailResponse = {
     },
   },
 };
+
+// ---------------------------------------------------------------------------
+// EF-306 — execution history. Closed-world job rendering: typed status and
+// error kinds only, never an action payload, execution key, event id, or any
+// provider payload/secret.
+// ---------------------------------------------------------------------------
+
+export const automationJobStatuses = [
+  "QUEUED",
+  "RUNNING",
+  "RETRYING",
+  "SUCCEEDED",
+  "FAILED",
+  "CANCELLED",
+] as const;
+
+export const automationJobTriggerKinds = ["DOMAIN_EVENT", "SCHEDULE"] as const;
+
+const jobItemProperties = {
+  id: uuidParameter,
+  ruleId: uuidParameter,
+  ruleVersion: { type: "integer", minimum: 1 },
+  triggerKind: { type: "string", enum: [...automationJobTriggerKinds] },
+  eventType: {
+    type: "string",
+    enum: [...automationTriggerEventTypes],
+    nullable: true,
+  },
+  actionType: { type: "string", enum: [...automationActionTypes] },
+  targetType: {
+    type: "string",
+    enum: ["LEAD", "RECEIVABLE", "COMMISSION", "RULE_SELF"],
+  },
+  targetId: { type: "string", minLength: 1, maxLength: 200 },
+  status: { type: "string", enum: [...automationJobStatuses] },
+  attemptCount: { type: "integer", minimum: 0 },
+  maxAttempts: { type: "integer", minimum: 1, maximum: 10 },
+  lastError: {
+    type: "object",
+    required: ["kind", "message"],
+    nullable: true,
+    additionalProperties: false,
+    properties: {
+      kind: {
+        type: "string",
+        enum: [
+          "action-executor-not-configured",
+          "action-permanent-failure",
+          "action-transient-failure",
+          "unexpected-executor-error",
+        ],
+      },
+      message: { type: "string", minLength: 1, maxLength: 500 },
+    },
+  },
+  scheduledFor: instantProperty,
+  startedAt: { ...instantProperty, nullable: true },
+  completedAt: { ...instantProperty, nullable: true },
+  createdAt: instantProperty,
+  updatedAt: instantProperty,
+};
+
+export const automationJobItemSchema = {
+  type: "object",
+  required: Object.keys(jobItemProperties),
+  additionalProperties: false,
+  properties: jobItemProperties,
+};
+
+export const jobListResponse = {
+  type: "object",
+  required: ["jobs"],
+  additionalProperties: false,
+  properties: {
+    jobs: {
+      type: "array",
+      maxItems: 100,
+      items: automationJobItemSchema,
+    },
+  },
+};
+
+export const jobDetailResponse = {
+  type: "object",
+  required: ["job"],
+  additionalProperties: false,
+  properties: {
+    job: automationJobItemSchema,
+  },
+};
+
+export const retryJobResponse = jobDetailResponse;
+export const cancelJobResponse = jobDetailResponse;

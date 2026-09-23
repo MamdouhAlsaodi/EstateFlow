@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { createApiClient } from "../../lib/api-client/index";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type {
@@ -153,18 +154,41 @@ export function AutomationVisibility() {
                       <strong>{rule.name}</strong>
                       <span>{describeTrigger(rule)}</span>
                     </div>
-                    <span
-                      className={
-                        rule.enabled ? styles.enabled : styles.disabled
-                      }
-                    >
-                      {rule.enabled ? "مفعّلة" : "متوقفة"} · الإصدار{" "}
-                      {rule.currentVersion}
-                    </span>
+                    <div className={styles.actions}>
+                      <span
+                        className={
+                          rule.enabled ? styles.enabled : styles.disabled
+                        }
+                      >
+                        {rule.enabled ? "مفعّلة" : "متوقفة"} · الإصدار{" "}
+                        {rule.currentVersion}
+                      </span>
+                      <Link
+                        className={styles.ruleLink}
+                        href={`/ar/organizations/${organizationId}/automation/rules/${rule.id}`}
+                      >
+                        التفاصيل
+                      </Link>
+                    </div>
                   </li>
                 ))}
               </ul>
             )}
+          </section>
+          <section aria-labelledby="automation-history-title" className="panel">
+            <div className={styles.sectionHeading}>
+              <h2 id="automation-history-title">سجل التنفيذ</h2>
+            </div>
+            <p>
+              حالات الوظائف وأسباب الفشل المكتوبة لكل القواعد في المؤسسة، مع
+              إعادة المحاولة والإلغاء حسب الصلاحية.
+            </p>
+            <Link
+              className={styles.ruleLink}
+              href={`/ar/organizations/${organizationId}/automation/jobs`}
+            >
+              عرض سجل تنفيذ المؤسسة
+            </Link>
           </section>
           <section aria-labelledby="finance-reminders-title" className="panel">
             <div className={styles.sectionHeading}>

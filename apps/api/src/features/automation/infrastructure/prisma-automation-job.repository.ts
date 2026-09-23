@@ -128,6 +128,47 @@ export class PrismaAutomationJobRepository implements AutomationJobRepository {
       LIMIT ${input.limit}`;
     return rows.map(mapJob);
   }
+
+  async findJob(
+    organizationId: string,
+    jobId: string,
+  ): Promise<AutomationJob | null> {
+    const rows = await this.db.$queryRaw<JobRow[]>`
+      SELECT ${jobColumns}
+      FROM "AutomationJob"
+      WHERE "organizationId" = ${organizationId}::uuid AND "id" = ${jobId}::uuid
+      LIMIT 1`;
+    return rows[0] ? mapJob(rows[0]) : null;
+  }
+
+  async listRecentJobs(input: {
+    organizationId: string;
+    limit: number;
+  }): Promise<AutomationJob[]> {
+    const rows = await this.db.$queryRaw<JobRow[]>`
+      SELECT ${jobColumns}
+      FROM "AutomationJob"
+      WHERE "organizationId" = ${input.organizationId}::uuid
+      ORDER BY "createdAt" DESC, "id" ASC
+      LIMIT ${input.limit}`;
+    return rows.map(mapJob);
+  }
+
+  async saveJobCancellation(job: AutomationJob): Promise<boolean> {
+    const rows = await this.db.$queryRaw<{ id: string }[]>`
+      UPDATE "AutomationJob"
+      SET "status" = 'CANCELLED',
+          "nextAttemptAt" = NULL,
+          "lastErrorKind" = NULL,
+          "lastErrorMessage" = NULL,
+          "completedAt" = ${job.completedAt},
+          "updatedAt" = ${job.updatedAt}
+      WHERE "id" = ${job.id}::uuid
+        AND "organizationId" = ${job.organizationId}::uuid
+        AND "status" IN ('QUEUED', 'RETRYING')
+      RETURNING "id"`;
+    return rows.length > 0;
+  }
 }
 
 const jobColumns = Prisma.sql`"id", "organizationId", "ruleId", "ruleVersion", "executionKey", "triggerKind", "eventType", "eventId", "actionType", "targetType", "targetId", "scheduleBucket", "scheduledFor", "status", "attemptCount", "maxAttempts", "nextAttemptAt", "lastErrorKind", "lastErrorMessage", "startedAt", "completedAt", "createdAt", "updatedAt"`;

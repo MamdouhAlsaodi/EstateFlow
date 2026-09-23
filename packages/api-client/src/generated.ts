@@ -831,6 +831,34 @@ export function createEstateFlowClient({
         `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}`,
         { method: "GET" },
       ),
+    listAutomationJobs: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/jobs`,
+        { method: "GET" },
+      ),
+    listAutomationRuleJobs: (params: {
+      organizationId: string;
+      ruleId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/rules/${encodeURIComponent(params.ruleId)}/jobs`,
+        { method: "GET" },
+      ),
+    findAutomationJob: (params: { organizationId: string; jobId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/jobs/${encodeURIComponent(params.jobId)}`,
+        { method: "GET" },
+      ),
+    retryAutomationJob: (params: { organizationId: string; jobId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/jobs/${encodeURIComponent(params.jobId)}/retry`,
+        { method: "POST" },
+      ),
+    cancelAutomationJob: (params: { organizationId: string; jobId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/automation/jobs/${encodeURIComponent(params.jobId)}/cancel`,
+        { method: "POST" },
+      ),
     createAccount: (
       params: { organizationId: string },
       body: { code: string; name: string; type: string },
