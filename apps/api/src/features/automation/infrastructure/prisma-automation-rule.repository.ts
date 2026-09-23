@@ -10,6 +10,7 @@ import {
   type AutomationRule,
   type AutomationRuleDefinition,
   type AutomationRuleVersion,
+  type AutomationTriggerEventType,
 } from "../domain/rule.js";
 
 type Db = PrismaClient;
@@ -60,6 +61,15 @@ export class PrismaAutomationRuleRepository implements AutomationRuleRepository 
         AND "version" = ${version}
       LIMIT 1`;
     return rows[0] ? mapVersion(rows[0]) : null;
+  }
+
+  async findRuleVersion(
+    organizationId: string,
+    ruleId: string,
+    version: number,
+  ): Promise<Readonly<{ definition: AutomationRuleDefinition }> | null> {
+    const found = await this.findVersion(organizationId, ruleId, version);
+    return found ? { definition: found.definition } : null;
   }
 
   async listRuleVersions(
@@ -147,6 +157,34 @@ export class PrismaAutomationRuleRepository implements AutomationRuleRepository 
         version: row.versionNumber,
       }))
       .filter((entry) => entry.definition.trigger.kind === "SCHEDULE");
+  }
+
+  async listEnabledDomainEventRules(
+    eventType: AutomationTriggerEventType,
+  ): Promise<AutomationRuleWithCurrentDefinition[]> {
+    const rows = await this.db.$queryRaw<RuleWithDefinitionRow[]>`
+      SELECT r."id", r."organizationId", r."name", r."enabled", r."enabledAt", r."createdAt", r."updatedAt",
+             v."version" AS "versionNumber", v."definition" AS "definition"
+      FROM "AutomationRule" r
+      JOIN "AutomationRuleVersion" v
+        ON v."organizationId" = r."organizationId" AND v."ruleId" = r."id"
+      WHERE r."enabled" = TRUE
+        AND v."version" = (
+          SELECT MAX("version") FROM "AutomationRuleVersion"
+          WHERE "organizationId" = r."organizationId" AND "ruleId" = r."id"
+        )
+      ORDER BY r."organizationId" ASC, r."id" ASC`;
+    return rows
+      .map((row) => ({
+        rule: mapRule(row),
+        definition: mapDefinition(row.definition),
+        version: row.versionNumber,
+      }))
+      .filter(
+        (entry) =>
+          entry.definition.trigger.kind === "DOMAIN_EVENT" &&
+          entry.definition.trigger.eventType === eventType,
+      );
   }
 
   async createRule(input: {

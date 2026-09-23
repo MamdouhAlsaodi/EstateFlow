@@ -200,10 +200,31 @@ export class AutomationRuleController {
         limit: AUTOMATION_RULE_LIST_BOUND,
       });
       if (result.kind !== "found") return result;
+      const failedJobs = await this.rules.listFailedJobs({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        limit: 50,
+      });
+      if (failedJobs.kind !== "found") return failedJobs;
       return {
         rules: result.rules.map((entry) =>
           ruleSummary(entry.rule, entry.definition, entry.version),
         ),
+        failedJobs: failedJobs.jobs.map((job) => ({
+          id: job.id,
+          ruleId: job.ruleId,
+          ruleVersion: job.ruleVersion,
+          actionType: job.actionType,
+          targetType: job.targetType,
+          targetId: job.targetId,
+          status: job.status,
+          attemptCount: job.attemptCount,
+          maxAttempts: job.maxAttempts,
+          lastError: job.lastError,
+          failedAt: job.completedAt,
+          updatedAt: job.updatedAt,
+        })),
       };
     });
   }

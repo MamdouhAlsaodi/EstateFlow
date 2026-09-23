@@ -1,11 +1,14 @@
 import { BadRequestException } from "@nestjs/common";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   IsDefined,
   IsOptional,
   IsString,
   Length,
   Matches,
+  Max,
+  Min,
+  IsInt,
 } from "class-validator";
 import { parseRuleDefinition } from "../domain/rule.js";
 import type {
@@ -39,6 +42,15 @@ export class CreateAutomationRuleDto {
   @IsDefined()
   @Transform(parseDefinitionTransform)
   definition!: AutomationRuleDefinition;
+}
+
+export class AutomationFailedJobsQueryDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number;
 }
 
 export class AddAutomationRuleVersionDto {
@@ -81,6 +93,36 @@ export function ruleSummary(
     createdAt: rule.createdAt,
     updatedAt: rule.updatedAt,
     definition,
+  };
+}
+
+export function failedJobItem(job: {
+  id: string;
+  ruleId: string;
+  ruleVersion: number;
+  actionType: string;
+  targetType: string;
+  targetId: string;
+  status: string;
+  attemptCount: number;
+  maxAttempts: number;
+  lastError: { kind: string; message: string } | null;
+  completedAt: Date | null;
+  updatedAt: Date;
+}): unknown {
+  return {
+    id: job.id,
+    ruleId: job.ruleId,
+    ruleVersion: job.ruleVersion,
+    actionType: job.actionType,
+    targetType: job.targetType,
+    targetId: job.targetId,
+    status: job.status,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
+    lastError: job.lastError,
+    failedAt: job.completedAt,
+    updatedAt: job.updatedAt,
   };
 }
 

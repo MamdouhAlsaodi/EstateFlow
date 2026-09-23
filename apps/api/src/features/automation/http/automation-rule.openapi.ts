@@ -28,6 +28,9 @@ const versionNoteProperty = {
 export const automationTriggerEventTypes = [
   "lead.created",
   "lead.stage_changed",
+  "lead.assignment_changed",
+  "lead.response_sla_breached",
+  "lead.inactivity_breached",
   "lead.next_action_missing",
   "receivable.due_soon",
   "receivable.overdue",
@@ -166,9 +169,29 @@ const ruleSummaryProperties = {
   definition: automationDefinitionSchema,
 };
 
+const failedJobProperties = {
+  id: uuidParameter,
+  ruleId: uuidParameter,
+  ruleVersion: { type: "integer", minimum: 1 },
+  actionType: { type: "string" },
+  targetType: { type: "string" },
+  targetId: { type: "string" },
+  status: { type: "string", enum: ["FAILED"] },
+  attemptCount: { type: "integer", minimum: 1 },
+  maxAttempts: { type: "integer", minimum: 1, maximum: 10 },
+  lastError: {
+    type: "object",
+    required: ["kind", "message"],
+    additionalProperties: false,
+    properties: { kind: { type: "string" }, message: { type: "string" } },
+  },
+  failedAt: instantProperty,
+  updatedAt: instantProperty,
+};
+
 export const ruleListResponse = {
   type: "object",
-  required: ["rules"],
+  required: ["rules", "failedJobs"],
   additionalProperties: false,
   properties: {
     rules: {
@@ -179,6 +202,16 @@ export const ruleListResponse = {
         required: Object.keys(ruleSummaryProperties),
         additionalProperties: false,
         properties: ruleSummaryProperties,
+      },
+    },
+    failedJobs: {
+      type: "array",
+      maxItems: 100,
+      items: {
+        type: "object",
+        required: Object.keys(failedJobProperties),
+        additionalProperties: false,
+        properties: failedJobProperties,
       },
     },
   },

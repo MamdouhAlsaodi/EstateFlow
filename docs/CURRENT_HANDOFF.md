@@ -119,7 +119,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-301 + EF-302 are implemented and verified within this packet boundary:** EF-301 owns versioned Trigger/Condition/Action rule definitions and guarded Owner/Manager lifecycle/version commands; EF-302 owns durable idempotent job persistence, separated schedule evaluation/action execution, bounded exponential backoff, and typed failed-job visibility. The scheduler is an API-side callable module; `apps/worker` remains empty and EF-303 must provide the long-lived worker loop plus concrete action executors. The next task is **EF-303 Lead SLA and inactivity automations**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-301/implementation.md` and `docs/handoffs/EF-302/implementation.md`.
+**EF-303 is CLOSED / PASS:** Lead breach detection, version-reset occurrence keys, assignment/SLA/inactivity event definitions, concrete task/note/notification executors, failed-job visibility, generated contract artifacts, the Arabic visibility page, and the API-owned EF-302 scheduler tick are complete. `apps/worker` now runs the long-lived thin worker using `scripts/automation-worker-loop.mjs` with immediate polling, non-overlapping ticks, capped backoff, graceful stop, unit coverage, and isolated PostgreSQL replay-safe execution proof. The next product task is **EF-304 Receivable and commission reminders**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-301/implementation.md`, `docs/handoffs/EF-302/implementation.md`, and `docs/handoffs/EF-303/implementation.md`.
 
 Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 
@@ -135,7 +135,7 @@ Environment note: the isolated `estateflow_test` stack on this machine listens o
 - Web: Next.js, Arabic-first.
 - API: NestJS modular monolith.
 - Data: PostgreSQL/PostGIS with Prisma baseline; business models begin in their owning tasks.
-- Async: EF-301/302 provide durable API-side scheduler callables; `apps/worker` remains empty. EF-303 owns the long-lived worker loop, concrete action executors, and any future queue adapter/outbox wiring.
+- Async: EF-301/302 provide durable API-side scheduler callables; EF-303 adds concrete Lead executors, the API-owned scheduler tick, and the thin `apps/worker` long-lived runner. Lead action behavior remains API-owned; the worker only drives the tick.
 - `btree_gist` remains deferred until the viewing exclusion-constraint task.
 - No real customer data, credentials, external providers, production mutation, or deployment.
 

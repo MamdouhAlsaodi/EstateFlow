@@ -9,6 +9,9 @@ import {
   type AutomationRuleDefinition,
   type AutomationRuleVersion,
 } from "../domain/rule.js";
+import type { AutomationJob } from "../domain/execution.js";
+import type { AutomationJobRepository } from "./job-repository.js";
+import { defaultLeadAutomationRules } from "../domain/lead-automation.js";
 import type {
   AddRuleVersionConflictReason,
   AutomationRuleRepository,
@@ -76,6 +79,10 @@ export type GetRuleResult =
   | Readonly<{ kind: "not-found"; resource: "rule" }>
   | Readonly<{ kind: "access-denied" }>;
 
+export type ListFailedJobsResult =
+  | Readonly<{ kind: "found"; jobs: AutomationJob[] }>
+  | Readonly<{ kind: "access-denied" }>;
+
 /**
  * EF-301 — guarded automation rule commands.
  *
@@ -90,7 +97,29 @@ export class AutomationRuleApplication {
   constructor(
     private readonly repository: AutomationRuleRepository,
     private readonly membershipReader: AutomationMembershipReader,
+    private readonly jobs?: AutomationJobRepository,
   ) {}
+
+  async seedLeadAutomationDefaults(
+    input: CommandBase & { createdAt: Date },
+  ): Promise<
+    | Readonly<{ kind: "seeded"; created: number }>
+    | Readonly<{ kind: "access-denied" }>
+  > {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    let created = 0;
+    for (const starter of defaultLeadAutomationRules()) {
+      const result = await this.createRule({
+        ...input,
+        ruleId: crypto.randomUUID(),
+        name: starter.name,
+        definition: starter.definition,
+      });
+      if (result.kind === "created") created += 1;
+    }
+    return { kind: "seeded", created };
+  }
 
   async createRule(
     input: CommandBase & {
@@ -184,6 +213,22 @@ export class AutomationRuleApplication {
       input.limit,
     );
     return { kind: "found", rules };
+  }
+
+  async listFailedJobs(
+    input: CommandBase & { limit: number },
+  ): Promise<ListFailedJobsResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "found", jobs: [] };
+    return {
+      kind: "found",
+      jobs: await this.jobs.listJobsByStatus({
+        organizationId: input.organizationId,
+        status: "FAILED",
+        limit: input.limit,
+      }),
+    };
   }
 
   async getRule(

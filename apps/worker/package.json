@@ -6,8 +6,8 @@
   "scripts": {
     "lint": "pnpm exec eslint src --max-warnings=0",
     "typecheck": "pnpm exec tsc --project tsconfig.json --noEmit",
-    "test": "node --test",
-    "test:integration": "node -e \"console.log('No worker integration tests exist before EF-104.')\"",
+    "test": "pnpm run build && node --test test/automation-worker-loop.test.mjs",
+    "test:integration": "node ../../scripts/assert-test-database.mjs && pnpm --dir ../api run db:generate && pnpm --dir ../api run db:migrate:test && pnpm --dir ../api run build && pnpm run build && node --test test/worker.integration.test.mjs",
     "build": "pnpm exec tsc --project tsconfig.json"
   },
   "dependencies": {

@@ -1,4 +1,9 @@
 import type { SessionResponse } from "./session";
+import {
+  normalizeAutomationRules,
+  type AutomationFailedJobsResponse,
+  type AutomationRulesResponse,
+} from "../../features/automation/automation-contract";
 import { createReceivableAdapter, type ReceivableAdapter } from "./receivable";
 import {
   createCommissionAdapter,
@@ -142,6 +147,13 @@ export type ApiClient = Readonly<{
     csrfToken: string;
   }): Promise<LeadTaskCommandResponse>;
   getSession(): Promise<SessionResponse>;
+  getAutomationRules(input: {
+    organizationId: string;
+  }): Promise<AutomationRulesResponse>;
+  getAutomationFailedJobs(input: {
+    organizationId: string;
+    limit?: number;
+  }): Promise<AutomationFailedJobsResponse>;
   createCommissionPlanVersion(
     context: Readonly<{ organizationId: string; csrfToken: string }>,
     input: CommissionPlanInput,
@@ -334,6 +346,16 @@ export function createApiClient(
         },
       ).then(normalizeLeadTaskCommandResponse),
     getSession: () => request<SessionResponse>("/auth/session"),
+    getAutomationRules: ({ organizationId }) =>
+      request<unknown>(
+        `/organizations/${encodeURIComponent(organizationId)}/automation/rules`,
+      ).then(normalizeAutomationRules),
+    getAutomationFailedJobs: ({ organizationId }) =>
+      request<unknown>(
+        `/organizations/${encodeURIComponent(organizationId)}/automation/rules`,
+      )
+        .then(normalizeAutomationRules)
+        .then(({ failedJobs }) => ({ jobs: failedJobs })),
   };
 }
 
