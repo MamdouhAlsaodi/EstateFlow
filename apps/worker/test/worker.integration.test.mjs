@@ -245,3 +245,181 @@ test(
     }
   },
 );
+
+test(
+  "worker executes one due receivable reminder notification exactly once on replay",
+  { skip: !hasGuardedTestTarget() },
+  async () => {
+    await waitForApiIntegrationSuite();
+    Object.assign(process.env, {
+      NODE_ENV: "test",
+      ESTATEFLOW_BROWSER_ORIGIN: "https://app.estateflow.test",
+      ESTATEFLOW_AUTH_HASH_KEY: "a".repeat(32),
+      ESTATEFLOW_AUDIT_HASH_KEY: "b".repeat(32),
+      ESTATEFLOW_AUTH_FAKE_DELIVERY: "true",
+    });
+    const ids = {
+      organizationId: randomUUID(),
+      ownerId: randomUUID(),
+      leadId: randomUUID(),
+      propertyId: randomUUID(),
+      dealId: randomUUID(),
+      invoiceId: randomUUID(),
+      receivableId: randomUUID(),
+      ruleId: randomUUID(),
+    };
+    const now = new Date();
+    const dueAt = new Date(now.getTime() - 60 * 60 * 1000);
+    const prisma = new PrismaClient();
+    let seedApp;
+    let runtime;
+    try {
+      await prisma.$connect();
+      await prisma.organization.create({
+        data: { id: ids.organizationId, name: "Worker finance fixture" },
+      });
+      await prisma.user.create({
+        data: {
+          id: ids.ownerId,
+          accountIdentifier: `${ids.ownerId}@worker.finance.test.invalid`,
+        },
+      });
+      await prisma.membership.create({
+        data: {
+          organizationId: ids.organizationId,
+          userId: ids.ownerId,
+          role: "OWNER",
+          status: "ACTIVE",
+        },
+      });
+      await prisma.property.create({
+        data: {
+          id: ids.propertyId,
+          organizationId: ids.organizationId,
+          title: "Synthetic finance property",
+          propertyType: "APARTMENT",
+          addressText: "Synthetic address",
+        },
+      });
+      await prisma.lead.create({
+        data: {
+          id: ids.leadId,
+          organizationId: ids.organizationId,
+          ownerId: ids.ownerId,
+          nextAction: "Synthetic follow-up",
+          source: "WORKER_TEST",
+        },
+      });
+      await prisma.deal.create({
+        data: {
+          id: ids.dealId,
+          organizationId: ids.organizationId,
+          leadId: ids.leadId,
+          propertyId: ids.propertyId,
+          brokerId: ids.ownerId,
+        },
+      });
+      await prisma.invoice.create({
+        data: {
+          id: ids.invoiceId,
+          organizationId: ids.organizationId,
+          dealId: ids.dealId,
+          amountMinor: 10000n,
+          currency: "SAR",
+          status: "ISSUED",
+          draftCreatedBy: ids.ownerId,
+          draftCreatedAt: new Date(now.getTime() - 3 * 86_400_000),
+          issuedBy: ids.ownerId,
+          issuedAt: new Date(now.getTime() - 2 * 86_400_000),
+          dueAt,
+        },
+      });
+      await prisma.receivable.create({
+        data: {
+          id: ids.receivableId,
+          organizationId: ids.organizationId,
+          invoiceId: ids.invoiceId,
+          dealId: ids.dealId,
+          originalAmountMinor: 10000n,
+          outstandingMinor: 10000n,
+          currency: "SAR",
+          status: "OPEN",
+          issuedAt: new Date(now.getTime() - 2 * 86_400_000),
+          dueAt,
+        },
+      });
+
+      seedApp = await NestFactory.createApplicationContext(AppModule, {
+        logger: false,
+      });
+      const rules = seedApp.get(AutomationRuleApplication);
+      const createdRule = await rules.createRule({
+        actor: { verified: true },
+        userId: ids.ownerId,
+        organizationId: ids.organizationId,
+        ruleId: ids.ruleId,
+        name: "Worker receivable overdue",
+        definition: {
+          trigger: { kind: "DOMAIN_EVENT", eventType: "receivable.overdue" },
+          conditions: [],
+          action: {
+            actionType: "CREATE_INTERNAL_NOTIFICATION",
+            payload: { daysPastDue: "0", template: "receivable-overdue" },
+          },
+        },
+        createdAt: now,
+      });
+      assert.equal(createdRule.kind, "created");
+      assert.equal(
+        (
+          await rules.enableRule({
+            actor: { verified: true },
+            userId: ids.ownerId,
+            organizationId: ids.organizationId,
+            ruleId: ids.ruleId,
+            at: now,
+          })
+        ).kind,
+        "enabled",
+      );
+      await seedApp.close();
+      seedApp = undefined;
+
+      runtime = await createAutomationSchedulerTick();
+      const clock = fakeTimers();
+      const worker = createAutomationWorker({
+        scheduler: runtime,
+        intervalMs: 10,
+        maxBackoffMs: 40,
+        setTimeoutFn: clock.setTimeoutFn,
+        clearTimeoutFn: clock.clearTimeoutFn,
+      });
+      worker.start();
+      const firstTimer = clock.timers.shift();
+      assert.equal(firstTimer.delay, 0);
+      firstTimer.callback();
+      const notificationCount = async () =>
+        (
+          await prisma.$queryRaw`
+            SELECT COUNT(*)::int AS count FROM "AutomationNotification"
+            WHERE "organizationId" = ${ids.organizationId}::uuid
+          `
+        )[0].count;
+      await waitFor(async () => (await notificationCount()) === 1);
+      assert.equal(await notificationCount(), 1);
+      const replayTimer = clock.timers.shift();
+      assert.equal(replayTimer.delay, 10);
+      replayTimer.callback();
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 20));
+      assert.equal(await notificationCount(), 1);
+      await worker.stop();
+      await runtime.close();
+      runtime = undefined;
+    } finally {
+      if (seedApp) await seedApp.close();
+      if (runtime) await runtime.close();
+      await removeFixture(prisma);
+      await prisma.$disconnect();
+    }
+  },
+);

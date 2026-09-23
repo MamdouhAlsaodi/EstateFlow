@@ -33,6 +33,7 @@ import {
   AUTOMATION_RULE_LIST_BOUND,
   CreateAutomationRuleDto,
   automationResponse,
+  failedJobItem,
   ruleSummary,
   ruleVersionItem,
 } from "./automation-rule.dto.js";
@@ -207,11 +208,19 @@ export class AutomationRuleController {
         limit: 50,
       });
       if (failedJobs.kind !== "found") return failedJobs;
+      const recentFinanceJobs = await this.rules.listRecentFinanceJobs({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        limit: 50,
+      });
+      if (recentFinanceJobs.kind !== "found") return recentFinanceJobs;
       return {
         rules: result.rules.map((entry) =>
           ruleSummary(entry.rule, entry.definition, entry.version),
         ),
-        failedJobs: failedJobs.jobs.map((job) => ({
+        failedJobs: failedJobs.jobs.map((job) => failedJobItem(job)),
+        recentFinanceJobs: recentFinanceJobs.jobs.map((job) => ({
           id: job.id,
           ruleId: job.ruleId,
           ruleVersion: job.ruleVersion,
@@ -222,7 +231,8 @@ export class AutomationRuleController {
           attemptCount: job.attemptCount,
           maxAttempts: job.maxAttempts,
           lastError: job.lastError,
-          failedAt: job.completedAt,
+          scheduledFor: job.scheduledFor,
+          completedAt: job.completedAt,
           updatedAt: job.updatedAt,
         })),
       };

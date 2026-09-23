@@ -40,4 +40,8 @@ export interface AutomationJobRepository {
     ruleId: string;
     limit: number;
   }): Promise<AutomationJob[]>;
+  listRecentFinanceJobs(input: {
+    organizationId: string;
+    limit: number;
+  }): Promise<AutomationJob[]>;
 }

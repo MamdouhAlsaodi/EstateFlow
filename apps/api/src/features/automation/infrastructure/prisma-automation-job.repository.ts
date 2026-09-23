@@ -114,6 +114,20 @@ export class PrismaAutomationJobRepository implements AutomationJobRepository {
       LIMIT ${input.limit}`;
     return rows.map(mapJob);
   }
+
+  async listRecentFinanceJobs(input: {
+    organizationId: string;
+    limit: number;
+  }): Promise<AutomationJob[]> {
+    const rows = await this.db.$queryRaw<JobRow[]>`
+      SELECT ${jobColumns}
+      FROM "AutomationJob"
+      WHERE "organizationId" = ${input.organizationId}::uuid
+        AND "targetType" IN ('RECEIVABLE', 'COMMISSION')
+      ORDER BY "createdAt" DESC, "id" ASC
+      LIMIT ${input.limit}`;
+    return rows.map(mapJob);
+  }
 }
 
 const jobColumns = Prisma.sql`"id", "organizationId", "ruleId", "ruleVersion", "executionKey", "triggerKind", "eventType", "eventId", "actionType", "targetType", "targetId", "scheduleBucket", "scheduledFor", "status", "attemptCount", "maxAttempts", "nextAttemptAt", "lastErrorKind", "lastErrorMessage", "startedAt", "completedAt", "createdAt", "updatedAt"`;

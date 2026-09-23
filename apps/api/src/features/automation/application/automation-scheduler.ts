@@ -1,5 +1,6 @@
 import type {
   AutomationActionPort,
+  AutomationOccurrenceSource,
   EvaluateSchedulesResult,
   EnqueueOccurrenceResult,
   RunDueJobsResult,
@@ -50,6 +51,7 @@ export class AutomationScheduler {
     private readonly jobs: AutomationJobRepository,
     private readonly rules: SchedulerRuleReader,
     private readonly actionPort: AutomationActionPort,
+    private readonly occurrenceSource?: AutomationOccurrenceSource,
   ) {}
 
   /**
@@ -211,6 +213,23 @@ export class AutomationScheduler {
       jobs: RunDueJobsResult;
     }>
   > {
+    if (this.occurrenceSource) {
+      const occurrences = await this.occurrenceSource.listDueOccurrences(
+        input.now,
+      );
+      for (const occurrence of occurrences) {
+        await this.enqueueDomainEventOccurrence({
+          organizationId: occurrence.organizationId,
+          ruleId: occurrence.ruleId,
+          eventId: occurrence.eventId,
+          eventType: occurrence.eventType,
+          targetType: occurrence.targetType,
+          targetId: occurrence.targetId,
+          subject: occurrence.subject,
+          now: occurrence.now,
+        });
+      }
+    }
     const schedules = await this.evaluateScheduleTriggers({ now: input.now });
     const jobs = await this.runDueJobs({
       now: input.now,

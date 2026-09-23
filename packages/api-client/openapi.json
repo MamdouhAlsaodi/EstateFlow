@@ -1177,6 +1177,83 @@
                           }
                         }
                       }
+                    },
+                    "recentFinanceJobs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "ruleId",
+                          "ruleVersion",
+                          "actionType",
+                          "targetType",
+                          "targetId",
+                          "status",
+                          "attemptCount",
+                          "maxAttempts",
+                          "lastError",
+                          "scheduledFor",
+                          "completedAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "ruleId": { "type": "string", "format": "uuid" },
+                          "ruleVersion": { "type": "integer", "minimum": 1 },
+                          "actionType": { "type": "string" },
+                          "targetType": {
+                            "type": "string",
+                            "enum": ["RECEIVABLE", "COMMISSION"]
+                          },
+                          "targetId": { "type": "string" },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "QUEUED",
+                              "RUNNING",
+                              "RETRYING",
+                              "SUCCEEDED",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "attemptCount": { "type": "integer", "minimum": 0 },
+                          "maxAttempts": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "lastError": {
+                            "type": "object",
+                            "required": ["kind", "message"],
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": { "type": "string" },
+                              "message": { "type": "string" }
+                            }
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "completedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                            "nullable": true
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
                     }
                   }
                 }
