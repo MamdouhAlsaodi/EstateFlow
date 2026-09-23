@@ -6778,6 +6778,1343 @@
         "summary": "",
         "tags": ["Campaigns"]
       }
+    },
+    "/organizations/{organizationId}/content": {
+      "post": {
+        "operationId": "ContentController_create",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "body", "channel"],
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "pattern": "\\S"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "INSTAGRAM",
+                      "X",
+                      "SNAPCHAT",
+                      "TIKTOK",
+                      "LINKEDIN",
+                      "FACEBOOK",
+                      "WHATSAPP",
+                      "EMAIL",
+                      "WEBSITE",
+                      "OTHER"
+                    ]
+                  },
+                  "campaignId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["item"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      },
+      "get": {
+        "operationId": "ContentController_list",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "IDEA",
+                "DRAFT",
+                "REVIEW",
+                "APPROVED",
+                "SCHEDULED",
+                "PUBLISHED",
+                "FAILED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "variantNumber",
+                          "title",
+                          "channel",
+                          "status",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "rootContentId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "variantOfId": { "type": "string", "format": "uuid" },
+                          "variantNumber": { "type": "integer", "minimum": 1 },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "IDEA",
+                              "DRAFT",
+                              "REVIEW",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "PUBLISHED",
+                              "FAILED"
+                            ]
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "approvedVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "pattern": "^[A-Za-z0-9_-]+$"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/review-queue": {
+      "get": {
+        "operationId": "ContentController_reviewQueue",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "channel",
+                          "variantNumber",
+                          "submittedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "variantNumber": { "type": "integer", "minimum": 1 },
+                          "submittedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/calendar": {
+      "get": {
+        "operationId": "ContentController_calendar",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "channel",
+                          "status",
+                          "variantNumber",
+                          "scheduledFor"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "IDEA",
+                              "DRAFT",
+                              "REVIEW",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "PUBLISHED",
+                              "FAILED"
+                            ]
+                          },
+                          "variantNumber": { "type": "integer", "minimum": 1 },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/{contentItemId}": {
+      "get": {
+        "operationId": "ContentController_find",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "contentItemId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["item", "transitions", "variants"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    },
+                    "transitions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "contentItemId",
+                          "fromStatus",
+                          "toStatus",
+                          "actorId",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "contentItemId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "fromStatus": {
+                            "type": "string",
+                            "enum": [
+                              "IDEA",
+                              "DRAFT",
+                              "REVIEW",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "PUBLISHED",
+                              "FAILED"
+                            ]
+                          },
+                          "toStatus": {
+                            "type": "string",
+                            "enum": [
+                              "IDEA",
+                              "DRAFT",
+                              "REVIEW",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "PUBLISHED",
+                              "FAILED"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "failureKind": {
+                            "type": "string",
+                            "enum": [
+                              "CHANNEL_REJECTED",
+                              "CHANNEL_TIMEOUT",
+                              "CONTENT_POLICY_VIOLATION",
+                              "SCHEDULE_MISSED",
+                              "OTHER"
+                            ]
+                          },
+                          "version": { "type": "integer", "minimum": 1 },
+                          "contentHash": {
+                            "type": "string",
+                            "minLength": 64,
+                            "maxLength": 64
+                          },
+                          "actorId": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    },
+                    "variants": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "organizationId",
+                          "variantNumber",
+                          "title",
+                          "body",
+                          "channel",
+                          "status",
+                          "createdBy",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "organizationId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "campaignId": { "type": "string", "format": "uuid" },
+                          "rootContentId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "variantOfId": { "type": "string", "format": "uuid" },
+                          "variantNumber": { "type": "integer", "minimum": 1 },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "body": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 5000
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "IDEA",
+                              "DRAFT",
+                              "REVIEW",
+                              "APPROVED",
+                              "SCHEDULED",
+                              "PUBLISHED",
+                              "FAILED"
+                            ]
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "approvedVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "contentHash": {
+                            "type": "string",
+                            "minLength": 64,
+                            "maxLength": 64
+                          },
+                          "createdBy": { "type": "string", "format": "uuid" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/{contentItemId}/edit": {
+      "post": {
+        "operationId": "ContentController_edit",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "contentItemId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "body", "channel"],
+                "additionalProperties": false,
+                "description": "Full replacement of the mutable content; omitting campaignId clears the link.",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "pattern": "\\S"
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "pattern": "\\S"
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "INSTAGRAM",
+                      "X",
+                      "SNAPCHAT",
+                      "TIKTOK",
+                      "LINKEDIN",
+                      "FACEBOOK",
+                      "WHATSAPP",
+                      "EMAIL",
+                      "WEBSITE",
+                      "OTHER"
+                    ]
+                  },
+                  "campaignId": { "type": "string", "format": "uuid" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["item"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/{contentItemId}/transition": {
+      "post": {
+        "operationId": "ContentController_transition",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "contentItemId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["toStatus"],
+                "additionalProperties": false,
+                "description": "SCHEDULED requires scheduledFor (future UTC); FAILED requires failureKind and reason.",
+                "properties": {
+                  "toStatus": {
+                    "type": "string",
+                    "enum": [
+                      "DRAFT",
+                      "REVIEW",
+                      "APPROVED",
+                      "SCHEDULED",
+                      "PUBLISHED",
+                      "FAILED"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  },
+                  "failureKind": {
+                    "type": "string",
+                    "enum": [
+                      "CHANNEL_REJECTED",
+                      "CHANNEL_TIMEOUT",
+                      "CONTENT_POLICY_VIOLATION",
+                      "SCHEDULE_MISSED",
+                      "OTHER"
+                    ]
+                  },
+                  "scheduledFor": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["item", "transition"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    },
+                    "transition": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "contentItemId",
+                        "fromStatus",
+                        "toStatus",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "contentItemId": { "type": "string", "format": "uuid" },
+                        "fromStatus": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "toStatus": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "failureKind": {
+                          "type": "string",
+                          "enum": [
+                            "CHANNEL_REJECTED",
+                            "CHANNEL_TIMEOUT",
+                            "CONTENT_POLICY_VIOLATION",
+                            "SCHEDULE_MISSED",
+                            "OTHER"
+                          ]
+                        },
+                        "version": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "actorId": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/{contentItemId}/revisions": {
+      "post": {
+        "operationId": "ContentController_createRevision",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "contentItemId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["item"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
     }
   },
   "info": {

@@ -175,6 +175,8 @@ model Organization {
   campaignPerformanceEntries       CampaignPerformanceEntry[]
   leadTouches                      LeadTouch[]
   leadAttributionCorrections       LeadAttributionCorrection[]
+  contentItems                     ContentItem[]
+  contentTransitions               ContentTransition[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -239,6 +241,7 @@ model Campaign {
   touches            LeadTouch[]
   attributionCorrections LeadAttributionCorrection[]
   expenses           Expense[]
+  contentItems       ContentItem[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -923,4 +926,89 @@ model ExpenseApprovalPolicy {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([updatedAt])
+}
+
+// EF-402 — Content workflow.
+
+enum ContentStatus {
+  IDEA
+  DRAFT
+  REVIEW
+  APPROVED
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum ContentChannel {
+  INSTAGRAM
+  X
+  SNAPCHAT
+  TIKTOK
+  LINKEDIN
+  FACEBOOK
+  WHATSAPP
+  EMAIL
+  WEBSITE
+  OTHER
+}
+
+enum ContentFailureKind {
+  CHANNEL_REJECTED
+  CHANNEL_TIMEOUT
+  CONTENT_POLICY_VIOLATION
+  SCHEDULE_MISSED
+  OTHER
+}
+
+model ContentItem {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String              @db.Uuid
+  campaignId      String?             @db.Uuid
+  rootContentId   String?             @db.Uuid
+  variantOfId     String?             @db.Uuid
+  variantNumber   Int                 @default(1)
+  title           String              @db.VarChar(200)
+  body            String              @db.VarChar(5000)
+  channel         ContentChannel
+  status          ContentStatus       @default(IDEA)
+  scheduledFor    DateTime?           @db.Timestamptz(6)
+  approvedVersion Int?
+  contentHash     String?             @db.Char(64)
+  createdBy       String              @db.Uuid
+  createdAt       DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
+  organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  campaign        Campaign?           @relation(fields: [campaignId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  rootContent     ContentItem?        @relation("ContentVariantRoot", fields: [rootContentId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  rootVariants    ContentItem[]       @relation("ContentVariantRoot")
+  parentVariant   ContentItem?        @relation("ContentVariantParent", fields: [variantOfId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  childVariants   ContentItem[]       @relation("ContentVariantParent")
+  transitions     ContentTransition[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, createdAt])
+  @@index([organizationId, rootContentId, variantNumber])
+  @@index([organizationId, scheduledFor])
+  @@index([organizationId, campaignId])
+}
+
+model ContentTransition {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String              @db.Uuid
+  contentItemId  String              @db.Uuid
+  fromStatus     ContentStatus
+  toStatus       ContentStatus
+  reason         String?             @db.VarChar(500)
+  failureKind    ContentFailureKind?
+  version        Int?
+  contentHash    String?             @db.Char(64)
+  actorId        String              @db.Uuid
+  createdAt      DateTime            @default(now()) @db.Timestamptz(6)
+  contentItem    ContentItem         @relation(fields: [organizationId, contentItemId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, contentItemId, createdAt])
 }
