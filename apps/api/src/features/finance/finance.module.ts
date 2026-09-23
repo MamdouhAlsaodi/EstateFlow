@@ -29,6 +29,14 @@ import type { CommissionRepository } from "./application/commission-repository.j
 import { PrismaCommissionRepository } from "./infrastructure/prisma-commission.repository.js";
 import type { LedgerRepository } from "./application/ledger-repository.js";
 import { PrismaLedgerRepository } from "./infrastructure/prisma-ledger.repository.js";
+import { ReportApplication } from "./application/report-application.js";
+import type {
+  ReportMembership,
+  ReportMembershipReader,
+  ReportRepository,
+} from "./application/report-repository.js";
+import { PrismaReportRepository } from "./infrastructure/prisma-report.repository.js";
+import { ReportController } from "./http/report.controller.js";
 import { LedgerController } from "./http/ledger.controller.js";
 import { CommissionController } from "./http/commission.controller.js";
 import { ReceivableController } from "./http/receivable.controller.js";
@@ -90,6 +98,20 @@ class PrismaExpenseMembershipReader implements ExpenseMembershipReader {
   }
 }
 
+class PrismaReportMembershipReader implements ReportMembershipReader {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findMembership(
+    organizationId: string,
+    userId: string,
+  ): Promise<ReportMembership | null> {
+    return this.prisma.membership.findUnique({
+      where: { organizationId_userId: { organizationId, userId } },
+      select: { organizationId: true, role: true, status: true },
+    });
+  }
+}
+
 @Module({
   imports: [AuthModule],
   controllers: [
@@ -97,6 +119,7 @@ class PrismaExpenseMembershipReader implements ExpenseMembershipReader {
     CommissionController,
     ReceivableController,
     ExpenseController,
+    ReportController,
   ],
   providers: [
     {
@@ -170,6 +193,26 @@ class PrismaExpenseMembershipReader implements ExpenseMembershipReader {
       inject: [PrismaService],
       useFactory: (prisma: PrismaService): LedgerMembershipReader =>
         new PrismaLedgerMembershipReader(prisma),
+    },
+    {
+      provide: PrismaReportRepository,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): ReportRepository =>
+        new PrismaReportRepository(prisma),
+    },
+    {
+      provide: PrismaReportMembershipReader,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): ReportMembershipReader =>
+        new PrismaReportMembershipReader(prisma),
+    },
+    {
+      provide: ReportApplication,
+      inject: [PrismaReportRepository, PrismaReportMembershipReader],
+      useFactory: (
+        repository: ReportRepository,
+        membershipReader: ReportMembershipReader,
+      ) => new ReportApplication(repository, membershipReader),
     },
     {
       provide: LedgerApplication,

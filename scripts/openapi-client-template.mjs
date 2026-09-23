@@ -495,6 +495,397 @@ const expenseOperations = new Map([
   ],
 ]);
 
+const reportBucketSchema = {
+  type: "string",
+  enum: ["CURRENT", "DAYS_1_30", "DAYS_31_60", "DAYS_61_90", "DAYS_91_PLUS"],
+};
+const reportMoneyTotalSchema = {
+  type: "object",
+  required: ["currency", "count", "amountMinor"],
+  additionalProperties: false,
+  properties: {
+    currency: currencySchema,
+    count: { type: "integer", minimum: 0 },
+    amountMinor: amountMinorSchema,
+  },
+};
+const reportSignedMoneySchema = {
+  type: "object",
+  required: ["currency", "amountMinor"],
+  additionalProperties: false,
+  properties: {
+    currency: currencySchema,
+    amountMinor: { type: "string", pattern: "^-?(0|[1-9]\\d*)$" },
+  },
+};
+const reportPagedSchema = (itemsSchema) => ({
+  type: "object",
+  required: ["asOf", "items"],
+  additionalProperties: false,
+  properties: {
+    asOf: instantSchema,
+    items: { type: "array", items: itemsSchema },
+    nextCursor: {
+      type: "string",
+      minLength: 1,
+      maxLength: 512,
+      pattern: "^[A-Za-z0-9_-]+$",
+    },
+  },
+});
+
+const reportPerformanceRowSchema = {
+  type: "object",
+  required: [
+    "keyId",
+    "currency",
+    "revenueMinor",
+    "costsMinor",
+    "marginMinor",
+    "paymentCount",
+    "expenseCount",
+  ],
+  additionalProperties: false,
+  properties: {
+    keyId: uuidSchema,
+    currency: currencySchema,
+    revenueMinor: { type: "string", pattern: "^-?(0|[1-9]\\d*)$" },
+    costsMinor: { type: "string", pattern: "^-?(0|[1-9]\\d*)$" },
+    marginMinor: { type: "string", pattern: "^-?(0|[1-9]\\d*)$" },
+    paymentCount: { type: "integer", minimum: 0 },
+    expenseCount: { type: "integer", minimum: 0 },
+  },
+};
+
+const reportOperations = new Map([
+  [
+    "get /organizations/{organizationId}/finance/reports/cash-flow",
+    {
+      operationId: "ReportController_getCashFlow",
+      clientMethod: "getOwnerCashFlow",
+      body: null,
+      query: {
+        from: instantSchema,
+        to: instantSchema,
+      },
+      responseSchema: {
+        type: "object",
+        required: ["asOf", "cashIn", "cashOut", "netCash"],
+        additionalProperties: false,
+        properties: {
+          asOf: instantSchema,
+          cashIn: { type: "array", items: reportMoneyTotalSchema },
+          cashOut: { type: "array", items: reportMoneyTotalSchema },
+          netCash: { type: "array", items: reportSignedMoneySchema },
+        },
+      },
+      responseType: "OwnerCashFlowResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/payments",
+    {
+      operationId: "ReportController_listPayments",
+      clientMethod: "listOwnerPaymentItems",
+      body: null,
+      query: {
+        dealId: uuidSchema,
+        propertyId: uuidSchema,
+        from: instantSchema,
+        to: instantSchema,
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: reportPagedSchema({
+        type: "object",
+        required: [
+          "paymentId",
+          "receivableId",
+          "invoiceId",
+          "dealId",
+          "propertyId",
+          "currency",
+          "amountMinor",
+          "recordedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          paymentId: uuidSchema,
+          receivableId: uuidSchema,
+          invoiceId: uuidSchema,
+          dealId: uuidSchema,
+          propertyId: uuidSchema,
+          currency: currencySchema,
+          amountMinor: amountMinorSchema,
+          recordedAt: instantSchema,
+        },
+      }),
+      responseType: "OwnerPaymentItemPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/expenses",
+    {
+      operationId: "ReportController_listExpenses",
+      clientMethod: "listOwnerExpenseItems",
+      body: null,
+      query: {
+        dealId: uuidSchema,
+        propertyId: uuidSchema,
+        from: instantSchema,
+        to: instantSchema,
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: reportPagedSchema({
+        type: "object",
+        required: [
+          "expenseId",
+          "category",
+          "vendorReference",
+          "currency",
+          "amountMinor",
+          "decidedAt",
+        ],
+        additionalProperties: false,
+        properties: {
+          expenseId: uuidSchema,
+          category: {
+            type: "string",
+            enum: ["OFFICE", "CAMPAIGN", "PROPERTY", "OTHER"],
+          },
+          vendorReference: { type: "string", minLength: 1, maxLength: 200 },
+          currency: currencySchema,
+          amountMinor: amountMinorSchema,
+          decidedAt: instantSchema,
+          campaignReference: { type: "string", minLength: 1, maxLength: 100 },
+          dealId: uuidSchema,
+          propertyId: uuidSchema,
+        },
+      }),
+      responseType: "OwnerExpenseItemPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/receivables/aging",
+    {
+      operationId: "ReportController_getAgingSummary",
+      clientMethod: "getOwnerAgingSummary",
+      body: null,
+      responseSchema: {
+        type: "object",
+        required: ["asOf", "buckets"],
+        additionalProperties: false,
+        properties: {
+          asOf: instantSchema,
+          buckets: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["bucket", "currency", "count", "outstandingMinor"],
+              additionalProperties: false,
+              properties: {
+                bucket: reportBucketSchema,
+                currency: currencySchema,
+                count: { type: "integer", minimum: 0 },
+                outstandingMinor: amountMinorSchema,
+              },
+            },
+          },
+        },
+      },
+      responseType: "OwnerAgingSummaryResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/receivables/aging/items",
+    {
+      operationId: "ReportController_listAgingItems",
+      clientMethod: "listOwnerAgingItems",
+      body: null,
+      queryRequired: ["bucket"],
+      query: {
+        bucket: reportBucketSchema,
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: reportPagedSchema({
+        type: "object",
+        required: [
+          "receivableId",
+          "invoiceId",
+          "dealId",
+          "currency",
+          "originalAmountMinor",
+          "outstandingMinor",
+          "status",
+          "issuedAt",
+          "dueAt",
+          "daysPastDue",
+          "bucket",
+        ],
+        additionalProperties: false,
+        properties: {
+          receivableId: uuidSchema,
+          invoiceId: uuidSchema,
+          dealId: uuidSchema,
+          currency: currencySchema,
+          originalAmountMinor: amountMinorSchema,
+          outstandingMinor: amountMinorSchema,
+          status: { type: "string", enum: ["OPEN", "PARTIALLY_PAID"] },
+          issuedAt: instantSchema,
+          dueAt: instantSchema,
+          daysPastDue: { type: "integer", minimum: 0 },
+          bucket: reportBucketSchema,
+        },
+      }),
+      responseType: "OwnerAgingItemPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/commissions",
+    {
+      operationId: "ReportController_getCommissionSummary",
+      clientMethod: "getOwnerCommissionSummary",
+      body: null,
+      responseSchema: {
+        type: "object",
+        required: ["asOf", "expected", "due", "paid"],
+        additionalProperties: false,
+        properties: {
+          asOf: instantSchema,
+          expected: { type: "array", items: reportMoneyTotalSchema },
+          due: { type: "array", items: reportMoneyTotalSchema },
+          paid: { type: "array", items: reportMoneyTotalSchema },
+        },
+      },
+      responseType: "OwnerCommissionSummaryResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/commissions/items",
+    {
+      operationId: "ReportController_listCommissionItems",
+      clientMethod: "listOwnerCommissionItems",
+      body: null,
+      queryRequired: ["status"],
+      query: {
+        status: {
+          type: "string",
+          enum: ["EXPECTED", "CONFIRMED", "DUE", "PAID", "CANCELLED"],
+        },
+        cursor: {
+          type: "string",
+          minLength: 1,
+          maxLength: 512,
+          pattern: "^[A-Za-z0-9_-]+$",
+        },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 50 },
+      },
+      responseSchema: reportPagedSchema({
+        type: "object",
+        required: [
+          "accrualId",
+          "dealId",
+          "status",
+          "currency",
+          "amountMinor",
+          "createdAt",
+          "splits",
+        ],
+        additionalProperties: false,
+        properties: {
+          accrualId: uuidSchema,
+          dealId: uuidSchema,
+          status: {
+            type: "string",
+            enum: ["EXPECTED", "CONFIRMED", "DUE", "PAID", "CANCELLED"],
+          },
+          currency: currencySchema,
+          amountMinor: amountMinorSchema,
+          createdAt: instantSchema,
+          splits: {
+            type: "array",
+            items: {
+              type: "object",
+              required: ["order", "kind", "amountMinor"],
+              additionalProperties: false,
+              properties: {
+                order: { type: "integer", minimum: 1 },
+                kind: { type: "string", enum: ["BROKER", "OFFICE"] },
+                amountMinor: amountMinorSchema,
+              },
+            },
+          },
+        },
+      }),
+      responseType: "OwnerCommissionItemPage",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/finance/reports/performance",
+    {
+      operationId: "ReportController_getPerformance",
+      clientMethod: "getOwnerPerformance",
+      body: null,
+      query: {
+        from: instantSchema,
+        to: instantSchema,
+      },
+      responseSchema: {
+        type: "object",
+        required: ["asOf", "deals", "properties"],
+        additionalProperties: false,
+        properties: {
+          asOf: instantSchema,
+          deals: { type: "array", items: reportPerformanceRowSchema },
+          properties: { type: "array", items: reportPerformanceRowSchema },
+        },
+      },
+      responseType: "OwnerPerformanceResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+]);
+
 const propertyOperations = [
   {
     method: "post",
@@ -820,6 +1211,42 @@ function readSupportedOperations(document) {
     }
   }
 
+  const hasReportContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("ReportController_"),
+      ),
+  );
+  if (hasReportContract) {
+    for (const [key, reportOperation] of reportOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (!operation || operation.operationId !== reportOperation.operationId)
+        throw new Error(
+          `Unsupported OpenAPI operation ${reportOperation.operationId} at ${path}`,
+        );
+      validateReportOperation({
+        path,
+        operation,
+        contract: reportOperation,
+      });
+      operations.push({ path, operation, reportOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("ReportController_") &&
+          !reportOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI ReportController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
   for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
     for (const [method, operation] of Object.entries(pathItem).filter(
       ([name]) => httpMethods.has(name),
@@ -976,6 +1403,64 @@ function validateReceivableOperation({ path, operation, contract }) {
     if (!operation.responses?.[status])
       throw new Error(
         `OpenAPI Receivable operation ${operation.operationId} at ${path} must define error status ${status}`,
+      );
+}
+
+function validateReportOperation({ path, operation, contract }) {
+  const expectedParameters = (path.match(/{[^}]+}/g) ?? []).map((name) => ({
+    name: name.slice(1, -1),
+    in: "path",
+    required: true,
+    schema: { type: "string", format: "uuid" },
+  }));
+  const queryRequired = new Set(contract.queryRequired ?? []);
+  for (const [name, schema] of Object.entries(contract.query ?? {}))
+    expectedParameters.push({
+      name,
+      in: "query",
+      required: queryRequired.has(name),
+      schema,
+    });
+  const actualParameters = (operation.parameters ?? []).map(
+    ({ name, in: location, required, schema }) => ({
+      name,
+      in: location,
+      required,
+      schema,
+    }),
+  );
+  const sortParameters = (parameters) =>
+    parameters
+      .slice()
+      .sort((a, b) => `${a.in}/${a.name}`.localeCompare(`${b.in}/${b.name}`));
+  if (
+    stableJson(sortParameters(actualParameters)) !==
+    stableJson(sortParameters(expectedParameters))
+  )
+    throw new Error(
+      `OpenAPI Report operation ${operation.operationId} at ${path} must define exactly its required parameters`,
+    );
+  if (operation.requestBody)
+    throw new Error(
+      `OpenAPI Report operation ${operation.operationId} at ${path} must not define a request body`,
+    );
+  if (contract.responseSchema) {
+    const response = operation.responses?.["200"];
+    const schema = response?.content?.["application/json"]?.schema;
+    if (!response || stableJson(schema) !== stableJson(contract.responseSchema))
+      throw new Error(
+        `OpenAPI Report operation ${operation.operationId} at ${path} must define the exact 200 response schema`,
+      );
+  }
+  for (const status of contract.successStatuses)
+    if (!operation.responses?.[status])
+      throw new Error(
+        `OpenAPI Report operation ${operation.operationId} at ${path} must define success status ${status}`,
+      );
+  for (const status of contract.errorStatuses ?? [])
+    if (!operation.responses?.[status])
+      throw new Error(
+        `OpenAPI Report operation ${operation.operationId} at ${path} must define error status ${status}`,
       );
 }
 
@@ -1258,6 +1743,9 @@ export function generateOpenApiClient(document) {
   const expenseOperationEntries = operations.filter(
     ({ expenseOperation }) => expenseOperation,
   );
+  const reportOperationEntries = operations.filter(
+    ({ reportOperation }) => reportOperation,
+  );
   const statusLiterals = [
     ...new Set(healthOperations.flatMap(readStatusEnum)),
   ].map((status) => JSON.stringify(status));
@@ -1364,6 +1852,41 @@ export function generateOpenApiClient(document) {
       return `    ${expenseOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson(${encodedPath(path)}, { method: "POST" }),`;
     })
     .join("\n");
+  const reportMethods = reportOperationEntries
+    .map(({ path, reportOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      const queryParameters = Object.keys(reportOperation.query ?? {});
+      const queryBuilder = queryParameters.length
+        ? `const query = new URLSearchParams(); ${queryParameters.map((name) => `if (params.${name} !== undefined) query.set(${JSON.stringify(name)}, String(params.${name}));`).join(" ")} `
+        : "";
+      if (queryParameters.length)
+        return `    ${reportOperation.clientMethod}: (params: ${parameterType(pathParameters, queryParameters)}) => { ${queryBuilder} return requestJson<${reportOperation.responseType}>(${encodedPath(path)} + ${queryExpression(queryParameters)}); },`;
+      return `    ${reportOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson<${reportOperation.responseType}>(${encodedPath(path)}),`;
+    })
+    .join("\n");
+  const reportTypes = [
+    "OwnerCashFlowResponse",
+    "OwnerPaymentItemPage",
+    "OwnerExpenseItemPage",
+    "OwnerAgingSummaryResponse",
+    "OwnerAgingItemPage",
+    "OwnerCommissionSummaryResponse",
+    "OwnerCommissionItemPage",
+    "OwnerPerformanceResponse",
+  ]
+    .map((responseType) => {
+      const entry = reportOperationEntries.find(
+        ({ reportOperation }) => reportOperation.responseType === responseType,
+      );
+      if (!entry) throw new Error(`Missing report schema for ${responseType}`);
+      const schema = JSON.parse(
+        JSON.stringify(entry.reportOperation.responseSchema),
+      );
+      return `export type ${responseType} = ${typescriptObjectType(schema)};`;
+    })
+    .join("\n\n");
   const agingItemSchema = {
     ...agingResponseSchema.properties.items.items,
     properties: {
@@ -1428,6 +1951,8 @@ export type LeadDetailResponse = {
 
 ${agingTypes}
 
+${reportTypes}
+
 export type FetchLike = (
   input: string,
   init?: { method: string; headers?: Record<string, string>; body?: string },
@@ -1461,6 +1986,7 @@ ${crmMethods}
 ${commissionMethods}
 ${receivableMethods}
 ${expenseMethods}
+${reportMethods}
 ${ledgerMethods}
 ${propertyMethods}
   };
