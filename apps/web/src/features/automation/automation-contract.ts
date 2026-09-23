@@ -8,9 +8,27 @@ export type AutomationRuleSummary = Readonly<{
   definition: Record<string, unknown>;
 }>;
 
+export type AutomationFinanceJob = Readonly<{
+  id: string;
+  ruleId: string;
+  ruleVersion: number;
+  actionType: string;
+  targetType: "RECEIVABLE" | "COMMISSION";
+  targetId: string;
+  status:
+    "QUEUED" | "RUNNING" | "RETRYING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
+  attemptCount: number;
+  maxAttempts: number;
+  lastError: { kind: string; message: string } | null;
+  scheduledFor: string;
+  completedAt: string | null;
+  updatedAt: string;
+}>;
+
 export type AutomationRulesResponse = Readonly<{
   rules: readonly AutomationRuleSummary[];
   failedJobs: readonly AutomationFailedJob[];
+  recentFinanceJobs: readonly AutomationFinanceJob[];
 }>;
 
 export type AutomationFailedJob = Readonly<{
@@ -65,8 +83,12 @@ export function normalizeAutomationRules(
   value: unknown,
 ): AutomationRulesResponse {
   const root = record(value);
-  only(root, ["rules", "failedJobs"]);
-  if (!Array.isArray(root.rules) || !Array.isArray(root.failedJobs))
+  only(root, ["rules", "failedJobs", "recentFinanceJobs"]);
+  if (
+    !Array.isArray(root.rules) ||
+    !Array.isArray(root.failedJobs) ||
+    !Array.isArray(root.recentFinanceJobs)
+  )
     throw new TypeError("Invalid automation rules");
   return {
     rules: root.rules.map((entry) => {
@@ -86,7 +108,65 @@ export function normalizeAutomationRules(
       return rule as AutomationRuleSummary;
     }),
     failedJobs: normalizeAutomationFailedJobs({ jobs: root.failedJobs }).jobs,
+    recentFinanceJobs: normalizeAutomationFinanceJobs(root.recentFinanceJobs),
   };
+}
+
+function normalizeAutomationFinanceJobs(
+  value: unknown,
+): readonly AutomationFinanceJob[] {
+  if (!Array.isArray(value))
+    throw new TypeError("Invalid finance reminder jobs");
+  return value.map((entry) => {
+    const job = record(entry);
+    only(job, [
+      "id",
+      "ruleId",
+      "ruleVersion",
+      "actionType",
+      "targetType",
+      "targetId",
+      "status",
+      "attemptCount",
+      "maxAttempts",
+      "lastError",
+      "scheduledFor",
+      "completedAt",
+      "updatedAt",
+    ]);
+    const error = job.lastError === null ? null : record(job.lastError);
+    if (error) {
+      only(error, ["kind", "message"]);
+      if (typeof error.kind !== "string" || typeof error.message !== "string")
+        throw new TypeError("Invalid finance reminder error");
+    }
+    if (
+      typeof job.id !== "string" ||
+      typeof job.ruleId !== "string" ||
+      typeof job.ruleVersion !== "number" ||
+      !Number.isSafeInteger(job.ruleVersion) ||
+      typeof job.actionType !== "string" ||
+      (job.targetType !== "RECEIVABLE" && job.targetType !== "COMMISSION") ||
+      typeof job.targetId !== "string" ||
+      ![
+        "QUEUED",
+        "RUNNING",
+        "RETRYING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+      ].includes(job.status as string) ||
+      typeof job.attemptCount !== "number" ||
+      !Number.isSafeInteger(job.attemptCount) ||
+      typeof job.maxAttempts !== "number" ||
+      !Number.isSafeInteger(job.maxAttempts) ||
+      !iso(job.scheduledFor) ||
+      (job.completedAt !== null && !iso(job.completedAt)) ||
+      !iso(job.updatedAt)
+    )
+      throw new TypeError("Invalid finance reminder job");
+    return job as AutomationFinanceJob;
+  });
 }
 
 export function normalizeAutomationFailedJobs(

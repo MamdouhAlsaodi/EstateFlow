@@ -18,12 +18,24 @@ const eventLabels: Record<string, string> = {
   "lead.response_sla_breached": "تجاوز مهلة الرد",
   "lead.inactivity_breached": "خمول العميل",
   "lead.next_action_missing": "غياب الإجراء التالي",
+  "receivable.due_soon": "استحقاق ذمة قريب",
+  "receivable.overdue": "ذمة متأخرة",
+  "commission.due": "عمولة مستحقة",
 };
 
 export function AutomationVisibility() {
   const { organizationId } = useOrganizationContext();
   const [rules, setRules] = useState<readonly AutomationRuleSummary[]>([]);
   const [jobs, setJobs] = useState<readonly AutomationFailedJob[]>([]);
+  const [financeJobs, setFinanceJobs] = useState<
+    readonly {
+      id: string;
+      targetType: "RECEIVABLE" | "COMMISSION";
+      status: string;
+      scheduledFor: string;
+      updatedAt: string;
+    }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
@@ -32,12 +44,12 @@ export function AutomationVisibility() {
     setLoading(true);
     setError(false);
     try {
-      const [ruleResponse, jobResponse] = await Promise.all([
-        apiClient.getAutomationRules({ organizationId }),
-        apiClient.getAutomationFailedJobs({ organizationId }),
-      ]);
+      const ruleResponse = await apiClient.getAutomationRules({
+        organizationId,
+      });
       setRules(ruleResponse.rules);
-      setJobs(jobResponse.jobs);
+      setJobs(ruleResponse.failedJobs);
+      setFinanceJobs(ruleResponse.recentFinanceJobs);
       setRefreshedAt(new Date().toISOString());
     } catch {
       setError(true);
@@ -103,6 +115,35 @@ export function AutomationVisibility() {
                       {rule.enabled ? "مفعّلة" : "متوقفة"} · الإصدار{" "}
                       {rule.currentVersion}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section aria-labelledby="finance-reminders-title" className="panel">
+            <div className={styles.sectionHeading}>
+              <h2 id="finance-reminders-title">وظائف التذكير المالي الأخيرة</h2>
+              <span className="table-count">{financeJobs.length} وظيفة</span>
+            </div>
+            {financeJobs.length === 0 ? (
+              <p>لا توجد وظائف تذكير مالي حديثة.</p>
+            ) : (
+              <ul className={styles.list}>
+                {financeJobs.map((job) => (
+                  <li key={job.id}>
+                    <div>
+                      <strong>
+                        {job.targetType === "RECEIVABLE"
+                          ? "ذمة مدينة"
+                          : "عمولة"}
+                      </strong>
+                      <span>
+                        {job.status} · {job.targetType}
+                      </span>
+                    </div>
+                    <time dateTime={job.scheduledFor}>
+                      {formatDate(job.updatedAt)}
+                    </time>
                   </li>
                 ))}
               </ul>

@@ -35,6 +35,21 @@ export interface SchedulerRuleReader {
   ): Promise<SchedulerRuleSnapshot[]>;
 }
 
+export type AutomationSweepOccurrence = Readonly<{
+  organizationId: string;
+  ruleId: string;
+  eventId: string;
+  eventType: AutomationTriggerEventType;
+  targetType: string;
+  targetId: string;
+  subject: Readonly<Record<string, unknown>>;
+  now: Date;
+}>;
+
+export interface AutomationOccurrenceSource {
+  listDueOccurrences(now: Date): Promise<readonly AutomationSweepOccurrence[]>;
+}
+
 export type AutomationActionExecutionRequest = Readonly<{
   job: AutomationJob;
 }>;

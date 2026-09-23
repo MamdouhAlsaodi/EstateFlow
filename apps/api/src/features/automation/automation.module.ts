@@ -21,11 +21,16 @@ import type { LeadRepository } from "../leads/application/lead-repository.js";
 import { AutomationRuleController } from "./http/automation-rule.controller.js";
 import {
   AUTOMATION_OUTBOUND_DELIVERY,
-  InMemoryAutomationDelivery,
   LeadAutomationActionExecutor,
   type AutomationOutboundDelivery,
 } from "./application/lead-automation-executor.js";
 import { LeadAutomationCoordinator } from "./application/lead-automation-coordinator.js";
+import { PrismaAutomationDelivery } from "../notifications/prisma-automation-delivery.js";
+import { PrismaFinanceReminderRepository } from "./infrastructure/prisma-finance-reminder.repository.js";
+import type { FinanceReminderRepository } from "./application/finance-reminder-repository.js";
+import { FinanceReminderCoordinator } from "./application/finance-reminder-coordinator.js";
+import { FinanceAutomationActionExecutor } from "./application/finance-automation-executor.js";
+import { AutomationActionDispatcher } from "./application/automation-action-dispatcher.js";
 
 class PrismaAutomationMembershipReader implements AutomationMembershipReader {
   constructor(private readonly prisma: PrismaService) {}
@@ -77,9 +82,16 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
       ) => new AutomationRuleApplication(repository, membershipReader, jobs),
     },
     {
+      provide: PrismaFinanceReminderRepository,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): FinanceReminderRepository =>
+        new PrismaFinanceReminderRepository(prisma),
+    },
+    {
       provide: AUTOMATION_OUTBOUND_DELIVERY,
-      useFactory: (): AutomationOutboundDelivery =>
-        new InMemoryAutomationDelivery(),
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): AutomationOutboundDelivery =>
+        new PrismaAutomationDelivery(prisma),
     },
     {
       provide: LeadAutomationActionExecutor,
@@ -95,17 +107,46 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
       ) => new LeadAutomationActionExecutor(leads, rules, delivery),
     },
     {
+      provide: FinanceAutomationActionExecutor,
+      inject: [
+        PrismaFinanceReminderRepository,
+        PrismaAutomationRuleRepository,
+        AUTOMATION_OUTBOUND_DELIVERY,
+      ],
+      useFactory: (
+        finance: FinanceReminderRepository,
+        rules: SchedulerRuleReader,
+        delivery: AutomationOutboundDelivery,
+      ) => new FinanceAutomationActionExecutor(finance, rules, delivery),
+    },
+    {
+      provide: AutomationActionDispatcher,
+      inject: [LeadAutomationActionExecutor, FinanceAutomationActionExecutor],
+      useFactory: (lead: AutomationActionPort, finance: AutomationActionPort) =>
+        new AutomationActionDispatcher(lead, finance),
+    },
+    {
+      provide: FinanceReminderCoordinator,
+      inject: [PrismaAutomationRuleRepository, PrismaFinanceReminderRepository],
+      useFactory: (
+        rules: SchedulerRuleReader,
+        finance: FinanceReminderRepository,
+      ) => new FinanceReminderCoordinator(rules, finance),
+    },
+    {
       provide: AutomationScheduler,
       inject: [
         PrismaAutomationJobRepository,
         PrismaAutomationRuleRepository,
-        LeadAutomationActionExecutor,
+        AutomationActionDispatcher,
+        FinanceReminderCoordinator,
       ],
       useFactory: (
         jobs: AutomationJobRepository,
         rules: SchedulerRuleReader,
         actionPort: AutomationActionPort,
-      ) => new AutomationScheduler(jobs, rules, actionPort),
+        occurrenceSource: FinanceReminderCoordinator,
+      ) => new AutomationScheduler(jobs, rules, actionPort, occurrenceSource),
     },
     {
       provide: LeadAutomationCoordinator,
