@@ -9,7 +9,8 @@ export type ExpenseScopedReference = Readonly<{
   id: string;
   organizationId: string;
 }>;
-export type ExpenseNotFoundResource = "property" | "deal" | "expense";
+export type ExpenseNotFoundResource =
+  "property" | "deal" | "campaign" | "expense";
 export type ExpenseNotFound = Readonly<{
   kind: "not-found";
   resource: ExpenseNotFoundResource;
@@ -70,6 +71,11 @@ export interface ExpenseRepository {
   findDeal(
     organizationId: string,
     dealId: string,
+  ): Promise<ExpenseScopedReference | null>;
+  /** EF-401: resolves the campaign aggregate inside the organization. */
+  findCampaign(
+    organizationId: string,
+    campaignId: string,
   ): Promise<ExpenseScopedReference | null>;
   findExpense(
     organizationId: string,

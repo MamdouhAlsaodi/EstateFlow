@@ -30,6 +30,7 @@ export const createExpenseBody = {
     amountMinor: amountMinorProperty,
     currency: currencyProperty,
     campaignReference: optionalText(100),
+    campaignId: optionalUuid,
     propertyId: optionalUuid,
     dealId: optionalUuid,
   },

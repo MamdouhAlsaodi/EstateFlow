@@ -2,6 +2,7 @@ import { createApiClient } from "../../lib/api-client/index";
 import {
   normalizeOwnerAgingItemPage,
   normalizeOwnerAgingSummary,
+  normalizeOwnerCampaignPerformance,
   normalizeOwnerCashFlow,
   normalizeOwnerCommissionItemPage,
   normalizeOwnerCommissionSummary,
@@ -25,6 +26,8 @@ export type ReportPageInput = Readonly<{
 export type ReportDimensionInput = Readonly<{
   dealId?: string;
   propertyId?: string;
+  /** EF-401: the campaign dimension is now a real aggregate reference. */
+  campaignId?: string;
 }>;
 
 const UUID =
@@ -125,10 +128,13 @@ export function listOwnerExpenseItems(context: {
 }) {
   const organizationId = assertOrganization(context.organizationId);
   if (
-    context.dimension?.dealId !== undefined &&
-    context.dimension?.propertyId !== undefined
+    [
+      context.dimension?.dealId,
+      context.dimension?.propertyId,
+      context.dimension?.campaignId,
+    ].filter((value) => value !== undefined).length > 1
   )
-    throw new TypeError("Choose either dealId or propertyId");
+    throw new TypeError("Choose only one of dealId, propertyId, campaignId");
   return apiClient
     .request(
       `/organizations/${organizationId}/finance/reports/expenses${serializeQuery(
@@ -142,6 +148,11 @@ export function listOwnerExpenseItems(context: {
             "propertyId",
             context.dimension?.propertyId &&
               assertUuid("propertyId", context.dimension.propertyId),
+          ],
+          [
+            "campaignId",
+            context.dimension?.campaignId &&
+              assertUuid("campaignId", context.dimension.campaignId),
           ],
           [
             "from",
@@ -228,4 +239,30 @@ export function getOwnerPerformance(context: {
       )}`,
     )
     .then(normalizeOwnerPerformance);
+}
+
+/**
+ * EF-401 — revenue/costs/margin by campaign under first/last-touch
+ * attribution. Owner-only, read-only, strictly normalized.
+ */
+export function getOwnerCampaignPerformance(context: {
+  organizationId: string;
+  model: "FIRST_TOUCH" | "LAST_TOUCH";
+  window?: ReportWindowInput;
+}) {
+  const organizationId = assertOrganization(context.organizationId);
+  return apiClient
+    .request(
+      `/organizations/${organizationId}/finance/reports/campaigns/performance${serializeQuery(
+        [
+          ["model", context.model],
+          [
+            "from",
+            context.window?.from && assertInstant("from", context.window.from),
+          ],
+          ["to", context.window?.to && assertInstant("to", context.window.to)],
+        ],
+      )}`,
+    )
+    .then(normalizeOwnerCampaignPerformance);
 }

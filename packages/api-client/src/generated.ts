@@ -87,6 +87,7 @@ export type OwnerExpenseItemPage = {
     amountMinor: string;
     decidedAt: string;
     campaignReference: string;
+    campaignId: string;
     dealId: string;
     propertyId: string;
   }[];
@@ -164,6 +165,228 @@ export type OwnerPerformanceResponse = {
     paymentCount: number;
     expenseCount: number;
   }[];
+};
+
+export type OwnerCampaignPerformanceResponse = {
+  asOf: string;
+  model: "FIRST_TOUCH" | "LAST_TOUCH";
+  campaigns: {
+    keyId: string;
+    currency: string;
+    revenueMinor: string;
+    costsMinor: string;
+    marginMinor: string;
+    paymentCount: number;
+    expenseCount: number;
+  }[];
+};
+
+export type CampaignListPage = {
+  items: {
+    id: string;
+    name: string;
+    objective: string;
+    channel:
+      | "META"
+      | "GOOGLE"
+      | "SNAPCHAT"
+      | "TIKTOK"
+      | "X"
+      | "LINKEDIN"
+      | "PRINT"
+      | "OUTDOOR"
+      | "REFERRAL"
+      | "OTHER";
+    status: "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+    startsAt: string;
+    endsAt: string;
+    budgetPlannedMinor: string;
+    currency: string;
+    budgetActualMinor: string;
+    touchCount: number;
+    createdAt: string;
+  }[];
+  nextCursor?: string;
+};
+
+export type CampaignDetailResponse = {
+  campaign: {
+    id: string;
+    organizationId: string;
+    name: string;
+    objective: string;
+    channel:
+      | "META"
+      | "GOOGLE"
+      | "SNAPCHAT"
+      | "TIKTOK"
+      | "X"
+      | "LINKEDIN"
+      | "PRINT"
+      | "OUTDOOR"
+      | "REFERRAL"
+      | "OTHER";
+    status: "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+    startsAt: string;
+    endsAt: string;
+    budget: { amountMinor: string; currency: string };
+    utm: {
+      utmSource: string;
+      utmMedium: string;
+      utmCampaign: string;
+      utmContent: string;
+      utmTerm: string;
+    };
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  actualByCurrency: { currency: string; count: number; amountMinor: string }[];
+  transitions: {
+    id: string;
+    organizationId: string;
+    campaignId: string;
+    fromStatus: "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+    toStatus: "DRAFT" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+    reason: string;
+    actorId: string;
+    createdAt: string;
+  }[];
+  budgetCorrections: {
+    id: string;
+    organizationId: string;
+    campaignId: string;
+    previousMinor: string;
+    correctedMinor: string;
+    currency: string;
+    reason: string;
+    createdBy: string;
+    createdAt: string;
+  }[];
+};
+
+export type CampaignPerformanceEntryPage = {
+  items: {
+    id: string;
+    organizationId: string;
+    campaignId: string;
+    occurredAt: string;
+    impressions: number;
+    clicks: number;
+    leadsCount: number;
+    note: string;
+    createdBy: string;
+    createdAt: string;
+  }[];
+  nextCursor?: string;
+};
+
+export type LeadTouchPage = {
+  items: {
+    id: string;
+    organizationId: string;
+    leadId: string;
+    campaignId: string;
+    channel:
+      | "WEBSITE"
+      | "WHATSAPP"
+      | "PHONE_CALL"
+      | "WALK_IN"
+      | "REFERRAL"
+      | "META"
+      | "GOOGLE"
+      | "SNAPCHAT"
+      | "TIKTOK"
+      | "X"
+      | "OTHER";
+    source: string;
+    utm: {
+      utmSource: string;
+      utmMedium: string;
+      utmCampaign: string;
+      utmContent: string;
+      utmTerm: string;
+    };
+    occurredAt: string;
+    createdBy: string;
+    createdAt: string;
+  }[];
+  nextCursor?: string;
+};
+
+export type LeadAttributionResponse = {
+  attribution: {
+    firstTouch: {
+      id: string;
+      organizationId: string;
+      leadId: string;
+      campaignId: string;
+      channel:
+        | "WEBSITE"
+        | "WHATSAPP"
+        | "PHONE_CALL"
+        | "WALK_IN"
+        | "REFERRAL"
+        | "META"
+        | "GOOGLE"
+        | "SNAPCHAT"
+        | "TIKTOK"
+        | "X"
+        | "OTHER";
+      source: string;
+      utm: {
+        utmSource: string;
+        utmMedium: string;
+        utmCampaign: string;
+        utmContent: string;
+        utmTerm: string;
+      };
+      occurredAt: string;
+      createdBy: string;
+      createdAt: string;
+    };
+    lastTouch: {
+      id: string;
+      organizationId: string;
+      leadId: string;
+      campaignId: string;
+      channel:
+        | "WEBSITE"
+        | "WHATSAPP"
+        | "PHONE_CALL"
+        | "WALK_IN"
+        | "REFERRAL"
+        | "META"
+        | "GOOGLE"
+        | "SNAPCHAT"
+        | "TIKTOK"
+        | "X"
+        | "OTHER";
+      source: string;
+      utm: {
+        utmSource: string;
+        utmMedium: string;
+        utmCampaign: string;
+        utmContent: string;
+        utmTerm: string;
+      };
+      occurredAt: string;
+      createdBy: string;
+      createdAt: string;
+    };
+    firstCampaignId: string;
+    lastCampaignId: string;
+    override: {
+      id: string;
+      organizationId: string;
+      leadId: string;
+      previousCampaignId: string;
+      correctedCampaignId: string;
+      reason: string;
+      createdBy: string;
+      createdAt: string;
+    };
+  };
 };
 
 export type AutomationRuleDefinitionInput = {
@@ -500,6 +723,7 @@ export function createEstateFlowClient({
         amountMinor: string;
         currency: string;
         campaignReference?: string;
+        campaignId?: string;
         propertyId?: string;
         dealId?: string;
       },
@@ -562,6 +786,183 @@ export function createEstateFlowClient({
           body: JSON.stringify(body),
         },
       ),
+    createCampaign: (
+      params: { organizationId: string },
+      body: {
+        name: string;
+        objective: string;
+        channel:
+          | "META"
+          | "GOOGLE"
+          | "SNAPCHAT"
+          | "TIKTOK"
+          | "X"
+          | "LINKEDIN"
+          | "PRINT"
+          | "OUTDOOR"
+          | "REFERRAL"
+          | "OTHER";
+        startsAt: string;
+        endsAt: string;
+        budgetPlannedMinor: string;
+        currency: string;
+        utmSource?: string;
+        utmMedium?: string;
+        utmCampaign?: string;
+        utmContent?: string;
+        utmTerm?: string;
+      },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    listCampaigns: (params: {
+      organizationId: string;
+      status?: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.status !== undefined)
+        query.set("status", String(params.status));
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<CampaignListPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    findCampaign: (params: { organizationId: string; campaignId: string }) =>
+      requestJson<CampaignDetailResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}`,
+      ),
+    transitionCampaign: (
+      params: { organizationId: string; campaignId: string },
+      body: { toStatus: "ACTIVE" | "COMPLETED" | "CANCELLED"; reason?: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}/transition`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    correctCampaignBudget: (
+      params: { organizationId: string; campaignId: string },
+      body: { correctedMinor: string; reason: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}/budget-corrections`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    recordCampaignPerformance: (
+      params: { organizationId: string; campaignId: string },
+      body: {
+        occurredAt: string;
+        impressions: number;
+        clicks: number;
+        leadsCount: number;
+        note?: string;
+      },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}/performance-entries`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    listCampaignPerformanceEntries: (params: {
+      organizationId: string;
+      campaignId: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<CampaignPerformanceEntryPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}/performance-entries` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    recordLeadTouch: (
+      params: { organizationId: string; leadId: string },
+      body: {
+        channel:
+          | "WEBSITE"
+          | "WHATSAPP"
+          | "PHONE_CALL"
+          | "WALK_IN"
+          | "REFERRAL"
+          | "META"
+          | "GOOGLE"
+          | "SNAPCHAT"
+          | "TIKTOK"
+          | "X"
+          | "OTHER";
+        source?: string;
+        campaignId?: string;
+        utmSource?: string;
+        utmMedium?: string;
+        utmCampaign?: string;
+        utmContent?: string;
+        utmTerm?: string;
+        occurredAt?: string;
+      },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/leads/${encodeURIComponent(params.leadId)}/touches`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    listLeadTouches: (params: {
+      organizationId: string;
+      leadId: string;
+      cursor?: string;
+      limit?: number;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.cursor !== undefined)
+        query.set("cursor", String(params.cursor));
+      if (params.limit !== undefined) query.set("limit", String(params.limit));
+      return requestJson<LeadTouchPage>(
+        `organizations/${encodeURIComponent(params.organizationId)}/leads/${encodeURIComponent(params.leadId)}/touches` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    getLeadAttribution: (params: { organizationId: string; leadId: string }) =>
+      requestJson<LeadAttributionResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/leads/${encodeURIComponent(params.leadId)}/attribution`,
+      ),
+    correctLeadAttribution: (
+      params: { organizationId: string; leadId: string },
+      body: { correctedCampaignId?: string; reason: string },
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/leads/${encodeURIComponent(params.leadId)}/attribution-corrections`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
     getOwnerCashFlow: (params: {
       organizationId: string;
       from?: string;
@@ -603,6 +1004,7 @@ export function createEstateFlowClient({
       organizationId: string;
       dealId?: string;
       propertyId?: string;
+      campaignId?: string;
       from?: string;
       to?: string;
       cursor?: string;
@@ -613,6 +1015,8 @@ export function createEstateFlowClient({
         query.set("dealId", String(params.dealId));
       if (params.propertyId !== undefined)
         query.set("propertyId", String(params.propertyId));
+      if (params.campaignId !== undefined)
+        query.set("campaignId", String(params.campaignId));
       if (params.from !== undefined) query.set("from", String(params.from));
       if (params.to !== undefined) query.set("to", String(params.to));
       if (params.cursor !== undefined)
@@ -675,6 +1079,21 @@ export function createEstateFlowClient({
       if (params.to !== undefined) query.set("to", String(params.to));
       return requestJson<OwnerPerformanceResponse>(
         `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/performance` +
+          (query.toString() ? `?${query}` : ""),
+      );
+    },
+    getOwnerCampaignPerformance: (params: {
+      organizationId: string;
+      model?: string;
+      from?: string;
+      to?: string;
+    }) => {
+      const query = new URLSearchParams();
+      if (params.model !== undefined) query.set("model", String(params.model));
+      if (params.from !== undefined) query.set("from", String(params.from));
+      if (params.to !== undefined) query.set("to", String(params.to));
+      return requestJson<OwnerCampaignPerformanceResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/finance/reports/campaigns/performance` +
           (query.toString() ? `?${query}` : ""),
       );
     },

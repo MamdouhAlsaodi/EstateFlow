@@ -37,6 +37,8 @@ export const MAX_EVIDENCE_BYTE_SIZE = 100_000_000;
 
 export type ExpenseDimensions = Readonly<{
   campaignReference?: string;
+  /** EF-401: real composite tenant FK to the Campaign aggregate. */
+  campaignId?: string;
   propertyId?: string;
   dealId?: string;
 }>;
@@ -163,6 +165,7 @@ function byteSize(value: number): number {
 function dimensions(input: ExpenseDimensions): ExpenseDimensions {
   const result: {
     campaignReference?: string;
+    campaignId?: string;
     propertyId?: string;
     dealId?: string;
   } = {};
@@ -172,6 +175,8 @@ function dimensions(input: ExpenseDimensions): ExpenseDimensions {
       "campaign dimension",
       100,
     );
+  if (input.campaignId !== undefined)
+    result.campaignId = identifier(input.campaignId, "campaign dimension");
   if (input.propertyId !== undefined)
     result.propertyId = identifier(input.propertyId, "property dimension");
   if (input.dealId !== undefined)

@@ -2,6 +2,7 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { AgingBucket } from "../domain/receivable.js";
 import type {
   CashFlowSummary,
+  CampaignPerformanceQuery,
   MoneyTotalRow,
   ReportAgingItemRow,
   ReportAgingQuery,
@@ -60,6 +61,7 @@ type ExpenseSqlRow = {
   amountMinor: bigint;
   decidedAt: Date;
   campaignReference: string | null;
+  campaignId: string | null;
   dealId: string | null;
   propertyId: string | null;
 };
@@ -162,7 +164,7 @@ export class PrismaReportRepository implements ReportRepository {
     const rows = await this.prisma.$queryRaw<ExpenseSqlRow[]>`
         SELECT e."id" AS "expenseId", e."category", e."vendorReference",
           e."currency", e."amountMinor", e."decidedAt",
-          e."campaignReference", e."dealId", e."propertyId"
+          e."campaignReference", e."campaignId", e."dealId", e."propertyId"
         FROM "Expense" e
         WHERE e."organizationId" = ${query.organizationId}::uuid
           AND e."status" = 'APPROVED'
@@ -183,6 +185,7 @@ export class PrismaReportRepository implements ReportRepository {
           ...(row.campaignReference === null
             ? {}
             : { campaignReference: row.campaignReference }),
+          ...(row.campaignId === null ? {} : { campaignId: row.campaignId }),
           ...(row.dealId === null ? {} : { dealId: row.dealId }),
           ...(row.propertyId === null ? {} : { propertyId: row.propertyId }),
         }),
@@ -318,7 +321,7 @@ export class PrismaReportRepository implements ReportRepository {
         FROM "Expense"
         WHERE "organizationId" = ${organizationId}::uuid
           AND "status" = 'APPROVED' AND "dealId" IS NOT NULL
-          ${fragment(windowRange('e."decidedAt"', window))}
+          ${fragment(windowRange('"decidedAt"', window))}
         GROUP BY "dealId", "currency"`;
     return mergePerformance(revenue, costs);
   }
@@ -344,8 +347,67 @@ export class PrismaReportRepository implements ReportRepository {
         FROM "Expense"
         WHERE "organizationId" = ${organizationId}::uuid
           AND "status" = 'APPROVED' AND "propertyId" IS NOT NULL
-          ${fragment(windowRange('e."decidedAt"', window))}
+          ${fragment(windowRange('"decidedAt"', window))}
         GROUP BY "propertyId", "currency"`;
+    return mergePerformance(revenue, costs);
+  }
+
+  /**
+   * EF-401: revenue and approved costs per campaign. A deal attributes to the
+   * campaign of its lead's first (or last) campaign-bound touch, then the
+   * latest append-only attribution correction wins. Costs come from approved
+   * expenses bound to the campaign through the EF-234 composite tenant FK, so
+   * campaign totals reconcile to Finance Core.
+   */
+  async getCampaignPerformance(
+    query: CampaignPerformanceQuery,
+  ): Promise<readonly ReportPerformanceRow[]> {
+    const touchOrder =
+      query.model === "FIRST_TOUCH"
+        ? Prisma.sql`ORDER BY t."occurredAt" ASC, t."id" ASC`
+        : Prisma.sql`ORDER BY t."occurredAt" DESC, t."id" DESC`;
+    const revenue = await this.prisma.$queryRaw<DimensionMoneyRow[]>`
+        WITH attribution AS (
+          SELECT l."id" AS "leadId",
+            COALESCE(k."correctedCampaignId", a."campaignId") AS "campaignId"
+          FROM "Lead" l
+          LEFT JOIN LATERAL (
+            SELECT t."campaignId" FROM "LeadTouch" t
+            WHERE t."organizationId" = l."organizationId"
+              AND t."leadId" = l."id"
+              AND t."campaignId" IS NOT NULL
+              ${touchOrder}
+            LIMIT 1
+          ) a ON TRUE
+          LEFT JOIN LATERAL (
+            SELECT k."correctedCampaignId" FROM "LeadAttributionCorrection" k
+            WHERE k."organizationId" = l."organizationId"
+              AND k."leadId" = l."id"
+            ORDER BY k."createdAt" DESC, k."id" DESC
+            LIMIT 1
+          ) k ON TRUE
+          WHERE l."organizationId" = ${query.organizationId}::uuid
+        )
+        SELECT x."campaignId" AS "keyId", p."currency",
+          COUNT(*)::int AS "count", SUM(p."amountMinor")::text AS "total"
+        FROM "PaymentRecord" p
+        JOIN "Receivable" r
+          ON r."organizationId" = p."organizationId" AND r."id" = p."receivableId"
+        JOIN "Deal" d
+          ON d."organizationId" = r."organizationId" AND d."id" = r."dealId"
+        JOIN attribution x ON x."leadId" = d."leadId"
+        WHERE p."organizationId" = ${query.organizationId}::uuid
+          AND x."campaignId" IS NOT NULL
+          ${fragment(windowRange('p."recordedAt"', query.window))}
+        GROUP BY x."campaignId", p."currency"`;
+    const costs = await this.prisma.$queryRaw<DimensionMoneyRow[]>`
+        SELECT e."campaignId" AS "keyId", e."currency",
+          COUNT(*)::int AS "count", SUM(e."amountMinor")::text AS "total"
+        FROM "Expense" e
+        WHERE e."organizationId" = ${query.organizationId}::uuid
+          AND e."status" = 'APPROVED' AND e."campaignId" IS NOT NULL
+          ${fragment(windowRange('e."decidedAt"', query.window))}
+        GROUP BY e."campaignId", e."currency"`;
     return mergePerformance(revenue, costs);
   }
 }
@@ -426,6 +488,8 @@ function dimensionFilter(
     return Prisma.sql` AND ${Prisma.raw(`${table}."dealId"`)} = ${dimension.dealId}::uuid`;
   if (dimension.propertyId !== undefined)
     return Prisma.sql` AND ${Prisma.raw(`${table}."propertyId"`)} = ${dimension.propertyId}::uuid`;
+  if (dimension.campaignId !== undefined)
+    return Prisma.sql` AND ${Prisma.raw(`${table}."campaignId"`)} = ${dimension.campaignId}::uuid`;
   return Prisma.empty;
 }
 

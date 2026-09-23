@@ -79,13 +79,13 @@ EF-700 Pilot hardening and launch
 
 ## Phase 4 tasks
 
-| Task   | Deliverable                                     | Depends on     |
-| ------ | ----------------------------------------------- | -------------- |
-| EF-401 | Campaigns, budgets, UTM and attribution touches | EF-202, EF-234 |
-| EF-402 | Content calendar and approval/version workflow  | EF-201, EF-305 |
-| EF-403 | Listing-to-content safe draft generator         | EF-402         |
-| EF-404 | Manual/share-ready publishing adapter           | EF-403         |
-| EF-405 | Campaign performance, CPL, CAC and ROI          | EF-235, EF-401 |
+| Task   | Deliverable                                     | Depends on     | Status                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------ | ----------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EF-401 | Campaigns, budgets, UTM and attribution touches | EF-202, EF-234 | done — org-scoped campaign aggregate with audited lifecycle and append-only budget corrections, EF-234 expense campaign dimension bound via composite tenant FK, append-only Lead touches with first/last-touch attribution and audited overrides, manual performance entry, campaign dimension in owner reporting, and Arabic campaign list/detail (see `docs/handoffs/EF-401/implementation.md`) |
+| EF-402 | Content calendar and approval/version workflow  | EF-201, EF-305 | —                                                                                                                                                                                                                                                                                                                                                                                                  |
+| EF-403 | Listing-to-content safe draft generator         | EF-402         | —                                                                                                                                                                                                                                                                                                                                                                                                  |
+| EF-404 | Manual/share-ready publishing adapter           | EF-403         | —                                                                                                                                                                                                                                                                                                                                                                                                  |
+| EF-405 | Campaign performance, CPL, CAC and ROI          | EF-235, EF-401 | —                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 ## Later tasks
 

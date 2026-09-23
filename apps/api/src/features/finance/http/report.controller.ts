@@ -25,6 +25,7 @@ import { ReportApplication } from "../application/report-application.js";
 import type { AgingBucket } from "../domain/receivable.js";
 import {
   ReportAgingItemsQueryDto,
+  ReportCampaignPerformanceQueryDto,
   ReportCommissionItemsQueryDto,
   ReportItemsQueryDto,
   ReportWindowQueryDto,
@@ -36,6 +37,7 @@ import {
   cashFlowResponse,
   commissionItemsResponse,
   commissionSummaryResponse,
+  campaignPerformanceResponse,
   expensesResponse,
   paymentsResponse,
   performanceResponse,
@@ -120,6 +122,7 @@ export class ReportController {
   @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
   @ApiQuery({ ...reportQueryParameters.dealDimension()[0] })
   @ApiQuery({ ...reportQueryParameters.dealDimension()[1] })
+  @ApiQuery({ ...reportQueryParameters.dealDimension()[2] })
   @ApiQuery({ ...reportQueryParameters.window()[0] })
   @ApiQuery({ ...reportQueryParameters.window()[1] })
   @ApiQuery({ ...reportQueryParameters.page()[0] })
@@ -303,6 +306,39 @@ export class ReportController {
     );
   }
 
+  @Get("organizations/:organizationId/finance/reports/campaigns/performance")
+  @ApiOperation({ operationId: "ReportController_getCampaignPerformance" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiQuery({
+    name: "model",
+    required: true,
+    schema: { type: "string", enum: ["FIRST_TOUCH", "LAST_TOUCH"] },
+  })
+  @ApiQuery({ ...reportQueryParameters.window()[0] })
+  @ApiQuery({ ...reportQueryParameters.window()[1] })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: campaignPerformanceResponse } },
+  })
+  @ReportErrors()
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async getCampaignPerformance(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Query() query: ReportCampaignPerformanceQueryDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(() =>
+      this.reports.getCampaignPerformance({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        model: query.model as "FIRST_TOUCH" | "LAST_TOUCH",
+        window: reportWindow(query),
+      }),
+    );
+  }
+
   private async execute(operation: () => Promise<unknown>): Promise<unknown> {
     try {
       return reportResponse(mapReportResult(await operation()));
@@ -329,7 +365,7 @@ function reportWindow(query: ReportWindowQueryDto): {
 
 function reportQueryParts(query: ReportItemsQueryDto): {
   window: { from?: Date; to?: Date };
-  dimension: { dealId?: string; propertyId?: string };
+  dimension: { dealId?: string; propertyId?: string; campaignId?: string };
   page: { cursor?: string; limit?: number };
 } {
   return {

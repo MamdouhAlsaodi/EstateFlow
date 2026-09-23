@@ -101,6 +101,7 @@ const expenseItem = {
     amountMinor: amountMinorProperty,
     decidedAt: utcInstantProperty,
     campaignReference: { type: "string", minLength: 1, maxLength: 100 },
+    campaignId: uuidParameter,
     dealId: uuidParameter,
     propertyId: uuidParameter,
   },
@@ -313,6 +314,17 @@ export const performanceResponse = {
   },
 };
 
+export const campaignPerformanceResponse = {
+  type: "object",
+  required: ["asOf", "model", "campaigns"],
+  additionalProperties: false,
+  properties: {
+    asOf: utcInstantProperty,
+    model: { type: "string", enum: ["FIRST_TOUCH", "LAST_TOUCH"] },
+    campaigns: { type: "array", items: performanceRow },
+  },
+};
+
 export const reportErrorResponses = () => [
   { status: 400, description: "Invalid report query" },
   { status: 401, description: "Missing or invalid session" },
@@ -325,5 +337,6 @@ export const reportQueryParameters = {
   dealDimension: () => [
     { name: "dealId", required: false, schema: uuidParameter },
     { name: "propertyId", required: false, schema: uuidParameter },
+    { name: "campaignId", required: false, schema: uuidParameter },
   ],
 };
