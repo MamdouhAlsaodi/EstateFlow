@@ -266,6 +266,19 @@ export function ContentDetailView({
                   hash: {item.contentHash}
                 </span>
               )}
+              {item.generatedTemplateId !== undefined &&
+                item.sourcePropertyId !== undefined && (
+                  <span
+                    style={{
+                      color: "var(--ef-ink-muted)",
+                      direction: "ltr",
+                      display: "block",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {`generated: ${item.generatedTemplateId} v${item.generatedTemplateVersion ?? "?"} ← property ${item.sourcePropertyId} v${item.sourcePropertyVersion ?? "?"}`}
+                  </span>
+                )}
             </div>
           </section>
 

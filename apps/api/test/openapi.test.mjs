@@ -52,6 +52,8 @@ test("buildOpenApiDocument includes the composed auth and health paths", async (
         "/organizations/{organizationId}/campaigns/{campaignId}/transition",
         "/organizations/{organizationId}/content",
         "/organizations/{organizationId}/content/calendar",
+        "/organizations/{organizationId}/content/generate",
+        "/organizations/{organizationId}/content/generation-templates",
         "/organizations/{organizationId}/content/review-queue",
         "/organizations/{organizationId}/content/{contentItemId}",
         "/organizations/{organizationId}/content/{contentItemId}/edit",

@@ -150,6 +150,15 @@ export interface ContentRepository {
     revision: ContentItem;
     source: ContentItem;
   }): Promise<ContentItem | null>;
+  /**
+   * EF-403 generation: inserts the generated DRAFT (with its provenance
+   * stamp) together with the audited IDEA → DRAFT transition in one
+   * transaction; null when the tenant/property link vanished mid-flight.
+   */
+  createGeneratedDraft(input: {
+    item: ContentItem;
+    transition: ContentTransitionRecord;
+  }): Promise<ContentItem | null>;
 }
 
 export type ContentFailureKindRef = ContentFailureKind;

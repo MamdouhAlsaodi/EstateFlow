@@ -12,6 +12,7 @@ import {
 } from "./content-contract";
 import { contentChannelLabels, contentStatusLabels } from "./content-labels";
 import { createContentItem, fetchContentItems } from "./content-api";
+import { ContentGenerationPanel } from "./content-generation-panel";
 import styles from "./content-views.module.css";
 
 const EMPTY_FORM = {
@@ -231,6 +232,8 @@ export function ContentListView() {
           </button>
         </div>
       </section>
+
+      <ContentGenerationPanel organizationId={organizationId} />
     </div>
   );
 }

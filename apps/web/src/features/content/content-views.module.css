@@ -150,6 +150,64 @@
   gap: 0.25rem;
 }
 
+/* EF-403 — generation panel, placeholder highlighting, provenance stamp. */
+
+.generationControls {
+  display: grid;
+  gap: var(--ef-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  margin-top: var(--ef-space-3);
+}
+
+.generationControls label {
+  display: grid;
+  font-size: 0.88rem;
+  gap: 0.25rem;
+}
+
+.draftPreview {
+  background: var(--ef-surface);
+  border: 1px solid var(--ef-line);
+  border-radius: var(--ef-radius);
+  display: grid;
+  gap: var(--ef-space-3);
+  margin-top: var(--ef-space-4);
+  padding: var(--ef-space-4);
+  white-space: pre-wrap;
+}
+
+.placeholderMark {
+  background: rgba(190, 130, 20, 0.22);
+  border-radius: 0.3rem;
+  color: #8a5a06;
+  direction: ltr;
+  display: inline-block;
+  font-weight: 700;
+  padding: 0 0.3rem;
+  unicode-bidi: isolate;
+}
+
+.slotChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.slotChip {
+  background: rgba(190, 130, 20, 0.14);
+  border-radius: 999px;
+  color: #8a5a06;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.7rem;
+}
+
+.provenanceLine {
+  color: var(--ef-ink-muted);
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
 @media (max-width: 640px) {
   .grid {
     grid-template-columns: 1fr;

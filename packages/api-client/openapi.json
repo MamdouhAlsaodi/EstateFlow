@@ -6914,6 +6914,24 @@
                           "minLength": 64,
                           "maxLength": 64
                         },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
                         "createdBy": { "type": "string", "format": "uuid" },
                         "createdAt": {
                           "type": "string",
@@ -7272,6 +7290,293 @@
         "tags": ["Content"]
       }
     },
+    "/organizations/{organizationId}/content/generation-templates": {
+      "get": {
+        "operationId": "ContentController_generationTemplates",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "templateId",
+                          "channel",
+                          "templateVersion",
+                          "titlePattern",
+                          "bodyPattern",
+                          "factSlots"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "templateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100,
+                            "pattern": "\\S"
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "templateVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "titlePattern": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "bodyPattern": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 5000
+                          },
+                          "factSlots": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": ["PRICE", "AREA", "BEDROOMS", "BATHROOMS"]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/generate": {
+      "post": {
+        "operationId": "ContentController_generate",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["propertyId", "channel"],
+                "additionalProperties": false,
+                "description": "Deterministic draft generation from the allowlisted property projection; missing facts render as visible placeholders and the result enters the normal workflow as a DRAFT.",
+                "properties": {
+                  "propertyId": { "type": "string", "format": "uuid" },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "INSTAGRAM",
+                      "X",
+                      "SNAPCHAT",
+                      "TIKTOK",
+                      "LINKEDIN",
+                      "FACEBOOK",
+                      "WHATSAPP",
+                      "EMAIL",
+                      "WEBSITE",
+                      "OTHER"
+                    ]
+                  },
+                  "templateVersion": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "item",
+                    "placeholders",
+                    "templateId",
+                    "templateVersion"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "item": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "variantNumber",
+                        "title",
+                        "body",
+                        "channel",
+                        "status",
+                        "createdBy",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "rootContentId": { "type": "string", "format": "uuid" },
+                        "variantOfId": { "type": "string", "format": "uuid" },
+                        "variantNumber": { "type": "integer", "minimum": 1 },
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "body": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 5000
+                        },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "createdBy": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    },
+                    "placeholders": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": ["PRICE", "AREA", "BEDROOMS", "BATHROOMS"]
+                      }
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100,
+                      "pattern": "\\S"
+                    },
+                    "templateVersion": { "type": "integer", "minimum": 1 }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
     "/organizations/{organizationId}/content/{contentItemId}": {
       "get": {
         "operationId": "ContentController_find",
@@ -7370,6 +7675,24 @@
                           "type": "string",
                           "minLength": 64,
                           "maxLength": 64
+                        },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
                         },
                         "createdBy": { "type": "string", "format": "uuid" },
                         "createdAt": {
@@ -7543,6 +7866,24 @@
                             "minLength": 64,
                             "maxLength": 64
                           },
+                          "sourcePropertyId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "sourcePropertyVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "generatedTemplateId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 100,
+                            "pattern": "\\S"
+                          },
+                          "generatedTemplateVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
                           "createdBy": { "type": "string", "format": "uuid" },
                           "createdAt": {
                             "type": "string",
@@ -7712,6 +8053,24 @@
                           "type": "string",
                           "minLength": 64,
                           "maxLength": 64
+                        },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
                         },
                         "createdBy": { "type": "string", "format": "uuid" },
                         "createdAt": {
@@ -7887,6 +8246,24 @@
                           "type": "string",
                           "minLength": 64,
                           "maxLength": 64
+                        },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
                         },
                         "createdBy": { "type": "string", "format": "uuid" },
                         "createdAt": {
@@ -8087,6 +8464,24 @@
                           "type": "string",
                           "minLength": 64,
                           "maxLength": 64
+                        },
+                        "sourcePropertyId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "sourcePropertyVersion": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "generatedTemplateId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 100,
+                          "pattern": "\\S"
+                        },
+                        "generatedTemplateVersion": {
+                          "type": "integer",
+                          "minimum": 1
                         },
                         "createdBy": { "type": "string", "format": "uuid" },
                         "createdAt": {

@@ -44,6 +44,39 @@ export const CONTENT_FAILURE_KINDS = [
 ] as const;
 export type ContentFailureKind = (typeof CONTENT_FAILURE_KINDS)[number];
 
+/**
+ * EF-403 — missing-fact slots: facts the allowlisted property projection does
+ * not carry. They can never be invented, so they render as visible
+ * `[PRICE]`-style placeholders until a human fills them in.
+ */
+export const GENERATION_SLOTS = [
+  "PRICE",
+  "AREA",
+  "BEDROOMS",
+  "BATHROOMS",
+] as const;
+export type GenerationSlot = (typeof GENERATION_SLOTS)[number];
+
+export type GenerationTemplateDescriptor = Readonly<{
+  templateId: string;
+  channel: ContentChannel;
+  templateVersion: number;
+  titlePattern: string;
+  bodyPattern: string;
+  factSlots: readonly GenerationSlot[];
+}>;
+
+export type GenerationTemplatesResponse = Readonly<{
+  items: readonly GenerationTemplateDescriptor[];
+}>;
+
+export type GeneratedDraft = Readonly<{
+  item: ContentRecord;
+  placeholders: readonly GenerationSlot[];
+  templateId: string;
+  templateVersion: number;
+}>;
+
 export type ContentSummary = Readonly<{
   id: string;
   campaignId?: string;
@@ -77,6 +110,11 @@ export type ContentRecord = Readonly<{
   scheduledFor?: string;
   approvedVersion?: number;
   contentHash?: string;
+  /** EF-403 generation provenance: present together or absent together. */
+  sourcePropertyId?: string;
+  sourcePropertyVersion?: number;
+  generatedTemplateId?: string;
+  generatedTemplateVersion?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -214,6 +252,10 @@ const ITEM_FIELDS = [
   "organizationId",
   "body",
   "contentHash",
+  "sourcePropertyId",
+  "sourcePropertyVersion",
+  "generatedTemplateId",
+  "generatedTemplateVersion",
   "createdBy",
   "updatedAt",
 ] as const;
@@ -244,6 +286,31 @@ function normalizeItemRecord(value: unknown): ContentRecord {
     ...(row.contentHash === undefined
       ? {}
       : { contentHash: hash(row.contentHash, "contentHash") }),
+    ...optionalUuid(row.sourcePropertyId, "sourcePropertyId"),
+    ...(row.sourcePropertyVersion === undefined
+      ? {}
+      : {
+          sourcePropertyVersion: positiveCount(
+            row.sourcePropertyVersion,
+            "sourcePropertyVersion",
+          ),
+        }),
+    ...(row.generatedTemplateId === undefined
+      ? {}
+      : {
+          generatedTemplateId: text(
+            row.generatedTemplateId,
+            "generatedTemplateId",
+          ),
+        }),
+    ...(row.generatedTemplateVersion === undefined
+      ? {}
+      : {
+          generatedTemplateVersion: positiveCount(
+            row.generatedTemplateVersion,
+            "generatedTemplateVersion",
+          ),
+        }),
     createdBy: uuid(row.createdBy, "content actor"),
     createdAt: utc(row.createdAt, "content createdAt"),
     updatedAt: utc(row.updatedAt, "content updatedAt"),
@@ -393,4 +460,102 @@ export function normalizeCalendar(value: unknown): CalendarResponse {
       };
     }),
   };
+}
+
+/**
+ * EF-403 — strict normalizers for the generation endpoints. Same closed-world
+ * philosophy as the rest of the contract: unknown fields and malformed values
+ * are rejected before they can reach a view.
+ */
+
+const TEMPLATE_PATTERN_MAX = 5000;
+
+export function normalizeGenerationTemplates(
+  value: unknown,
+): GenerationTemplatesResponse {
+  const body = record(value, "generation templates");
+  only(body, ["items"]);
+  if (!Array.isArray(body.items))
+    throw new TypeError("Invalid generation templates");
+  return {
+    items: body.items.map((entry) => {
+      const row = record(entry, "generation template");
+      only(row, [
+        "templateId",
+        "channel",
+        "templateVersion",
+        "titlePattern",
+        "bodyPattern",
+        "factSlots",
+      ]);
+      return {
+        templateId: text(row.templateId, "template id"),
+        channel: inEnum(row.channel, CONTENT_CHANNELS, "content channel"),
+        templateVersion: positiveCount(row.templateVersion, "templateVersion"),
+        titlePattern: boundedText(
+          row.titlePattern,
+          "titlePattern",
+          TEMPLATE_PATTERN_MAX,
+        ),
+        bodyPattern: boundedText(
+          row.bodyPattern,
+          "bodyPattern",
+          TEMPLATE_PATTERN_MAX,
+        ),
+        factSlots: normalizeSlots(row.factSlots),
+      };
+    }),
+  };
+}
+
+function boundedText(value: unknown, what: string, max: number): string {
+  const canonical = text(value, what);
+  if (canonical.length > max) throw new TypeError(`Invalid ${what}`);
+  return canonical;
+}
+
+function normalizeSlots(value: unknown): readonly GenerationSlot[] {
+  if (!Array.isArray(value)) throw new TypeError("Invalid factSlots");
+  return value.map((slot) => inEnum(slot, GENERATION_SLOTS, "fact slot"));
+}
+
+export function normalizeGeneratedDraft(value: unknown): GeneratedDraft {
+  const body = record(value, "generated draft");
+  only(body, ["item", "placeholders", "templateId", "templateVersion"]);
+  const placeholders = normalizeSlots(body.placeholders);
+  return {
+    item: normalizeItemRecord(body.item),
+    placeholders,
+    templateId: text(body.templateId, "template id"),
+    templateVersion: positiveCount(body.templateVersion, "templateVersion"),
+  };
+}
+
+export type PlaceholderSegment = Readonly<{
+  text: string;
+  placeholder: boolean;
+}>;
+
+const PLACEHOLDER_TOKEN = /\[[A-Z][A-Z_]*\]/g;
+
+/**
+ * Splits copy into plain and placeholder segments so the UI can highlight
+ * every visible `[PRICE]`-style marker. Pure and deterministic.
+ */
+export function splitPlaceholderSegments(
+  value: string,
+): readonly PlaceholderSegment[] {
+  if (typeof value !== "string") throw new TypeError("Invalid text");
+  const segments: PlaceholderSegment[] = [];
+  let cursor = 0;
+  for (const match of value.matchAll(PLACEHOLDER_TOKEN)) {
+    const start = match.index ?? 0;
+    if (start > cursor)
+      segments.push({ text: value.slice(cursor, start), placeholder: false });
+    segments.push({ text: match[0], placeholder: true });
+    cursor = start + match[0].length;
+  }
+  if (cursor < value.length)
+    segments.push({ text: value.slice(cursor), placeholder: false });
+  return segments;
 }

@@ -487,10 +487,11 @@ model Property {
   version        Int            @default(1)
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime       @updatedAt @db.Timestamptz(6)
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  listings       Listing[]
-  deals          Deal[]
-  expenses       Expense[]
+  organization       Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  listings           Listing[]
+  deals              Deal[]
+  expenses           Expense[]
+  sourceContentItems ContentItem[]  @relation("ContentSourceProperty")
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -973,13 +974,18 @@ model ContentItem {
   channel         ContentChannel
   status          ContentStatus       @default(IDEA)
   scheduledFor    DateTime?           @db.Timestamptz(6)
-  approvedVersion Int?
-  contentHash     String?             @db.Char(64)
-  createdBy       String              @db.Uuid
-  createdAt       DateTime            @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime            @updatedAt @db.Timestamptz(6)
+  approvedVersion          Int?
+  contentHash              String?             @db.Char(64)
+  sourcePropertyId         String?             @db.Uuid
+  sourcePropertyVersion    Int?
+  generatedTemplateId      String?             @db.VarChar(100)
+  generatedTemplateVersion Int?
+  createdBy                String              @db.Uuid
+  createdAt                DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime            @updatedAt @db.Timestamptz(6)
   organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   campaign        Campaign?           @relation(fields: [campaignId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  sourceProperty  Property?           @relation("ContentSourceProperty", fields: [sourcePropertyId, organizationId], references: [id, organizationId], onDelete: Restrict)
   rootContent     ContentItem?        @relation("ContentVariantRoot", fields: [rootContentId, organizationId], references: [id, organizationId], onDelete: Restrict)
   rootVariants    ContentItem[]       @relation("ContentVariantRoot")
   parentVariant   ContentItem?        @relation("ContentVariantParent", fields: [variantOfId, organizationId], references: [id, organizationId], onDelete: Restrict)
@@ -992,6 +998,7 @@ model ContentItem {
   @@index([organizationId, rootContentId, variantNumber])
   @@index([organizationId, scheduledFor])
   @@index([organizationId, campaignId])
+  @@index([organizationId, sourcePropertyId])
 }
 
 model ContentTransition {

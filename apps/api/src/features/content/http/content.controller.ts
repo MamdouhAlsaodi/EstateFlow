@@ -33,10 +33,15 @@ import type {
   ContentActor,
   TransitionContentCommand,
 } from "../application/content-application.js";
+import { GenerationApplication } from "../application/generation-application.js";
 import {
   ContentStateError,
   ContentValidationError,
 } from "../domain/content.js";
+import {
+  GenerationPolicyError,
+  GenerationValidationError,
+} from "../domain/generation-template.js";
 import type {
   ContentChannel,
   ContentFailureKind,
@@ -48,6 +53,7 @@ import {
   ContentTransitionDto,
   CreateContentDto,
   EditContentDto,
+  GenerateContentDto,
   contentResponse,
 } from "./content.dto.js";
 import {
@@ -61,9 +67,12 @@ import {
   contentRevisionResponse,
   contentTransitionBody,
   contentTransitionedResponse,
+  contentGeneratedResponse,
   createContentBody,
   cursorParameter,
   editContentBody,
+  generateContentBody,
+  generationTemplatesResponse,
   limitParameter,
   reviewQueueResponse,
   statusParameter,
@@ -89,7 +98,10 @@ const unsafeMutationGuards = [
 @ApiTags("Content")
 @Controller()
 export class ContentController {
-  constructor(private readonly content: ContentApplication) {}
+  constructor(
+    private readonly content: ContentApplication,
+    private readonly generation: GenerationApplication,
+  ) {}
 
   @Post("organizations/:organizationId/content")
   @ApiOperation({ operationId: "ContentController_create" })
@@ -215,6 +227,69 @@ export class ContentController {
       });
       return Array.isArray(entries) ? { items: entries } : entries;
     });
+  }
+
+  @Get("organizations/:organizationId/content/generation-templates")
+  @ApiOperation({ operationId: "ContentController_generationTemplates" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: {
+      "application/json": { schema: generationTemplatesResponse },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async generationTemplates(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const templates = await this.generation.listTemplates({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+      });
+      return Array.isArray(templates) ? { items: templates } : templates;
+    });
+  }
+
+  @Post("organizations/:organizationId/content/generate")
+  @ApiOperation({ operationId: "ContentController_generate" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiBody({ schema: generateContentBody })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    content: { "application/json": { schema: contentGeneratedResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @ApiResponse({ status: HttpStatus.CONFLICT })
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(...unsafeMutationGuards)
+  async generate(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Body() input: GenerateContentDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(() =>
+      this.generation.generateContentDraft({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+        contentItemId: randomUUID(),
+        propertyId: input.propertyId,
+        channel: input.channel as ContentChannel,
+        ...(input.templateVersion === undefined
+          ? {}
+          : { templateVersion: input.templateVersion }),
+        createdAt: new Date(),
+      }),
+    );
   }
 
   @Get("organizations/:organizationId/content/:contentItemId")
@@ -367,6 +442,8 @@ export class ContentController {
       if (
         error instanceof ContentValidationError ||
         error instanceof ContentStateError ||
+        error instanceof GenerationValidationError ||
+        error instanceof GenerationPolicyError ||
         error instanceof RangeError
       )
         throw new BadRequestException();

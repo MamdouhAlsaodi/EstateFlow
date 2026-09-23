@@ -89,6 +89,15 @@ const contentItemSchema = {
     scheduledFor: utcInstantProperty,
     approvedVersion: { type: "integer", minimum: 1 },
     contentHash: { type: "string", minLength: 64, maxLength: 64 },
+    sourcePropertyId: optionalUuid,
+    sourcePropertyVersion: { type: "integer", minimum: 1 },
+    generatedTemplateId: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+      pattern: "\\S",
+    },
+    generatedTemplateVersion: { type: "integer", minimum: 1 },
     createdBy: uuidParameter,
     createdAt: utcInstantProperty,
     updatedAt: utcInstantProperty,
@@ -285,6 +294,76 @@ export const contentTransitionBody = {
     reason: optionalText(500),
     failureKind: contentFailureKindSchema,
     scheduledFor: utcInstantProperty,
+  },
+};
+
+const generationSlotName = {
+  type: "string",
+  enum: ["PRICE", "AREA", "BEDROOMS", "BATHROOMS"],
+};
+
+const generationTemplateSchema = {
+  type: "object",
+  required: [
+    "templateId",
+    "channel",
+    "templateVersion",
+    "titlePattern",
+    "bodyPattern",
+    "factSlots",
+  ],
+  additionalProperties: false,
+  properties: {
+    templateId: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+      pattern: "\\S",
+    },
+    channel: contentChannelSchema,
+    templateVersion: { type: "integer", minimum: 1 },
+    titlePattern: { type: "string", minLength: 1, maxLength: 500 },
+    bodyPattern: { type: "string", minLength: 1, maxLength: 5000 },
+    factSlots: { type: "array", items: generationSlotName },
+  },
+};
+
+export const generationTemplatesResponse = {
+  type: "object",
+  required: ["items"],
+  additionalProperties: false,
+  properties: {
+    items: { type: "array", items: generationTemplateSchema },
+  },
+};
+
+export const contentGeneratedResponse = {
+  type: "object",
+  required: ["item", "placeholders", "templateId", "templateVersion"],
+  additionalProperties: false,
+  properties: {
+    item: contentItemSchema,
+    placeholders: { type: "array", items: generationSlotName },
+    templateId: {
+      type: "string",
+      minLength: 1,
+      maxLength: 100,
+      pattern: "\\S",
+    },
+    templateVersion: { type: "integer", minimum: 1 },
+  },
+};
+
+export const generateContentBody = {
+  type: "object",
+  required: ["propertyId", "channel"],
+  additionalProperties: false,
+  description:
+    "Deterministic draft generation from the allowlisted property projection; missing facts render as visible placeholders and the result enters the normal workflow as a DRAFT.",
+  properties: {
+    propertyId: optionalUuid,
+    channel: contentChannelSchema,
+    templateVersion: { type: "integer", minimum: 1, maximum: 1000 },
   },
 };
 
