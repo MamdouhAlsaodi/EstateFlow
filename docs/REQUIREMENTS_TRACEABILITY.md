@@ -43,15 +43,15 @@ Status legend:
 
 ## Automation and reminders
 
-| Requirement                                        | Tasks          | Evidence                                                                                                                                      | Target    |
-| -------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| AUTO-01 Trigger → Conditions → Actions             | EF-301         | rule parsing/policy tests                                                                                                                     | MVP       |
-| AUTO-02 durable jobs/idempotency/retry/dead letter | EF-302, EF-303 | durable scheduler, API-owned tick, thin worker loop, capped backoff, graceful-stop unit tests, and PostgreSQL replay proof                    | MVP       |
-| AUTO-03 viewing reminders 24h/1h                   | EF-502         | fake-clock/timezone/reschedule tests                                                                                                          | MVP       |
-| AUTO-04 Lead inactivity/escalation                 | EF-303         | deterministic SLA/inactivity occurrence detection, API executors, worker-loop tests, and PostgreSQL Lead breach execution proof               | MVP       |
-| AUTO-05 receivable/commission reminders            | EF-304         | deterministic due/overdue/commission occurrence/reset tests, durable notification replay proof, tenant isolation, and worker-path integration | MVP       |
-| AUTO-06 post-viewing follow-up and suggested stage | EF-502         | viewing-outcome integration test                                                                                                              | MVP       |
-| AUTO-07 outbound lifecycle and audit               | EF-305, EF-306 | approval/send/fail/audit tests                                                                                                                | MVP/PILOT |
+| Requirement                                        | Tasks          | Evidence                                                                                                                                                                                                                             | Target    |
+| -------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- |
+| AUTO-01 Trigger → Conditions → Actions             | EF-301         | rule parsing/policy tests                                                                                                                                                                                                            | MVP       |
+| AUTO-02 durable jobs/idempotency/retry/dead letter | EF-302, EF-303 | durable scheduler, API-owned tick, thin worker loop, capped backoff, graceful-stop unit tests, and PostgreSQL replay proof                                                                                                           | MVP       |
+| AUTO-03 viewing reminders 24h/1h                   | EF-502         | fake-clock/timezone/reschedule tests                                                                                                                                                                                                 | MVP       |
+| AUTO-04 Lead inactivity/escalation                 | EF-303         | deterministic SLA/inactivity occurrence detection, API executors, worker-loop tests, and PostgreSQL Lead breach execution proof                                                                                                      | MVP       |
+| AUTO-05 receivable/commission reminders            | EF-304         | deterministic due/overdue/commission occurrence/reset tests, durable notification replay proof, tenant isolation, and worker-path integration                                                                                        | MVP       |
+| AUTO-06 post-viewing follow-up and suggested stage | EF-502         | viewing-outcome integration test                                                                                                                                                                                                     | MVP       |
+| AUTO-07 outbound lifecycle and audit               | EF-305, EF-306 | EF-305: immutable bilingual template versions, Owner/Manager approval gate, audited approve/deny/send/suppression transitions, provider port, quiet-hours/consent policy, and worker replay proof; EF-306 owns broader automation UI | MVP/PILOT |
 
 ### EF-301/302 automation-library traceability
 
@@ -76,18 +76,18 @@ Status legend:
 
 ## Listings, geo, viewings, contracts, admin and i18n
 
-| Requirement group                                 | Tasks          | Evidence                                   | Target                      |
-| ------------------------------------------------- | -------------- | ------------------------------------------ | --------------------------- |
-| Listing CRUD/status/moderation                    | EF-201, EF-620 | authorization/state/API/E2E                | MVP                         |
-| Image upload validation                           | EF-201, EF-601 | MIME/signature/size/storage tests          | MVP/PILOT                   |
-| Async video/media processing                      | EF-601         | queue/retry/non-blocking HTTP tests        | LATER unless pilot requires |
-| Radius/polygon/filter/map discovery               | EF-510         | PostGIS correctness/explain/P95            | MVP                         |
-| Database-enforced viewing conflicts               | EF-501         | parallel booking race test                 | MVP                         |
-| Viewing reminders/outcomes                        | EF-502         | schedule/cancel/outcome tests              | MVP                         |
-| Simplified contract generation/signing/hash/audit | EF-610         | snapshot/hash/order/immutability tests     | PILOT                       |
-| Admin broker/listing/job moderation               | EF-620         | privileged-transition tests                | MVP/PILOT                   |
-| Real-time/in-app notification and fallback        | EF-305         | reconnect/delivery/failure tests           | MVP/PILOT                   |
-| Arabic/English and RTL/LTR                        | EF-630         | missing-key/visual/accessibility/PDF tests | MVP/PILOT                   |
+| Requirement group                                 | Tasks          | Evidence                                                                                                                                | Target                      |
+| ------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Listing CRUD/status/moderation                    | EF-201, EF-620 | authorization/state/API/E2E                                                                                                             | MVP                         |
+| Image upload validation                           | EF-201, EF-601 | MIME/signature/size/storage tests                                                                                                       | MVP/PILOT                   |
+| Async video/media processing                      | EF-601         | queue/retry/non-blocking HTTP tests                                                                                                     | LATER unless pilot requires |
+| Radius/polygon/filter/map discovery               | EF-510         | PostGIS correctness/explain/P95                                                                                                         | MVP                         |
+| Database-enforced viewing conflicts               | EF-501         | parallel booking race test                                                                                                              | MVP                         |
+| Viewing reminders/outcomes                        | EF-502         | schedule/cancel/outcome tests                                                                                                           | MVP                         |
+| Simplified contract generation/signing/hash/audit | EF-610         | snapshot/hash/order/immutability tests                                                                                                  | PILOT                       |
+| Admin broker/listing/job moderation               | EF-620         | privileged-transition tests                                                                                                             | MVP/PILOT                   |
+| Real-time/in-app notification and fallback        | EF-305         | durable in-app fake delivery, template rendering, suppression reason persistence, provider-port boundary, and worker replay integration | MVP/PILOT                   |
+| Arabic/English and RTL/LTR                        | EF-630         | missing-key/visual/accessibility/PDF tests                                                                                              | MVP/PILOT                   |
 
 ## Non-functional requirements
 

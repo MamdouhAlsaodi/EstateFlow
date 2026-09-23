@@ -643,6 +643,97 @@ const reportPerformanceRowSchema = {
   },
 };
 
+const notificationOperations = new Map([
+  [
+    "get /organizations/{organizationId}/notifications/templates",
+    {
+      operationId: "NotificationController_listTemplates",
+      clientMethod: "listNotificationTemplates",
+      body: null,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/templates",
+    {
+      operationId: "NotificationController_createTemplate",
+      clientMethod: "createNotificationTemplate",
+      body: "json",
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/templates/{templateId}/revisions",
+    {
+      operationId: "NotificationController_reviseTemplate",
+      clientMethod: "reviseNotificationTemplate",
+      body: "json",
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/templates/{templateId}/approve",
+    {
+      operationId: "NotificationController_approveTemplate",
+      clientMethod: "approveNotificationTemplate",
+      body: null,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/notifications/approvals",
+    {
+      operationId: "NotificationController_listApprovals",
+      clientMethod: "listNotificationApprovals",
+      body: null,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/send-requests",
+    {
+      operationId: "NotificationController_requestSend",
+      clientMethod: "requestNotificationSend",
+      body: "json",
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/approvals/{approvalId}/approve",
+    {
+      operationId: "NotificationController_approveSend",
+      clientMethod: "approveNotificationSend",
+      body: null,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/approvals/{approvalId}/reject",
+    {
+      operationId: "NotificationController_rejectSend",
+      clientMethod: "rejectNotificationSend",
+      body: "json",
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/notifications/sends",
+    {
+      operationId: "NotificationController_listSends",
+      clientMethod: "listNotificationSends",
+      body: null,
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/policy",
+    {
+      operationId: "NotificationController_updatePolicy",
+      clientMethod: "updateNotificationPolicy",
+      body: "json",
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/notifications/preferences",
+    {
+      operationId: "NotificationController_updatePreference",
+      clientMethod: "updateNotificationPreference",
+      body: "json",
+    },
+  ],
+]);
+
 const reportOperations = new Map([
   [
     "get /organizations/{organizationId}/finance/reports/cash-flow",
@@ -1336,6 +1427,40 @@ function readSupportedOperations(document) {
     }
   }
 
+  const hasNotificationContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("NotificationController_"),
+      ),
+  );
+  if (hasNotificationContract) {
+    for (const [key, notificationOperation] of notificationOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (
+        !operation ||
+        operation.operationId !== notificationOperation.operationId
+      )
+        throw new Error(
+          `Unsupported OpenAPI NotificationController operation ${method.toUpperCase()} ${path}`,
+        );
+      operations.push({ path, operation, notificationOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("NotificationController_") &&
+          !notificationOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI NotificationController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
   const hasReportContract = Object.values(document.paths ?? {}).some(
     (pathItem) =>
       Object.values(pathItem).some((operation) =>
@@ -1907,6 +2032,9 @@ export function generateOpenApiClient(document) {
   const reportOperationEntries = operations.filter(
     ({ reportOperation }) => reportOperation,
   );
+  const notificationOperationEntries = operations.filter(
+    ({ notificationOperation }) => notificationOperation,
+  );
   const automationOperationEntries = operations.filter(
     ({ automationOperation }) => automationOperation,
   );
@@ -2034,6 +2162,21 @@ export function generateOpenApiClient(document) {
         ? "{ name: string; definition: AutomationRuleDefinitionInput }"
         : "{ definition: AutomationRuleDefinitionInput; note?: string }";
       return `    ${automationOperation.clientMethod}: (params: ${paramsType}, body: ${bodyType}) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
+    })
+    .join("\n");
+  const notificationMethods = notificationOperationEntries
+    .map(({ path, notificationOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      const params = parameterType(pathParameters);
+      if (notificationOperation.body === null) {
+        const method = notificationOperation.clientMethod.startsWith("list")
+          ? "GET"
+          : "POST";
+        return `    ${notificationOperation.clientMethod}: (params: ${params}) => requestJson(${encodedPath(path)}, { method: ${JSON.stringify(method)} }),`;
+      }
+      return `    ${notificationOperation.clientMethod}: (params: ${params}, body: Record<string, unknown>) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
     })
     .join("\n");
   const reportMethods = reportOperationEntries
@@ -2187,6 +2330,7 @@ ${commissionMethods}
 ${receivableMethods}
 ${expenseMethods}
 ${reportMethods}
+${notificationMethods}
 ${automationMethods}
 ${ledgerMethods}
 ${propertyMethods}

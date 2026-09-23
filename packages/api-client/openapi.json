@@ -1880,6 +1880,245 @@
         "tags": ["Automation rules"]
       }
     },
+    "/organizations/{organizationId}/notifications/templates": {
+      "get": {
+        "operationId": "NotificationController_listTemplates",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      },
+      "post": {
+        "operationId": "NotificationController_createTemplate",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["templateKey", "locale", "body"],
+                "properties": {
+                  "templateKey": { "type": "string" },
+                  "locale": { "enum": ["ar", "en"] },
+                  "subject": { "type": "string" },
+                  "body": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/templates/{templateId}/revisions": {
+      "post": {
+        "operationId": "NotificationController_reviseTemplate",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/templates/{templateId}/approve": {
+      "post": {
+        "operationId": "NotificationController_approveTemplate",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/approvals": {
+      "get": {
+        "operationId": "NotificationController_listApprovals",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/send-requests": {
+      "post": {
+        "operationId": "NotificationController_requestSend",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "templateId",
+                  "recipientUserId",
+                  "channel",
+                  "locale",
+                  "variables"
+                ],
+                "properties": {
+                  "templateId": { "type": "string", "format": "uuid" },
+                  "recipientUserId": { "type": "string", "format": "uuid" },
+                  "channel": { "enum": ["IN_APP", "EMAIL", "WHATSAPP"] },
+                  "locale": { "enum": ["ar", "en"] },
+                  "variables": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/approvals/{approvalId}/approve": {
+      "post": {
+        "operationId": "NotificationController_approveSend",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "approvalId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/approvals/{approvalId}/reject": {
+      "post": {
+        "operationId": "NotificationController_rejectSend",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "approvalId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/policy": {
+      "post": {
+        "operationId": "NotificationController_updatePolicy",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/preferences": {
+      "post": {
+        "operationId": "NotificationController_updatePreference",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
+    "/organizations/{organizationId}/notifications/sends": {
+      "get": {
+        "operationId": "NotificationController_listSends",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Notifications"]
+      }
+    },
     "/organizations/{organizationId}/properties": {
       "post": {
         "operationId": "PropertyController_create",

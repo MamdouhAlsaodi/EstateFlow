@@ -7,6 +7,12 @@ import type {
   AutomationFailedJob,
   AutomationRuleSummary,
 } from "./automation-contract";
+import type {
+  NotificationApprovalSummary,
+  NotificationSendSummary,
+  NotificationTemplateSummary,
+} from "./notification-contract";
+import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import styles from "./automation-visibility.module.css";
 
 const apiClient = createApiClient();
@@ -36,6 +42,13 @@ export function AutomationVisibility() {
       updatedAt: string;
     }[]
   >([]);
+  const [templates, setTemplates] = useState<
+    readonly NotificationTemplateSummary[]
+  >([]);
+  const [approvals, setApprovals] = useState<
+    readonly NotificationApprovalSummary[]
+  >([]);
+  const [sends, setSends] = useState<readonly NotificationSendSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
@@ -50,6 +63,14 @@ export function AutomationVisibility() {
       setRules(ruleResponse.rules);
       setJobs(ruleResponse.failedJobs);
       setFinanceJobs(ruleResponse.recentFinanceJobs);
+      const [templateItems, approvalItems, sendItems] = await Promise.all([
+        apiClient.getNotificationTemplates({ organizationId }),
+        apiClient.getNotificationApprovals({ organizationId }),
+        apiClient.getNotificationSends({ organizationId }),
+      ]);
+      setTemplates(templateItems);
+      setApprovals(approvalItems);
+      setSends(sendItems);
       setRefreshedAt(new Date().toISOString());
     } catch {
       setError(true);
@@ -57,6 +78,31 @@ export function AutomationVisibility() {
       setLoading(false);
     }
   }, [organizationId]);
+
+  async function decide(approvalId: string, decision: "approve" | "reject") {
+    try {
+      const csrfToken = await createSessionCsrfProvider(apiClient).getToken();
+      if (decision === "approve") {
+        await apiClient.approveNotification({
+          organizationId,
+          approvalId,
+          csrfToken,
+        });
+      } else {
+        const reason = window.prompt("سبب الرفض")?.trim() ?? "";
+        if (!reason) return;
+        await apiClient.rejectNotification({
+          organizationId,
+          approvalId,
+          reason,
+          csrfToken,
+        });
+      }
+      await load();
+    } catch {
+      setError(true);
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -143,6 +189,102 @@ export function AutomationVisibility() {
                     </div>
                     <time dateTime={job.scheduledFor}>
                       {formatDate(job.updatedAt)}
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section
+            aria-labelledby="notification-templates-title"
+            className="panel"
+          >
+            <div className={styles.sectionHeading}>
+              <h2 id="notification-templates-title">قوالب الإشعارات</h2>
+              <span className="table-count">{templates.length} إصدار</span>
+            </div>
+            {templates.length === 0 ? (
+              <p>لا توجد قوالب بعد.</p>
+            ) : (
+              <ul className={styles.list}>
+                {templates.map((template) => (
+                  <li key={template.id}>
+                    <div>
+                      <strong>
+                        {template.templateKey} · {template.locale}
+                      </strong>
+                      <span>
+                        {template.status} · الإصدار {template.version}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section
+            aria-labelledby="notification-approvals-title"
+            className="panel"
+          >
+            <div className={styles.sectionHeading}>
+              <h2 id="notification-approvals-title">طلبات الموافقة المعلقة</h2>
+              <span className="table-count">{approvals.length} طلب</span>
+            </div>
+            {approvals.length === 0 ? (
+              <p>لا توجد طلبات معلقة.</p>
+            ) : (
+              <ul className={styles.list}>
+                {approvals.map((approval) => (
+                  <li key={approval.id}>
+                    <div>
+                      <strong>
+                        {approval.channel} · {approval.locale}
+                      </strong>
+                      <span>المستلم: {approval.recipientUserId}</span>
+                    </div>
+                    <div>
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        onClick={() => void decide(approval.id, "approve")}
+                      >
+                        اعتماد
+                      </button>
+                      <button
+                        className="button button-secondary"
+                        type="button"
+                        onClick={() => void decide(approval.id, "reject")}
+                      >
+                        رفض
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section aria-labelledby="notification-sends-title" className="panel">
+            <div className={styles.sectionHeading}>
+              <h2 id="notification-sends-title">الإرسالات الأخيرة</h2>
+              <span className="table-count">{sends.length} إرسال</span>
+            </div>
+            {sends.length === 0 ? (
+              <p>لا توجد إرسالات بعد.</p>
+            ) : (
+              <ul className={styles.list}>
+                {sends.map((send) => (
+                  <li key={send.id}>
+                    <div>
+                      <strong>{send.templateKey}</strong>
+                      <span>
+                        {send.status}
+                        {send.suppressionReason
+                          ? ` · سبب الحجب: ${send.suppressionReason}`
+                          : ""}
+                      </span>
+                    </div>
+                    <time dateTime={send.createdAt}>
+                      {formatDate(send.createdAt)}
                     </time>
                   </li>
                 ))}

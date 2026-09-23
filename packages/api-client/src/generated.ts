@@ -678,6 +678,109 @@ export function createEstateFlowClient({
           (query.toString() ? `?${query}` : ""),
       );
     },
+    listNotificationTemplates: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/templates`,
+        { method: "GET" },
+      ),
+    createNotificationTemplate: (
+      params: { organizationId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/templates`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    reviseNotificationTemplate: (
+      params: { organizationId: string; templateId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/templates/${encodeURIComponent(params.templateId)}/revisions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    approveNotificationTemplate: (params: {
+      organizationId: string;
+      templateId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/templates/${encodeURIComponent(params.templateId)}/approve`,
+        { method: "POST" },
+      ),
+    listNotificationApprovals: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/approvals`,
+        { method: "GET" },
+      ),
+    requestNotificationSend: (
+      params: { organizationId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/send-requests`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    approveNotificationSend: (params: {
+      organizationId: string;
+      approvalId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/approvals/${encodeURIComponent(params.approvalId)}/approve`,
+        { method: "POST" },
+      ),
+    rejectNotificationSend: (
+      params: { organizationId: string; approvalId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/approvals/${encodeURIComponent(params.approvalId)}/reject`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    listNotificationSends: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/sends`,
+        { method: "GET" },
+      ),
+    updateNotificationPolicy: (
+      params: { organizationId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/policy`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    updateNotificationPreference: (
+      params: { organizationId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/notifications/preferences`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
     createAutomationRule: (
       params: { organizationId: string },
       body: { name: string; definition: AutomationRuleDefinitionInput },

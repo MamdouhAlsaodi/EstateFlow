@@ -31,8 +31,15 @@ import type { FinanceReminderRepository } from "./application/finance-reminder-r
 import { FinanceReminderCoordinator } from "./application/finance-reminder-coordinator.js";
 import { FinanceAutomationActionExecutor } from "./application/finance-automation-executor.js";
 import { AutomationActionDispatcher } from "./application/automation-action-dispatcher.js";
+import { NotificationController } from "../notifications/notification.controller.js";
+import { NotificationApplication } from "../notifications/notification-application.js";
+import { PrismaNotificationRepository } from "../notifications/prisma-notification-repository.js";
+import { InAppFakeNotificationProvider } from "../notifications/notification-provider.port.js";
+import type { NotificationMembershipReader } from "../notifications/notification-membership.js";
 
-class PrismaAutomationMembershipReader implements AutomationMembershipReader {
+class PrismaAutomationMembershipReader
+  implements AutomationMembershipReader, NotificationMembershipReader
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async findMembership(
@@ -48,7 +55,7 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
 
 @Module({
   imports: [AuthModule, forwardRef(() => LeadsModule)],
-  controllers: [AutomationRuleController],
+  controllers: [AutomationRuleController, NotificationController],
   providers: [
     {
       provide: PrismaAutomationRuleRepository,
@@ -67,6 +74,29 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
       inject: [PrismaService],
       useFactory: (prisma: PrismaService): AutomationMembershipReader =>
         new PrismaAutomationMembershipReader(prisma),
+    },
+    {
+      provide: PrismaNotificationRepository,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) =>
+        new PrismaNotificationRepository(prisma),
+    },
+    {
+      provide: InAppFakeNotificationProvider,
+      useFactory: () => new InAppFakeNotificationProvider(),
+    },
+    {
+      provide: NotificationApplication,
+      inject: [
+        PrismaNotificationRepository,
+        PrismaAutomationMembershipReader,
+        InAppFakeNotificationProvider,
+      ],
+      useFactory: (
+        repository: PrismaNotificationRepository,
+        memberships: NotificationMembershipReader,
+        provider: InAppFakeNotificationProvider,
+      ) => new NotificationApplication(repository, memberships, provider),
     },
     {
       provide: AutomationRuleApplication,
@@ -89,9 +119,12 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
     },
     {
       provide: AUTOMATION_OUTBOUND_DELIVERY,
-      inject: [PrismaService],
-      useFactory: (prisma: PrismaService): AutomationOutboundDelivery =>
-        new PrismaAutomationDelivery(prisma),
+      inject: [PrismaService, NotificationApplication],
+      useFactory: (
+        prisma: PrismaService,
+        notifications: NotificationApplication,
+      ): AutomationOutboundDelivery =>
+        new PrismaAutomationDelivery(prisma, notifications),
     },
     {
       provide: LeadAutomationActionExecutor,
