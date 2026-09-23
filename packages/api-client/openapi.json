@@ -1880,6 +1880,884 @@
         "tags": ["Automation rules"]
       }
     },
+    "/organizations/{organizationId}/automation/jobs": {
+      "get": {
+        "operationId": "AutomationRuleController_listJobs",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["jobs"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "ruleId",
+                          "ruleVersion",
+                          "triggerKind",
+                          "eventType",
+                          "actionType",
+                          "targetType",
+                          "targetId",
+                          "status",
+                          "attemptCount",
+                          "maxAttempts",
+                          "lastError",
+                          "scheduledFor",
+                          "startedAt",
+                          "completedAt",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "ruleId": { "type": "string", "format": "uuid" },
+                          "ruleVersion": { "type": "integer", "minimum": 1 },
+                          "triggerKind": {
+                            "type": "string",
+                            "enum": ["DOMAIN_EVENT", "SCHEDULE"]
+                          },
+                          "eventType": {
+                            "type": "string",
+                            "enum": [
+                              "lead.created",
+                              "lead.stage_changed",
+                              "lead.assignment_changed",
+                              "lead.response_sla_breached",
+                              "lead.inactivity_breached",
+                              "lead.next_action_missing",
+                              "receivable.due_soon",
+                              "receivable.overdue",
+                              "commission.due"
+                            ],
+                            "nullable": true
+                          },
+                          "actionType": {
+                            "type": "string",
+                            "enum": [
+                              "CREATE_LEAD_TASK",
+                              "CREATE_INTERNAL_NOTIFICATION",
+                              "ADD_LEAD_TIMELINE_NOTE"
+                            ]
+                          },
+                          "targetType": {
+                            "type": "string",
+                            "enum": [
+                              "LEAD",
+                              "RECEIVABLE",
+                              "COMMISSION",
+                              "RULE_SELF"
+                            ]
+                          },
+                          "targetId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "QUEUED",
+                              "RUNNING",
+                              "RETRYING",
+                              "SUCCEEDED",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "attemptCount": { "type": "integer", "minimum": 0 },
+                          "maxAttempts": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "lastError": {
+                            "type": "object",
+                            "required": ["kind", "message"],
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "action-executor-not-configured",
+                                  "action-permanent-failure",
+                                  "action-transient-failure",
+                                  "unexpected-executor-error"
+                                ]
+                              },
+                              "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500
+                              }
+                            }
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                            "nullable": true
+                          },
+                          "completedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Automation rules"]
+      }
+    },
+    "/organizations/{organizationId}/automation/rules/{ruleId}/jobs": {
+      "get": {
+        "operationId": "AutomationRuleController_listRuleJobs",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "ruleId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["jobs"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "jobs": {
+                      "type": "array",
+                      "maxItems": 100,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "ruleId",
+                          "ruleVersion",
+                          "triggerKind",
+                          "eventType",
+                          "actionType",
+                          "targetType",
+                          "targetId",
+                          "status",
+                          "attemptCount",
+                          "maxAttempts",
+                          "lastError",
+                          "scheduledFor",
+                          "startedAt",
+                          "completedAt",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "id": { "type": "string", "format": "uuid" },
+                          "ruleId": { "type": "string", "format": "uuid" },
+                          "ruleVersion": { "type": "integer", "minimum": 1 },
+                          "triggerKind": {
+                            "type": "string",
+                            "enum": ["DOMAIN_EVENT", "SCHEDULE"]
+                          },
+                          "eventType": {
+                            "type": "string",
+                            "enum": [
+                              "lead.created",
+                              "lead.stage_changed",
+                              "lead.assignment_changed",
+                              "lead.response_sla_breached",
+                              "lead.inactivity_breached",
+                              "lead.next_action_missing",
+                              "receivable.due_soon",
+                              "receivable.overdue",
+                              "commission.due"
+                            ],
+                            "nullable": true
+                          },
+                          "actionType": {
+                            "type": "string",
+                            "enum": [
+                              "CREATE_LEAD_TASK",
+                              "CREATE_INTERNAL_NOTIFICATION",
+                              "ADD_LEAD_TIMELINE_NOTE"
+                            ]
+                          },
+                          "targetType": {
+                            "type": "string",
+                            "enum": [
+                              "LEAD",
+                              "RECEIVABLE",
+                              "COMMISSION",
+                              "RULE_SELF"
+                            ]
+                          },
+                          "targetId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "QUEUED",
+                              "RUNNING",
+                              "RETRYING",
+                              "SUCCEEDED",
+                              "FAILED",
+                              "CANCELLED"
+                            ]
+                          },
+                          "attemptCount": { "type": "integer", "minimum": 0 },
+                          "maxAttempts": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "lastError": {
+                            "type": "object",
+                            "required": ["kind", "message"],
+                            "nullable": true,
+                            "additionalProperties": false,
+                            "properties": {
+                              "kind": {
+                                "type": "string",
+                                "enum": [
+                                  "action-executor-not-configured",
+                                  "action-permanent-failure",
+                                  "action-transient-failure",
+                                  "unexpected-executor-error"
+                                ]
+                              },
+                              "message": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500
+                              }
+                            }
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "startedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                            "nullable": true
+                          },
+                          "completedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                            "nullable": true
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Automation rules"]
+      }
+    },
+    "/organizations/{organizationId}/automation/jobs/{jobId}": {
+      "get": {
+        "operationId": "AutomationRuleController_findJob",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["job"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "ruleId",
+                        "ruleVersion",
+                        "triggerKind",
+                        "eventType",
+                        "actionType",
+                        "targetType",
+                        "targetId",
+                        "status",
+                        "attemptCount",
+                        "maxAttempts",
+                        "lastError",
+                        "scheduledFor",
+                        "startedAt",
+                        "completedAt",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "ruleId": { "type": "string", "format": "uuid" },
+                        "ruleVersion": { "type": "integer", "minimum": 1 },
+                        "triggerKind": {
+                          "type": "string",
+                          "enum": ["DOMAIN_EVENT", "SCHEDULE"]
+                        },
+                        "eventType": {
+                          "type": "string",
+                          "enum": [
+                            "lead.created",
+                            "lead.stage_changed",
+                            "lead.assignment_changed",
+                            "lead.response_sla_breached",
+                            "lead.inactivity_breached",
+                            "lead.next_action_missing",
+                            "receivable.due_soon",
+                            "receivable.overdue",
+                            "commission.due"
+                          ],
+                          "nullable": true
+                        },
+                        "actionType": {
+                          "type": "string",
+                          "enum": [
+                            "CREATE_LEAD_TASK",
+                            "CREATE_INTERNAL_NOTIFICATION",
+                            "ADD_LEAD_TIMELINE_NOTE"
+                          ]
+                        },
+                        "targetType": {
+                          "type": "string",
+                          "enum": [
+                            "LEAD",
+                            "RECEIVABLE",
+                            "COMMISSION",
+                            "RULE_SELF"
+                          ]
+                        },
+                        "targetId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "QUEUED",
+                            "RUNNING",
+                            "RETRYING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "attemptCount": { "type": "integer", "minimum": 0 },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "lastError": {
+                          "type": "object",
+                          "required": ["kind", "message"],
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "action-executor-not-configured",
+                                "action-permanent-failure",
+                                "action-transient-failure",
+                                "unexpected-executor-error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            }
+                          }
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "completedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Automation rules"]
+      }
+    },
+    "/organizations/{organizationId}/automation/jobs/{jobId}/retry": {
+      "post": {
+        "operationId": "AutomationRuleController_retryJob",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["job"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "ruleId",
+                        "ruleVersion",
+                        "triggerKind",
+                        "eventType",
+                        "actionType",
+                        "targetType",
+                        "targetId",
+                        "status",
+                        "attemptCount",
+                        "maxAttempts",
+                        "lastError",
+                        "scheduledFor",
+                        "startedAt",
+                        "completedAt",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "ruleId": { "type": "string", "format": "uuid" },
+                        "ruleVersion": { "type": "integer", "minimum": 1 },
+                        "triggerKind": {
+                          "type": "string",
+                          "enum": ["DOMAIN_EVENT", "SCHEDULE"]
+                        },
+                        "eventType": {
+                          "type": "string",
+                          "enum": [
+                            "lead.created",
+                            "lead.stage_changed",
+                            "lead.assignment_changed",
+                            "lead.response_sla_breached",
+                            "lead.inactivity_breached",
+                            "lead.next_action_missing",
+                            "receivable.due_soon",
+                            "receivable.overdue",
+                            "commission.due"
+                          ],
+                          "nullable": true
+                        },
+                        "actionType": {
+                          "type": "string",
+                          "enum": [
+                            "CREATE_LEAD_TASK",
+                            "CREATE_INTERNAL_NOTIFICATION",
+                            "ADD_LEAD_TIMELINE_NOTE"
+                          ]
+                        },
+                        "targetType": {
+                          "type": "string",
+                          "enum": [
+                            "LEAD",
+                            "RECEIVABLE",
+                            "COMMISSION",
+                            "RULE_SELF"
+                          ]
+                        },
+                        "targetId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "QUEUED",
+                            "RUNNING",
+                            "RETRYING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "attemptCount": { "type": "integer", "minimum": 0 },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "lastError": {
+                          "type": "object",
+                          "required": ["kind", "message"],
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "action-executor-not-configured",
+                                "action-permanent-failure",
+                                "action-transient-failure",
+                                "unexpected-executor-error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            }
+                          }
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "completedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Automation rules"]
+      }
+    },
+    "/organizations/{organizationId}/automation/jobs/{jobId}/cancel": {
+      "post": {
+        "operationId": "AutomationRuleController_cancelJob",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["job"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "ruleId",
+                        "ruleVersion",
+                        "triggerKind",
+                        "eventType",
+                        "actionType",
+                        "targetType",
+                        "targetId",
+                        "status",
+                        "attemptCount",
+                        "maxAttempts",
+                        "lastError",
+                        "scheduledFor",
+                        "startedAt",
+                        "completedAt",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "ruleId": { "type": "string", "format": "uuid" },
+                        "ruleVersion": { "type": "integer", "minimum": 1 },
+                        "triggerKind": {
+                          "type": "string",
+                          "enum": ["DOMAIN_EVENT", "SCHEDULE"]
+                        },
+                        "eventType": {
+                          "type": "string",
+                          "enum": [
+                            "lead.created",
+                            "lead.stage_changed",
+                            "lead.assignment_changed",
+                            "lead.response_sla_breached",
+                            "lead.inactivity_breached",
+                            "lead.next_action_missing",
+                            "receivable.due_soon",
+                            "receivable.overdue",
+                            "commission.due"
+                          ],
+                          "nullable": true
+                        },
+                        "actionType": {
+                          "type": "string",
+                          "enum": [
+                            "CREATE_LEAD_TASK",
+                            "CREATE_INTERNAL_NOTIFICATION",
+                            "ADD_LEAD_TIMELINE_NOTE"
+                          ]
+                        },
+                        "targetType": {
+                          "type": "string",
+                          "enum": [
+                            "LEAD",
+                            "RECEIVABLE",
+                            "COMMISSION",
+                            "RULE_SELF"
+                          ]
+                        },
+                        "targetId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 200
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "QUEUED",
+                            "RUNNING",
+                            "RETRYING",
+                            "SUCCEEDED",
+                            "FAILED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "attemptCount": { "type": "integer", "minimum": 0 },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "lastError": {
+                          "type": "object",
+                          "required": ["kind", "message"],
+                          "nullable": true,
+                          "additionalProperties": false,
+                          "properties": {
+                            "kind": {
+                              "type": "string",
+                              "enum": [
+                                "action-executor-not-configured",
+                                "action-permanent-failure",
+                                "action-transient-failure",
+                                "unexpected-executor-error"
+                              ]
+                            },
+                            "message": {
+                              "type": "string",
+                              "minLength": 1,
+                              "maxLength": 500
+                            }
+                          }
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "completedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$",
+                          "nullable": true
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Automation rules"]
+      }
+    },
     "/organizations/{organizationId}/notifications/templates": {
       "get": {
         "operationId": "NotificationController_listTemplates",

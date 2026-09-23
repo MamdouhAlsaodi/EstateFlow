@@ -285,6 +285,68 @@ export function cancelAutomationJob(
   });
 }
 
+/**
+ * EF-306 — retry domain policy.
+ *
+ * A retry is only ever offered for a terminally FAILED job. Retrying a
+ * SUCCEEDED, RUNNING, QUEUED, RETRYING, or CANCELLED job could duplicate side
+ * effects or resurrect state the scheduler already owns, so it is rejected
+ * here at the domain boundary. The retry is a brand-new job occurrence: it
+ * copies the failed occurrence's rule/action/target shape and derives a fresh
+ * execution key that names the source job, so the database unique constraint
+ * on (organizationId, executionKey) makes a double retry idempotent — the
+ * second insert resolves to a duplicate instead of a second occurrence.
+ */
+export function canRetryAutomationJob(job: AutomationJob): boolean {
+  return job.status === "FAILED";
+}
+
+export function canCancelAutomationJob(job: AutomationJob): boolean {
+  return job.status === "QUEUED" || job.status === "RETRYING";
+}
+
+export function deriveRetryExecutionKey(source: AutomationJob): string {
+  const canonical = JSON.stringify({
+    actionType: source.actionType,
+    eventId: source.eventId,
+    organizationId: source.organizationId,
+    retryOf: source.id,
+    ruleId: source.ruleId,
+    ruleVersion: source.ruleVersion,
+    scheduleBucket: source.scheduleBucket,
+    targetId: source.targetId,
+    targetType: source.targetType,
+  });
+  return createHash("sha256").update(canonical, "utf8").digest("hex");
+}
+
+export function createRetryAutomationJob(input: {
+  id: string;
+  source: AutomationJob;
+  now: Date;
+}): AutomationJob {
+  if (input.source.status !== "FAILED")
+    throw new AutomationJobStateError(
+      `cannot retry job in status ${input.source.status}`,
+    );
+  return createAutomationJob({
+    id: input.id,
+    organizationId: input.source.organizationId,
+    ruleId: input.source.ruleId,
+    ruleVersion: input.source.ruleVersion,
+    executionKey: deriveRetryExecutionKey(input.source),
+    triggerKind: input.source.triggerKind,
+    eventType: input.source.eventType,
+    eventId: input.source.eventId,
+    actionType: input.source.actionType,
+    targetType: input.source.targetType,
+    targetId: input.source.targetId,
+    scheduleBucket: input.source.scheduleBucket,
+    scheduledFor: input.now,
+    now: input.now,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Condition evaluation over event subjects
 // ---------------------------------------------------------------------------

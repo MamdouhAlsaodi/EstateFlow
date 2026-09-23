@@ -10,6 +10,11 @@ import {
   type AutomationRuleVersion,
 } from "../domain/rule.js";
 import type { AutomationJob } from "../domain/execution.js";
+import {
+  createRetryAutomationJob,
+  cancelAutomationJob,
+  type AutomationJobStatus,
+} from "../domain/execution.js";
 import type { AutomationJobRepository } from "./job-repository.js";
 import { defaultLeadAutomationRules } from "../domain/lead-automation.js";
 import { defaultFinanceReminderRules } from "../domain/finance-reminder.js";
@@ -85,6 +90,30 @@ export type ListFailedJobsResult =
   | Readonly<{ kind: "access-denied" }>;
 export type ListFinanceJobsResult =
   | Readonly<{ kind: "found"; jobs: AutomationJob[] }>
+  | Readonly<{ kind: "access-denied" }>;
+
+export type ListJobsResult =
+  | Readonly<{ kind: "found"; jobs: AutomationJob[] }>
+  | Readonly<{ kind: "not-found"; resource: "rule" }>
+  | Readonly<{ kind: "access-denied" }>;
+
+export type GetJobResult =
+  | Readonly<{ kind: "found"; job: AutomationJob }>
+  | Readonly<{ kind: "not-found"; resource: "job" }>
+  | Readonly<{ kind: "access-denied" }>;
+
+export type RetryJobResult =
+  | Readonly<{ kind: "retried"; job: AutomationJob }>
+  | Readonly<{ kind: "duplicate" }>
+  | Readonly<{ kind: "not-found"; resource: "job" }>
+  | Readonly<{ kind: "invalid-state"; status: AutomationJobStatus }>
+  | Readonly<{ kind: "access-denied" }>;
+
+export type CancelJobResult =
+  | Readonly<{ kind: "cancelled"; job: AutomationJob }>
+  | Readonly<{ kind: "conflict" }>
+  | Readonly<{ kind: "not-found"; resource: "job" }>
+  | Readonly<{ kind: "invalid-state"; status: AutomationJobStatus }>
   | Readonly<{ kind: "access-denied" }>;
 
 /**
@@ -269,6 +298,104 @@ export class AutomationRuleApplication {
         limit: input.limit,
       }),
     };
+  }
+
+  /**
+   * EF-306 — execution history for one rule. The rule id is resolved inside
+   * the organization first, so a foreign rule id is a typed not-found rather
+   * than a tenant leak.
+   */
+  async listRuleJobs(
+    input: CommandBase & { ruleId: string; limit: number },
+  ): Promise<ListJobsResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "found", jobs: [] };
+    const rule = await this.repository.findRule(
+      input.organizationId,
+      input.ruleId,
+    );
+    if (!rule) return { kind: "not-found", resource: "rule" };
+    return {
+      kind: "found",
+      jobs: await this.jobs.listJobsForRule({
+        organizationId: input.organizationId,
+        ruleId: input.ruleId,
+        limit: input.limit,
+      }),
+    };
+  }
+
+  /** EF-306 — newest jobs across the organization, every type and status. */
+  async listOrganizationJobs(
+    input: CommandBase & { limit: number },
+  ): Promise<ListJobsResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "found", jobs: [] };
+    return {
+      kind: "found",
+      jobs: await this.jobs.listRecentJobs({
+        organizationId: input.organizationId,
+        limit: input.limit,
+      }),
+    };
+  }
+
+  async getJob(input: CommandBase & { jobId: string }): Promise<GetJobResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "not-found", resource: "job" };
+    const job = await this.jobs.findJob(input.organizationId, input.jobId);
+    if (!job) return { kind: "not-found", resource: "job" };
+    return { kind: "found", job };
+  }
+
+  /**
+   * EF-306 — retry a terminally FAILED job as a NEW queued occurrence. The
+   * domain layer refuses every other source status, and the deterministic
+   * retry execution key makes a repeated retry idempotent (typed duplicate)
+   * instead of a second side effect.
+   */
+  async retryJob(
+    input: CommandBase & { jobId: string; now: Date },
+  ): Promise<RetryJobResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "not-found", resource: "job" };
+    const job = await this.jobs.findJob(input.organizationId, input.jobId);
+    if (!job) return { kind: "not-found", resource: "job" };
+    if (job.status !== "FAILED")
+      return { kind: "invalid-state", status: job.status };
+    const retry = createRetryAutomationJob({
+      id: crypto.randomUUID(),
+      source: job,
+      now: input.now,
+    });
+    const inserted = await this.jobs.insertJob(retry);
+    if (inserted.kind === "duplicate") return { kind: "duplicate" };
+    return { kind: "retried", job: retry };
+  }
+
+  /**
+   * EF-306 — cancel a queued/retrying job in place. Terminal and running jobs
+   * cannot be cancelled; the atomic persistence guard keeps a concurrent
+   * scheduler claim from being overwritten.
+   */
+  async cancelJob(
+    input: CommandBase & { jobId: string; now: Date },
+  ): Promise<CancelJobResult> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    if (!this.jobs) return { kind: "not-found", resource: "job" };
+    const job = await this.jobs.findJob(input.organizationId, input.jobId);
+    if (!job) return { kind: "not-found", resource: "job" };
+    if (job.status !== "QUEUED" && job.status !== "RETRYING")
+      return { kind: "invalid-state", status: job.status };
+    const cancelled = cancelAutomationJob(job, input.now);
+    const persisted = await this.jobs.saveJobCancellation(cancelled);
+    if (!persisted) return { kind: "conflict" };
+    return { kind: "cancelled", job: cancelled };
   }
 
   async getRule(

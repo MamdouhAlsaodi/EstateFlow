@@ -579,6 +579,57 @@ const automationOperations = new Map([
       successStatuses: ["200"],
     },
   ],
+  // EF-306 — execution history plus guarded retry/cancel.
+  [
+    "get /organizations/{organizationId}/automation/jobs",
+    {
+      operationId: "AutomationRuleController_listJobs",
+      clientMethod: "listAutomationJobs",
+      body: null,
+      method: "GET",
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/automation/rules/{ruleId}/jobs",
+    {
+      operationId: "AutomationRuleController_listRuleJobs",
+      clientMethod: "listAutomationRuleJobs",
+      body: null,
+      method: "GET",
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/automation/jobs/{jobId}",
+    {
+      operationId: "AutomationRuleController_findJob",
+      clientMethod: "findAutomationJob",
+      body: null,
+      method: "GET",
+      successStatuses: ["200"],
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/automation/jobs/{jobId}/retry",
+    {
+      operationId: "AutomationRuleController_retryJob",
+      clientMethod: "retryAutomationJob",
+      body: null,
+      method: "POST",
+      successStatuses: ["201"],
+    },
+  ],
+  [
+    "post /organizations/{organizationId}/automation/jobs/{jobId}/cancel",
+    {
+      operationId: "AutomationRuleController_cancelJob",
+      clientMethod: "cancelAutomationJob",
+      body: null,
+      method: "POST",
+      successStatuses: ["200"],
+    },
+  ],
 ]);
 
 const reportBucketSchema = {
@@ -2152,10 +2203,11 @@ export function generateOpenApiClient(document) {
       const paramsType = parameterType(pathParameters);
       if (automationOperation.body === null) {
         const method =
-          automationOperation.operationId.endsWith("_list") ||
+          automationOperation.method ??
+          (automationOperation.operationId.endsWith("_list") ||
           automationOperation.operationId.endsWith("_find")
             ? "GET"
-            : "POST";
+            : "POST");
         return `    ${automationOperation.clientMethod}: (params: ${paramsType}) => requestJson(${encodedPath(path)}, { method: ${JSON.stringify(method)} }),`;
       }
       const bodyType = automationOperation.operationId.endsWith("_create")

@@ -44,4 +44,23 @@ export interface AutomationJobRepository {
     organizationId: string;
     limit: number;
   }): Promise<AutomationJob[]>;
+  /**
+   * EF-306 — organization-scoped job lookup by id. A foreign job id must be
+   * indistinguishable from an absent one.
+   */
+  findJob(organizationId: string, jobId: string): Promise<AutomationJob | null>;
+  /**
+   * EF-306 — newest jobs across the organization regardless of type, for the
+   * execution-history view.
+   */
+  listRecentJobs(input: {
+    organizationId: string;
+    limit: number;
+  }): Promise<AutomationJob[]>;
+  /**
+   * EF-306 — persist a QUEUED/RETRYING cancellation atomically. Guarded on
+   * the job still being cancelable, so a concurrent scheduler claim wins the
+   * race and the cancel reports no-op instead of clobbering a RUNNING run.
+   */
+  saveJobCancellation(job: AutomationJob): Promise<boolean>;
 }

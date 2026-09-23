@@ -16,6 +16,7 @@ import type {
   AutomationRuleDefinition,
   AutomationRuleVersion,
 } from "../domain/rule.js";
+import type { AutomationJob as AutomationJobRecord } from "../domain/execution.js";
 
 function parseDefinitionTransform({ value }: { value: unknown }): unknown {
   if (value === undefined || value === null) return value;
@@ -137,5 +138,35 @@ export function ruleVersionItem(version: AutomationRuleVersion): unknown {
   };
 }
 
+/**
+ * EF-306 — closed execution-history rendering. Typed status, attempt book
+ * keeping, and the typed last error only: no action payload, no execution
+ * key, no event id, and never a raw provider payload or secret.
+ */
+export function automationJobItem(job: AutomationJobRecord): unknown {
+  return {
+    id: job.id,
+    ruleId: job.ruleId,
+    ruleVersion: job.ruleVersion,
+    triggerKind: job.triggerKind,
+    eventType: job.eventType,
+    actionType: job.actionType,
+    targetType: job.targetType,
+    targetId: job.targetId,
+    status: job.status,
+    attemptCount: job.attemptCount,
+    maxAttempts: job.maxAttempts,
+    lastError: job.lastError
+      ? { kind: job.lastError.kind, message: job.lastError.message }
+      : null,
+    scheduledFor: job.scheduledFor,
+    startedAt: job.startedAt,
+    completedAt: job.completedAt,
+    createdAt: job.createdAt,
+    updatedAt: job.updatedAt,
+  };
+}
+
 export const AUTOMATION_RULE_LIST_BOUND = 200;
 export const AUTOMATION_RULE_VERSION_HISTORY_BOUND = 1000;
+export const AUTOMATION_JOB_HISTORY_BOUND = 100;

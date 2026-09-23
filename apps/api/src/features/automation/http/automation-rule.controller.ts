@@ -30,15 +30,21 @@ import { AutomationRuleApplication } from "../application/rule-application.js";
 import { AutomationRuleValidationError } from "../domain/rule.js";
 import {
   AddAutomationRuleVersionDto,
+  AUTOMATION_JOB_HISTORY_BOUND,
   AUTOMATION_RULE_LIST_BOUND,
   CreateAutomationRuleDto,
+  automationJobItem,
   automationResponse,
   failedJobItem,
   ruleSummary,
   ruleVersionItem,
 } from "./automation-rule.dto.js";
 import {
+  cancelJobResponse,
   createRuleBody,
+  jobDetailResponse,
+  jobListResponse,
+  retryJobResponse,
   ruleDetailResponse,
   ruleListResponse,
   ruleVersionBody,
@@ -52,9 +58,11 @@ const unsafeMutationGuards = [
 ];
 
 /**
- * EF-301 guarded rule CRUD. Authority matrix (ACTIVE membership required):
- * OWNER and MANAGER manage and read automation rules; BROKER and CLIENT are
- * denied (403). Scheduler internals (EF-302 jobs) are deliberately not HTTP.
+ * EF-301 guarded rule CRUD and EF-306 guarded execution history. Authority
+ * matrix (ACTIVE membership required): OWNER and MANAGER manage and read
+ * automation rules and job history, and retry/cancel jobs; BROKER and CLIENT
+ * are denied (403). Scheduler internals (EF-302 claiming/backoff) remain
+ * non-HTTP; the UI only sees typed job states.
  */
 @ApiTags("Automation rules")
 @Controller()
@@ -281,6 +289,191 @@ export class AutomationRuleController {
     });
   }
 
+  /**
+   * EF-306 — execution history. Owner/Manager only (same authority matrix as
+   * every other automation command), organization-scoped, typed job rendering
+   * with no raw payload or secret.
+   */
+  @Get("organizations/:organizationId/automation/jobs")
+  @ApiOperation({ operationId: "AutomationRuleController_listJobs" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: {
+      "application/json": {
+        schema: jobListResponse as never,
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async listJobs(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.rules.listOrganizationJobs({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        limit: AUTOMATION_JOB_HISTORY_BOUND,
+      });
+      if (result.kind !== "found") return result;
+      return { jobs: result.jobs.map(automationJobItem) };
+    });
+  }
+
+  @Get("organizations/:organizationId/automation/rules/:ruleId/jobs")
+  @ApiOperation({ operationId: "AutomationRuleController_listRuleJobs" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "ruleId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: {
+      "application/json": {
+        schema: jobListResponse as never,
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async listRuleJobs(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("ruleId", new ParseUUIDPipe()) ruleId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.rules.listRuleJobs({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        ruleId,
+        limit: AUTOMATION_JOB_HISTORY_BOUND,
+      });
+      if (result.kind !== "found") return result;
+      return { jobs: result.jobs.map(automationJobItem) };
+    });
+  }
+
+  @Get("organizations/:organizationId/automation/jobs/:jobId")
+  @ApiOperation({ operationId: "AutomationRuleController_findJob" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "jobId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: {
+      "application/json": {
+        schema: jobDetailResponse as never,
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async findJob(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("jobId", new ParseUUIDPipe()) jobId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.rules.getJob({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        jobId,
+      });
+      if (result.kind !== "found") return result;
+      return { job: automationJobItem(result.job) };
+    });
+  }
+
+  /**
+   * EF-306 — retry a FAILED job. Always creates a NEW job occurrence; a
+   * repeated retry of the same source job resolves to 409 duplicate so side
+   * effects can never be duplicated.
+   */
+  @Post("organizations/:organizationId/automation/jobs/:jobId/retry")
+  @ApiOperation({ operationId: "AutomationRuleController_retryJob" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "jobId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    content: {
+      "application/json": {
+        schema: retryJobResponse as never,
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @ApiResponse({ status: HttpStatus.CONFLICT })
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(...unsafeMutationGuards)
+  async retryJob(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("jobId", new ParseUUIDPipe()) jobId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.rules.retryJob({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        jobId,
+        now: new Date(),
+      });
+      if (result.kind === "retried")
+        return { job: automationJobItem(result.job) };
+      return result;
+    });
+  }
+
+  /** EF-306 — cancel a queued/retrying job; never a running or terminal one. */
+  @Post("organizations/:organizationId/automation/jobs/:jobId/cancel")
+  @ApiOperation({ operationId: "AutomationRuleController_cancelJob" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "jobId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: {
+      "application/json": {
+        schema: cancelJobResponse as never,
+      },
+    },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @ApiResponse({ status: HttpStatus.CONFLICT })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(...unsafeMutationGuards)
+  async cancelJob(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("jobId", new ParseUUIDPipe()) jobId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.rules.cancelJob({
+        actor: request.auth,
+        userId: request.auth.userId,
+        organizationId,
+        jobId,
+        now: new Date(),
+      });
+      if (result.kind === "cancelled")
+        return { job: automationJobItem(result.job) };
+      return result;
+    });
+  }
+
   private async execute(operation: () => Promise<unknown>): Promise<unknown> {
     try {
       const result = await operation();
@@ -299,7 +492,14 @@ export class AutomationRuleController {
 function mapRuleResult(result: unknown): unknown {
   if (hasResultKind(result, "access-denied")) throw new ForbiddenException();
   if (hasResultKind(result, "not-found")) throw new NotFoundException();
-  if (hasResultKind(result, "conflict")) throw new ConflictException();
+  // EF-306: duplicate retry, invalid-state retry/cancel, and a cancel that
+  // lost the claim race are all state conflicts, never silent successes.
+  if (
+    hasResultKind(result, "conflict") ||
+    hasResultKind(result, "duplicate") ||
+    hasResultKind(result, "invalid-state")
+  )
+    throw new ConflictException();
   return automationResponse(result);
 }
 
