@@ -43,24 +43,24 @@ Status legend:
 
 ## Automation and reminders
 
-| Requirement                                        | Tasks          | Evidence                             | Target    |
-| -------------------------------------------------- | -------------- | ------------------------------------ | --------- |
-| AUTO-01 Trigger → Conditions → Actions             | EF-301         | rule parsing/policy tests            | MVP       |
-| AUTO-02 durable jobs/idempotency/retry/dead letter | EF-302         | worker restart/duplicate/retry tests | MVP       |
-| AUTO-03 viewing reminders 24h/1h                   | EF-502         | fake-clock/timezone/reschedule tests | MVP       |
-| AUTO-04 Lead inactivity/escalation                 | EF-303         | SLA/duplicate/escalation tests       | MVP       |
-| AUTO-05 receivable/commission reminders            | EF-304         | due/overdue/approval tests           | MVP       |
-| AUTO-06 post-viewing follow-up and suggested stage | EF-502         | viewing-outcome integration test     | MVP       |
-| AUTO-07 outbound lifecycle and audit               | EF-305, EF-306 | approval/send/fail/audit tests       | MVP/PILOT |
+| Requirement                                        | Tasks          | Evidence                                                                                                                        | Target    |
+| -------------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| AUTO-01 Trigger → Conditions → Actions             | EF-301         | rule parsing/policy tests                                                                                                       | MVP       |
+| AUTO-02 durable jobs/idempotency/retry/dead letter | EF-302, EF-303 | durable scheduler, API-owned tick, thin worker loop, capped backoff, graceful-stop unit tests, and PostgreSQL replay proof      | MVP       |
+| AUTO-03 viewing reminders 24h/1h                   | EF-502         | fake-clock/timezone/reschedule tests                                                                                            | MVP       |
+| AUTO-04 Lead inactivity/escalation                 | EF-303         | deterministic SLA/inactivity occurrence detection, API executors, worker-loop tests, and PostgreSQL Lead breach execution proof | MVP       |
+| AUTO-05 receivable/commission reminders            | EF-304         | due/overdue/approval tests                                                                                                      | MVP       |
+| AUTO-06 post-viewing follow-up and suggested stage | EF-502         | viewing-outcome integration test                                                                                                | MVP       |
+| AUTO-07 outbound lifecycle and audit               | EF-305, EF-306 | approval/send/fail/audit tests                                                                                                  | MVP/PILOT |
 
 ### EF-301/302 automation-library traceability
 
-| AUT row                     | Current boundary                                                                                                    | Evidence                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| AUT-L01 / AUT-L02           | Rule definitions and durable scheduling are available; Lead task/reminder executors remain EF-303.                  | `docs/handoffs/EF-301/implementation.md`; `docs/handoffs/EF-302/implementation.md` |
-| AUT-V01 / AUT-V02           | Rule definitions and daily occurrence deduplication are available; Viewing domain triggers/executors remain EF-502. | `docs/handoffs/EF-301/implementation.md`; `docs/handoffs/EF-302/implementation.md` |
-| AUT-F01 / AUT-F02 / AUT-C01 | Rule definitions and durable scheduling are available; finance-specific rules/executors remain EF-304.              | `docs/handoffs/EF-301/implementation.md`; `docs/handoffs/EF-302/implementation.md` |
-| AUT-M01 / AUT-M02 / AUT-M03 | Outside EF-301/302; content/campaign rules remain EF-402–EF-405.                                                    | Explicit deferral; no implementation claimed                                       |
+| AUT row                     | Current boundary                                                                                                                                                                            | Evidence                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| AUT-L01 / AUT-L02           | Lead-created, assignment-change, response-SLA, and inactivity rules use concrete task/note/notification executors with deterministic breach occurrence keys and API-owned worker execution. | `docs/handoffs/EF-303/implementation.md`                                           |
+| AUT-V01 / AUT-V02           | Rule definitions and daily occurrence deduplication are available; Viewing domain triggers/executors remain EF-502.                                                                         | `docs/handoffs/EF-301/implementation.md`; `docs/handoffs/EF-302/implementation.md` |
+| AUT-F01 / AUT-F02 / AUT-C01 | Rule definitions and durable scheduling are available; finance-specific rules/executors remain EF-304.                                                                                      | `docs/handoffs/EF-301/implementation.md`; `docs/handoffs/EF-302/implementation.md` |
+| AUT-M01 / AUT-M02 / AUT-M03 | Outside EF-301/302; content/campaign rules remain EF-402–EF-405.                                                                                                                            | Explicit deferral; no implementation claimed                                       |
 
 ## Content and marketing
 

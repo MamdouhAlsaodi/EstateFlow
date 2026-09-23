@@ -1,4 +1,5 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
+import { AutomationModule } from "../automation/automation.module.js";
 import { PrismaService } from "../../database/prisma.service.js";
 import { AuthModule } from "../auth/auth.module.js";
 import {
@@ -12,7 +13,7 @@ import { LeadController } from "./http/lead.controller.js";
 import { LEAD_MEMBERSHIP_READER, LEAD_REPOSITORY } from "./leads.tokens.js";
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, forwardRef(() => AutomationModule)],
   controllers: [LeadController],
   providers: [
     {
@@ -43,5 +44,6 @@ import { LEAD_MEMBERSHIP_READER, LEAD_REPOSITORY } from "./leads.tokens.js";
       ) => new LeadApplication(repository, memberships),
     },
   ],
+  exports: [LEAD_REPOSITORY],
 })
 export class LeadsModule {}

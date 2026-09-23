@@ -5,6 +5,7 @@ import type {
 import type {
   AutomationRule,
   AutomationRuleDefinition,
+  AutomationTriggerEventType,
 } from "../domain/rule.js";
 
 export type SchedulerRuleSnapshot = Readonly<{
@@ -23,7 +24,15 @@ export interface SchedulerRuleReader {
     organizationId: string,
     ruleId: string,
   ): Promise<SchedulerRuleSnapshot | null>;
+  findRuleVersion(
+    organizationId: string,
+    ruleId: string,
+    version: number,
+  ): Promise<Readonly<{ definition: AutomationRuleDefinition }> | null>;
   listEnabledScheduleRules(): Promise<SchedulerRuleSnapshot[]>;
+  listEnabledDomainEventRules(
+    eventType: AutomationTriggerEventType,
+  ): Promise<SchedulerRuleSnapshot[]>;
 }
 
 export type AutomationActionExecutionRequest = Readonly<{

@@ -14,6 +14,9 @@ import {
   Req,
   UseGuards,
   BadRequestException,
+  Optional,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { ApiBody, ApiHeader, ApiQuery, ApiResponse } from "@nestjs/swagger";
 import type { AuthenticatedRequest } from "../../auth/http/auth-request.js";
@@ -21,6 +24,7 @@ import { BrowserSessionGuard } from "../../auth/http/browser-session.guard.js";
 import { CsrfGuard } from "../../auth/http/csrf.guard.js";
 import { RequireCanonicalOriginGuard } from "../../auth/http/origin.guard.js";
 import { LeadApplication } from "../application/lead-application.js";
+import { LeadAutomationCoordinator } from "../../automation/application/lead-automation-coordinator.js";
 import {
   LeadTransitionError,
   LeadValidationError,
@@ -49,7 +53,12 @@ const UNSAFE_BROWSER_GUARDS = [
 
 @Controller()
 export class LeadController {
-  constructor(private readonly leads: LeadApplication) {}
+  constructor(
+    private readonly leads: LeadApplication,
+    @Optional()
+    @Inject(forwardRef(() => LeadAutomationCoordinator))
+    private readonly automation?: LeadAutomationCoordinator,
+  ) {}
 
   @Post("organizations/:organizationId/leads")
   @HttpCode(HttpStatus.CREATED)
@@ -476,6 +485,7 @@ export class LeadController {
   private async execute<T>(operation: () => Promise<T>) {
     try {
       const result = await operation();
+      await this.publishAutomationLifecycle(result);
       if (isDeniedResult(result)) {
         if (result.kind === "access-denied") throw new ForbiddenException();
         throw new NotFoundException();
@@ -498,9 +508,53 @@ export class LeadController {
       throw error;
     }
   }
+
+  private async publishAutomationLifecycle(result: unknown): Promise<void> {
+    if (!this.automation || !isSuccessfulLeadMutation(result)) return;
+    for (const event of result.timelineEvents) {
+      const eventType =
+        event.type === "LEAD_CREATED"
+          ? "lead.created"
+          : event.type === "LEAD_STAGE_CHANGED"
+            ? "lead.stage_changed"
+            : event.type === "LEAD_ASSIGNED"
+              ? "lead.assignment_changed"
+              : null;
+      if (!eventType) continue;
+      try {
+        await this.automation.publishLeadLifecycle({
+          lead: result.lead,
+          eventType,
+          occurredAt: event.occurredAt,
+          subject: { lead: result.lead, event: event.data },
+        });
+      } catch {
+        // The Lead mutation is already durable. A worker sweep/retry will
+        // recover scheduling; never turn a committed CRM command into 500.
+      }
+    }
+  }
 }
 
 type ResultWithKind = { kind: string };
+type SuccessfulLeadMutation = {
+  kind: "ok";
+  lead: import("../domain/lead.js").Lead;
+  timelineEvents: readonly import("../domain/lead.js").TimelineEventIntent[];
+};
+function isSuccessfulLeadMutation(
+  value: unknown,
+): value is SuccessfulLeadMutation {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    "kind" in value &&
+    (value as ResultWithKind).kind === "ok" &&
+    "lead" in value &&
+    "timelineEvents" in value &&
+    Array.isArray(value.timelineEvents),
+  );
+}
 function isDeniedResult(
   value: unknown,
 ): value is { kind: "access-denied" | "ownership-conflict" } {

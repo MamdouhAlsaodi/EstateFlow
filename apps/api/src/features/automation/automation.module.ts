@@ -1,5 +1,7 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service.js";
+import { LeadsModule } from "../leads/leads.module.js";
+import { LEAD_REPOSITORY } from "../leads/leads.tokens.js";
 import { AuthModule } from "../auth/auth.module.js";
 import {
   AutomationRuleApplication,
@@ -12,11 +14,18 @@ import type { AutomationJobRepository } from "./application/job-repository.js";
 import { PrismaAutomationJobRepository } from "./infrastructure/prisma-automation-job.repository.js";
 import { AutomationScheduler } from "./application/automation-scheduler.js";
 import type {
-  AutomationActionExecutionOutcome,
   AutomationActionPort,
   SchedulerRuleReader,
 } from "./application/automation-action-port.js";
+import type { LeadRepository } from "../leads/application/lead-repository.js";
 import { AutomationRuleController } from "./http/automation-rule.controller.js";
+import {
+  AUTOMATION_OUTBOUND_DELIVERY,
+  InMemoryAutomationDelivery,
+  LeadAutomationActionExecutor,
+  type AutomationOutboundDelivery,
+} from "./application/lead-automation-executor.js";
+import { LeadAutomationCoordinator } from "./application/lead-automation-coordinator.js";
 
 class PrismaAutomationMembershipReader implements AutomationMembershipReader {
   constructor(private readonly prisma: PrismaService) {}
@@ -32,25 +41,8 @@ class PrismaAutomationMembershipReader implements AutomationMembershipReader {
   }
 }
 
-/**
- * Conservative stand-in until EF-303 registers the first concrete action
- * executors. A scheduled job reaching execution is failed with a typed,
- * visible error instead of being silently dropped.
- */
-class UnconfiguredActionExecutor implements AutomationActionPort {
-  async executeAction(): Promise<AutomationActionExecutionOutcome> {
-    return {
-      kind: "failed",
-      retryable: false,
-      errorKind: "action-executor-not-configured",
-      message:
-        "no automation action executor is registered; EF-303 wires the first concrete executors",
-    };
-  }
-}
-
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, forwardRef(() => LeadsModule)],
   controllers: [AutomationRuleController],
   providers: [
     {
@@ -76,22 +68,38 @@ class UnconfiguredActionExecutor implements AutomationActionPort {
       inject: [
         PrismaAutomationRuleRepository,
         PrismaAutomationMembershipReader,
+        PrismaAutomationJobRepository,
       ],
       useFactory: (
         repository: AutomationRuleRepository,
         membershipReader: AutomationMembershipReader,
-      ) => new AutomationRuleApplication(repository, membershipReader),
+        jobs: AutomationJobRepository,
+      ) => new AutomationRuleApplication(repository, membershipReader, jobs),
     },
     {
-      provide: UnconfiguredActionExecutor,
-      useFactory: () => new UnconfiguredActionExecutor(),
+      provide: AUTOMATION_OUTBOUND_DELIVERY,
+      useFactory: (): AutomationOutboundDelivery =>
+        new InMemoryAutomationDelivery(),
+    },
+    {
+      provide: LeadAutomationActionExecutor,
+      inject: [
+        LEAD_REPOSITORY,
+        PrismaAutomationRuleRepository,
+        AUTOMATION_OUTBOUND_DELIVERY,
+      ],
+      useFactory: (
+        leads: LeadRepository,
+        rules: SchedulerRuleReader,
+        delivery: AutomationOutboundDelivery,
+      ) => new LeadAutomationActionExecutor(leads, rules, delivery),
     },
     {
       provide: AutomationScheduler,
       inject: [
         PrismaAutomationJobRepository,
         PrismaAutomationRuleRepository,
-        UnconfiguredActionExecutor,
+        LeadAutomationActionExecutor,
       ],
       useFactory: (
         jobs: AutomationJobRepository,
@@ -99,6 +107,20 @@ class UnconfiguredActionExecutor implements AutomationActionPort {
         actionPort: AutomationActionPort,
       ) => new AutomationScheduler(jobs, rules, actionPort),
     },
+    {
+      provide: LeadAutomationCoordinator,
+      inject: [
+        AutomationScheduler,
+        PrismaAutomationRuleRepository,
+        LEAD_REPOSITORY,
+      ],
+      useFactory: (
+        scheduler: AutomationScheduler,
+        rules: SchedulerRuleReader,
+        leads: LeadRepository,
+      ) => new LeadAutomationCoordinator(scheduler, rules, leads),
+    },
   ],
+  exports: [AutomationScheduler, LeadAutomationCoordinator],
 })
 export class AutomationModule {}

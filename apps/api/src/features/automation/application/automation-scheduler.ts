@@ -201,6 +201,24 @@ export class AutomationScheduler {
     return result;
   }
 
+  /**
+   * One EF-302 scheduler tick: enqueue due schedule occurrences, then claim
+   * and execute due jobs through the API-owned action port.
+   */
+  async runTick(input: { now: Date; limit: number }): Promise<
+    Readonly<{
+      schedules: EvaluateSchedulesResult;
+      jobs: RunDueJobsResult;
+    }>
+  > {
+    const schedules = await this.evaluateScheduleTriggers({ now: input.now });
+    const jobs = await this.runDueJobs({
+      now: input.now,
+      limit: input.limit,
+    });
+    return { schedules, jobs };
+  }
+
   /** Failed-job visibility: typed last error, newest first, org-scoped. */
   async listFailedJobs(input: {
     organizationId: string;

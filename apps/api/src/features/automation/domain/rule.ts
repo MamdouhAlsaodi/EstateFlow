@@ -11,6 +11,9 @@
 export const AUTOMATION_TRIGGER_EVENT_TYPES = [
   "lead.created",
   "lead.stage_changed",
+  "lead.assignment_changed",
+  "lead.response_sla_breached",
+  "lead.inactivity_breached",
   "lead.next_action_missing",
   "receivable.due_soon",
   "receivable.overdue",

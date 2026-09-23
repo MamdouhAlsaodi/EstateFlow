@@ -2,6 +2,7 @@ import type {
   AutomationRule,
   AutomationRuleDefinition,
   AutomationRuleVersion,
+  AutomationTriggerEventType,
 } from "../domain/rule.js";
 
 export type AutomationRuleWithCurrentDefinition = Readonly<{
@@ -43,6 +44,10 @@ export interface AutomationRuleRepository {
   ): Promise<AutomationRuleWithCurrentDefinition | null>;
   /** Enabled rules whose current-version trigger is a SCHEDULE trigger. */
   listEnabledScheduleRules(): Promise<AutomationRuleWithCurrentDefinition[]>;
+  /** Enabled rules for one domain event; every result is tenant-scoped by its caller. */
+  listEnabledDomainEventRules(
+    eventType: AutomationTriggerEventType,
+  ): Promise<AutomationRuleWithCurrentDefinition[]>;
   createRule(input: {
     rule: AutomationRule;
     version: AutomationRuleVersion;
