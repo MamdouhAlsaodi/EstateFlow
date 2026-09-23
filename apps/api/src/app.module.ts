@@ -6,6 +6,7 @@ import { OrganizationModule } from "./features/organizations/organization.module
 import { LeadsModule } from "./features/leads/leads.module.js";
 import { PropertiesModule } from "./features/properties/properties.module.js";
 import { FinanceModule } from "./features/finance/finance.module.js";
+import { AutomationModule } from "./features/automation/automation.module.js";
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { FinanceModule } from "./features/finance/finance.module.js";
     LeadsModule,
     PropertiesModule,
     FinanceModule,
+    AutomationModule,
   ],
 })
 export class AppModule {}

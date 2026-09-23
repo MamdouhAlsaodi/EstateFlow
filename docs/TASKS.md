@@ -41,15 +41,15 @@ EF-700 Pilot hardening and launch
 
 ## Phase 1 tasks
 
-| Task   | Deliverable                                                                                        | Depends on                                     | Status                                                                                    |
-| ------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| EF-101 | Monorepo/workspace and tooling foundation                                                          | EF-007                                         | done                                                                                      |
-| EF-102 | Local/test infrastructure: isolated PostgreSQL/PostGIS, Redis, and safe test-database boundary     | EF-101                                         | done                                                                                      |
-| EF-103 | API bootstrap, configuration validation, health endpoints, error model, and observability baseline | EF-101, EF-102                                 | done                                                                                      |
-| EF-104 | Prisma/PostGIS migration baseline and integration-test harness                                     | EF-102, EF-103                                 | done                                                                                      |
-| EF-105 | Arabic-first web shell and design-system foundation                                                | EF-101                                         | done                                                                                      |
-| EF-106 | OpenAPI generation, typed API client, and contract-drift check                                     | EF-103                                         | done — independently verified after EF-106-C1 correction                                  |
-| EF-107 | CI and quality gates                                                                               | EF-101, EF-102, EF-103, EF-104, EF-105, EF-106 | done — local workflow contract independently verified; no remote run yet                  |
+| Task   | Deliverable                                                                                        | Depends on                                     | Status                                                                   |
+| ------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------ |
+| EF-101 | Monorepo/workspace and tooling foundation                                                          | EF-007                                         | done                                                                     |
+| EF-102 | Local/test infrastructure: isolated PostgreSQL/PostGIS, Redis, and safe test-database boundary     | EF-101                                         | done                                                                     |
+| EF-103 | API bootstrap, configuration validation, health endpoints, error model, and observability baseline | EF-101, EF-102                                 | done                                                                     |
+| EF-104 | Prisma/PostGIS migration baseline and integration-test harness                                     | EF-102, EF-103                                 | done                                                                     |
+| EF-105 | Arabic-first web shell and design-system foundation                                                | EF-101                                         | done                                                                     |
+| EF-106 | OpenAPI generation, typed API client, and contract-drift check                                     | EF-103                                         | done — independently verified after EF-106-C1 correction                 |
+| EF-107 | CI and quality gates                                                                               | EF-101, EF-102, EF-103, EF-104, EF-105, EF-106 | done — local workflow contract independently verified; no remote run yet |
 
 ## Phase 2 tasks
 
@@ -63,16 +63,16 @@ EF-700 Pilot hardening and launch
 | EF-231 | Chart of accounts and balanced journal posting                                   | EF-104                 |
 | EF-232 | Commission plan/accrual/payable workflow                                         | EF-203, EF-231         |
 | EF-233 | Invoice, receivable, partial payment, overdue status                             | EF-231                 |
-| EF-234 | Expense and campaign/property/deal dimensions                                    | EF-231                 | done — FIN-04 expenses implemented (see `docs/handoffs/EF-234/`) |
+| EF-234 | Expense and campaign/property/deal dimensions                                    | EF-231                 | done — FIN-04 expenses implemented (see `docs/handoffs/EF-234/`)                                              |
 | EF-235 | Owner finance dashboard and export                                               | EF-232, EF-233, EF-234 | done — FIN-05 owner dashboard implemented, read-only, export deferred to FIN-07 (see `docs/handoffs/EF-235/`) |
 
 ## Phase 3 tasks
 
 | Task   | Deliverable                                                  | Depends on             |
 | ------ | ------------------------------------------------------------ | ---------------------- |
-| EF-301 | Versioned Trigger/Condition/Action rule model                | EF-104                 |
-| EF-302 | Scheduler, idempotency, retry/backoff, failed-job visibility | EF-301, EF-104         |
-| EF-303 | Lead SLA and inactivity automations                          | EF-202, EF-302         |
+| EF-301 | Versioned Trigger/Condition/Action rule model                | EF-104                 | done — API-side versioned rules and guarded lifecycle             |
+| EF-302 | Scheduler, idempotency, retry/backoff, failed-job visibility | EF-301, EF-104         | done — durable callable scheduler; worker loop deferred to EF-303 |
+| EF-303 | Lead SLA and inactivity automations                          | EF-202, EF-302         | next                                                              |
 | EF-304 | Receivable and commission reminders                          | EF-232, EF-233, EF-302 |
 | EF-305 | Approval policy and notification templates                   | EF-302                 |
 
