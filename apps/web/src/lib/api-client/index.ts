@@ -4,6 +4,11 @@ import {
   type AutomationFailedJobsResponse,
   type AutomationRulesResponse,
 } from "../../features/automation/automation-contract";
+import type {
+  NotificationApprovalSummary,
+  NotificationSendSummary,
+  NotificationTemplateSummary,
+} from "../../features/automation/notification-contract";
 import { createReceivableAdapter, type ReceivableAdapter } from "./receivable";
 import {
   createCommissionAdapter,
@@ -154,6 +159,26 @@ export type ApiClient = Readonly<{
     organizationId: string;
     limit?: number;
   }): Promise<AutomationFailedJobsResponse>;
+  getNotificationTemplates(input: {
+    organizationId: string;
+  }): Promise<readonly NotificationTemplateSummary[]>;
+  getNotificationApprovals(input: {
+    organizationId: string;
+  }): Promise<readonly NotificationApprovalSummary[]>;
+  getNotificationSends(input: {
+    organizationId: string;
+  }): Promise<readonly NotificationSendSummary[]>;
+  approveNotification(input: {
+    organizationId: string;
+    approvalId: string;
+    csrfToken: string;
+  }): Promise<unknown>;
+  rejectNotification(input: {
+    organizationId: string;
+    approvalId: string;
+    reason: string;
+    csrfToken: string;
+  }): Promise<unknown>;
   createCommissionPlanVersion(
     context: Readonly<{ organizationId: string; csrfToken: string }>,
     input: CommissionPlanInput,
@@ -356,6 +381,33 @@ export function createApiClient(
       )
         .then(normalizeAutomationRules)
         .then(({ failedJobs }) => ({ jobs: failedJobs })),
+    getNotificationTemplates: ({ organizationId }) =>
+      request<readonly NotificationTemplateSummary[]>(
+        `/organizations/${encodeURIComponent(organizationId)}/notifications/templates`,
+      ),
+    getNotificationApprovals: ({ organizationId }) =>
+      request<readonly NotificationApprovalSummary[]>(
+        `/organizations/${encodeURIComponent(organizationId)}/notifications/approvals`,
+      ),
+    getNotificationSends: ({ organizationId }) =>
+      request<readonly NotificationSendSummary[]>(
+        `/organizations/${encodeURIComponent(organizationId)}/notifications/sends`,
+      ),
+    approveNotification: ({ organizationId, approvalId, csrfToken }) =>
+      request(
+        `/organizations/${encodeURIComponent(organizationId)}/notifications/approvals/${encodeURIComponent(approvalId)}/approve`,
+        { method: "POST", csrfToken, idempotencyKey: idempotencyKey() },
+      ),
+    rejectNotification: ({ organizationId, approvalId, reason, csrfToken }) =>
+      request(
+        `/organizations/${encodeURIComponent(organizationId)}/notifications/approvals/${encodeURIComponent(approvalId)}/reject`,
+        {
+          method: "POST",
+          csrfToken,
+          idempotencyKey: idempotencyKey(),
+          body: { reason },
+        },
+      ),
   };
 }
 

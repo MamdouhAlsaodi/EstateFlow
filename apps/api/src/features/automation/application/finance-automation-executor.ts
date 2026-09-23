@@ -65,6 +65,14 @@ export class FinanceAutomationActionExecutor implements AutomationActionPort {
         organizationId: target.organizationId,
         recipientUserId: target.recipientUserId,
         template,
+        variables: {
+          targetLabel:
+            job.targetType === "RECEIVABLE" ? "receivable" : "commission",
+          dueDate: target.dueAt.toISOString(),
+          ...(target.outstandingMinor === undefined
+            ? {}
+            : { amount: target.outstandingMinor.toString(10) }),
+        },
         idempotencyKey: `automation:${job.executionKey}`,
       });
       return { kind: "succeeded" };

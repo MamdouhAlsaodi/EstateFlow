@@ -205,7 +205,11 @@ test(
         clearTimeoutFn: clock.clearTimeoutFn,
       });
       worker.start();
-      const firstTimer = clock.timers.shift();
+      let firstTimer;
+      await waitFor(() => {
+        firstTimer = clock.timers.shift() ?? null;
+        return Promise.resolve(firstTimer !== null);
+      }, 2_000);
       assert.equal(firstTimer.delay, 0);
       firstTimer.callback();
       await waitFor(async () => {
@@ -224,7 +228,11 @@ test(
         }),
         1,
       );
-      const replayTimer = clock.timers.shift();
+      let replayTimer;
+      await waitFor(() => {
+        replayTimer = clock.timers.shift() ?? null;
+        return Promise.resolve(replayTimer !== null);
+      }, 2_000);
       assert.equal(replayTimer.delay, 10);
       replayTimer.callback();
       await new Promise((resolve) => globalThis.setTimeout(resolve, 20));
@@ -395,7 +403,11 @@ test(
         clearTimeoutFn: clock.clearTimeoutFn,
       });
       worker.start();
-      const firstTimer = clock.timers.shift();
+      let firstTimer;
+      await waitFor(() => {
+        firstTimer = clock.timers.shift() ?? null;
+        return Promise.resolve(firstTimer !== null);
+      }, 2_000);
       assert.equal(firstTimer.delay, 0);
       firstTimer.callback();
       const notificationCount = async () =>
@@ -407,7 +419,11 @@ test(
         )[0].count;
       await waitFor(async () => (await notificationCount()) === 1);
       assert.equal(await notificationCount(), 1);
-      const replayTimer = clock.timers.shift();
+      let replayTimer;
+      await waitFor(() => {
+        replayTimer = clock.timers.shift() ?? null;
+        return Promise.resolve(replayTimer !== null);
+      }, 2_000);
       assert.equal(replayTimer.delay, 10);
       replayTimer.callback();
       await new Promise((resolve) => globalThis.setTimeout(resolve, 20));

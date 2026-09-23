@@ -78,8 +78,9 @@ Property → customer inquiry → Lead → follow-up → viewing
 - EF-235 / FIN-05 — Owner-only read-only finance dashboard: cash-in/out, receivables aging (exact EF-233 bucket semantics), commissions due/paid/expected, revenue/margin by deal and by property, freshness timestamp on every payload, bounded tenant-scoped drill-down for every figure, exact OpenAPI + closed-world generated client, Arabic-first reports page, and a seeded report-to-ledger reconciliation test proving every figure equals the exact sum of its source rows including a cancellation period (CSV/PDF deferred to FIN-07): **PASS**. Evidence: `docs/handoffs/EF-235/EF-235-implementation-2026-09-23.md`.
 - EF-301 + EF-302 — versioned tenant-scoped automation rules, guarded Owner/Manager rule commands, durable idempotent jobs, bounded retry/backoff, typed failed-job visibility, and callable API-side scheduler: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-301/implementation.md` and `docs/handoffs/EF-302/implementation.md`.
 - EF-304 — receivable due-soon/overdue and commission-due rules, deterministic payment/paid-reset occurrences, durable fake-delivery-compatible in-app notifications, API-owned scheduler sweep, worker replay safety, and Arabic finance-job visibility: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-304/implementation.md`.
+- EF-305 — organization-scoped Arabic/English notification templates with immutable approved versions, Owner/Manager approval-gated sends, audited transitions, DST-safe quiet hours, recipient consent/opt-out suppression, in-app fake provider port, templated finance worker delivery, and Arabic notification visibility: **PASS within packet boundary**. Evidence: `docs/handoffs/EF-305/implementation.md`.
 
-EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, EF-235, EF-301, EF-302, and EF-304 are closed within their documented boundaries.
+EF-120, EF-121, EF-201, EF-202, EF-203, EF-231, EF-232, EF-233, EF-234, EF-235, EF-301, EF-302, EF-304, and EF-305 are closed within their documented boundaries.
 
 ## EF-120 authentication decision
 
@@ -120,7 +121,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-304 is CLOSED / PASS within this packet:** finance reminder rules, deterministic occurrence/reset semantics, durable internal notification delivery, the existing API-owned scheduler tick, thin worker wiring, replay-safe execution, and Arabic finance-job visibility are complete. The next product task is **EF-305 Approval policy and notification templates**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-301/implementation.md`, `docs/handoffs/EF-302/implementation.md`, `docs/handoffs/EF-303/implementation.md`, and `docs/handoffs/EF-304/implementation.md`.
+**EF-305 is CLOSED / PASS within this packet:** versioned bilingual notification templates, immutable approved content, audited Owner/Manager send approvals, DST-safe organization quiet hours, recipient consent/opt-out suppression, explicit provider port, templated finance worker delivery, and Arabic notification visibility are complete. The next product task is **EF-306 Automation UI**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-305/implementation.md`.
 
 Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 

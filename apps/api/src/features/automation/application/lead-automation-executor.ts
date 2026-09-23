@@ -17,6 +17,8 @@ export type AutomationNotification = Readonly<{
   recipientUserId: string;
   template: string;
   idempotencyKey: string;
+  locale?: "ar" | "en";
+  variables?: Readonly<Record<string, string>>;
 }>;
 
 export interface AutomationOutboundDelivery {
