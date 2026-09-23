@@ -51,3 +51,28 @@ export const contentStatusHints: Record<ContentStatus, string> = {
   PUBLISHED: "محتوى منشور غير قابل لأي تعديل أو حذف.",
   FAILED: "فشل النشر بسبب موثق؛ يمكن إعادته للمراجعة أو إنشاء نسخة منقحة.",
 };
+
+/**
+ * EF-403 — Arabic presentation for the generation flow: the missing-fact
+ * placeholders and the provenance stamp wording. Pure data so tests can
+ * assert the exact wording.
+ */
+
+import type { GenerationSlot } from "./content-contract";
+
+export const generationSlotLabels: Record<GenerationSlot, string> = {
+  PRICE: "السعر",
+  AREA: "المساحة",
+  BEDROOMS: "عدد الغرف",
+  BATHROOMS: "عدد الحمامات",
+};
+
+export const generationPanelIntro =
+  "توليد آلي مقيّد: تُقرأ بيانات العقار المسموحة فقط (النوع، العنوان، الاسم الوصفي) ولا تُخترع أسعار أو مساحات أو وعود قانونية؛ كل معلومة ناقصة تظهر كعنصر نائب مرئي مثل [PRICE].";
+
+export const generationProvenanceLabel = (
+  templateId: string,
+  templateVersion: number,
+  propertyVersion: number,
+): string =>
+  `مولّد من القالب ${templateId} (إصدار ${templateVersion}) من إصدار العقار ${propertyVersion}`;

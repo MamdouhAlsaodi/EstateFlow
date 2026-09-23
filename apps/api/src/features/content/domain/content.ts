@@ -141,6 +141,15 @@ export type ContentItem = Readonly<{
   approvedVersion?: number;
   /** Locked at approval; sha256 over the canonical content payload. */
   contentHash?: string;
+  /**
+   * EF-403 generation provenance: set together or not at all, exactly once at
+   * creation, never editable. Names the allowlisted property version and the
+   * deterministic template version the copy was rendered from.
+   */
+  sourcePropertyId?: string;
+  sourcePropertyVersion?: number;
+  generatedTemplateId?: string;
+  generatedTemplateVersion?: number;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -171,6 +180,10 @@ type CreateInput = Readonly<{
   title: string;
   body: string;
   channel: ContentChannel;
+  sourcePropertyId?: string;
+  sourcePropertyVersion?: number;
+  generatedTemplateId?: string;
+  generatedTemplateVersion?: number;
   createdBy: string;
   createdAt: Date;
 }>;
@@ -246,6 +259,54 @@ function variantNumberValue(value: number | undefined): number {
   return value;
 }
 
+function provenanceStampValue(input: {
+  sourcePropertyId?: string;
+  sourcePropertyVersion?: number;
+  generatedTemplateId?: string;
+  generatedTemplateVersion?: number;
+}): {
+  sourcePropertyId?: string;
+  sourcePropertyVersion?: number;
+  generatedTemplateId?: string;
+  generatedTemplateVersion?: number;
+} {
+  const provided = [
+    input.sourcePropertyId,
+    input.sourcePropertyVersion,
+    input.generatedTemplateId,
+    input.generatedTemplateVersion,
+  ].filter((value) => value !== undefined).length;
+  if (provided !== 0 && provided !== 4)
+    throw new ContentValidationError(
+      "Generation provenance requires all four fields together",
+    );
+  if (provided === 0) return {};
+  const versionValue = (value: number, field: string): number => {
+    if (!Number.isSafeInteger(value) || value < 1)
+      throw new ContentValidationError(`Invalid generation ${field}`);
+    return value;
+  };
+  return {
+    sourcePropertyId: identifier(
+      input.sourcePropertyId as string,
+      "source property",
+    ),
+    sourcePropertyVersion: versionValue(
+      input.sourcePropertyVersion as number,
+      "source property version",
+    ),
+    generatedTemplateId: text(
+      input.generatedTemplateId as string,
+      "generation template id",
+      100,
+    ),
+    generatedTemplateVersion: versionValue(
+      input.generatedTemplateVersion as number,
+      "template version",
+    ),
+  };
+}
+
 /**
  * Canonical content hash locked at approval: sha256 over the exact payload
  * that was reviewed, so EF-404 can re-verify nothing changed since approval.
@@ -292,6 +353,7 @@ export function createContentItem(input: CreateInput): ContentItem {
     body: text(input.body, "content body", CONTENT_BODY_MAX),
     channel: channelValue(input.channel),
     status: "IDEA" as const,
+    ...provenanceStampValue(input),
     createdBy: identifier(input.createdBy, "content actor"),
     createdAt: contentDate(input.createdAt, "content creation time"),
     updatedAt: contentDate(input.createdAt, "content creation time"),
@@ -465,6 +527,16 @@ export function createContentRevision(input: {
     ...(source.campaignId === undefined
       ? {}
       : { campaignId: source.campaignId }),
+    // The revision inherits the lineage generation stamp unchanged: it marks
+    // where the copy originally came from, never what the revision is.
+    ...(source.sourcePropertyId === undefined
+      ? {}
+      : {
+          sourcePropertyId: source.sourcePropertyId,
+          sourcePropertyVersion: source.sourcePropertyVersion,
+          generatedTemplateId: source.generatedTemplateId,
+          generatedTemplateVersion: source.generatedTemplateVersion,
+        }),
     createdBy: input.createdBy,
     createdAt: input.createdAt,
   });

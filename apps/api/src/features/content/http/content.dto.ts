@@ -183,6 +183,31 @@ export class ContentCalendarQueryDto {
   to!: string;
 }
 
+/** EF-403 — deterministic draft generation from an allowlisted projection. */
+export class GenerateContentDto {
+  @IsDefined()
+  @IsUUID()
+  propertyId!: string;
+
+  @IsDefined()
+  @IsString()
+  @IsIn(CONTENT_CHANNEL_VALUES)
+  channel!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ""
+      ? undefined
+      : typeof value === "string"
+        ? Number(value)
+        : value,
+  )
+  templateVersion?: number;
+}
+
 /** Bigint-safe (future-proof), UTC-safe JSON rendering for content responses. */
 export function contentResponse(value: unknown): unknown {
   if (typeof value === "bigint") return value.toString(10);

@@ -59,6 +59,10 @@ type ContentRow = {
   scheduledFor: Date | null;
   approvedVersion: number | null;
   contentHash: string | null;
+  sourcePropertyId: string | null;
+  sourcePropertyVersion: number | null;
+  generatedTemplateId: string | null;
+  generatedTemplateVersion: number | null;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -83,10 +87,42 @@ function mapItem(row: ContentRow): ContentItem {
       ? {}
       : { approvedVersion: row.approvedVersion }),
     ...(row.contentHash === null ? {} : { contentHash: row.contentHash }),
+    ...(row.sourcePropertyId === null
+      ? {}
+      : {
+          sourcePropertyId: row.sourcePropertyId,
+          sourcePropertyVersion: assertPositiveVersion(
+            row.sourcePropertyVersion,
+            "sourcePropertyVersion",
+          ),
+          generatedTemplateId: assertText(
+            row.generatedTemplateId,
+            "generatedTemplateId",
+          ),
+          generatedTemplateVersion: assertPositiveVersion(
+            row.generatedTemplateVersion,
+            "generatedTemplateVersion",
+          ),
+        }),
     createdBy: row.createdBy,
     createdAt: new Date(row.createdAt.getTime()),
     updatedAt: new Date(row.updatedAt.getTime()),
   });
+}
+
+function assertPositiveVersion(
+  value: number | null | undefined,
+  field: string,
+): number {
+  if (value === null || value === undefined || value < 1)
+    throw new RangeError(`Unexpected content ${field}`);
+  return value;
+}
+
+function assertText(value: string | null | undefined, field: string): string {
+  if (value === null || value === undefined || value.trim().length === 0)
+    throw new RangeError(`Unexpected content ${field}`);
+  return value;
 }
 
 function assertStatus(status: string): ContentStatus {
@@ -156,6 +192,10 @@ export class PrismaContentRepository implements ContentRepository {
         scheduledFor: item.scheduledFor ?? null,
         approvedVersion: item.approvedVersion ?? null,
         contentHash: item.contentHash ?? null,
+        sourcePropertyId: item.sourcePropertyId ?? null,
+        sourcePropertyVersion: item.sourcePropertyVersion ?? null,
+        generatedTemplateId: item.generatedTemplateId ?? null,
+        generatedTemplateVersion: item.generatedTemplateVersion ?? null,
         createdBy: item.createdBy,
         createdAt: item.createdAt,
         updatedAt: item.updatedAt,
@@ -325,7 +365,8 @@ export class PrismaContentRepository implements ContentRepository {
         SELECT "id", "organizationId", "campaignId", "rootContentId",
           "variantOfId", "variantNumber", "title", "body", "channel",
           "status", "scheduledFor", "approvedVersion", "contentHash",
-          "createdBy", "createdAt", "updatedAt"
+          "sourcePropertyId", "sourcePropertyVersion", "generatedTemplateId",
+          "generatedTemplateVersion", "createdBy", "createdAt", "updatedAt"
         FROM "ContentItem"
         WHERE "organizationId" = ${organizationId}::uuid
           AND COALESCE("rootContentId", "id") = ${
@@ -460,6 +501,11 @@ export class PrismaContentRepository implements ContentRepository {
           body: input.revision.body,
           channel: input.revision.channel,
           status: "DRAFT",
+          sourcePropertyId: input.revision.sourcePropertyId ?? null,
+          sourcePropertyVersion: input.revision.sourcePropertyVersion ?? null,
+          generatedTemplateId: input.revision.generatedTemplateId ?? null,
+          generatedTemplateVersion:
+            input.revision.generatedTemplateVersion ?? null,
           createdBy: input.revision.createdBy,
           createdAt: input.revision.createdAt,
           updatedAt: input.revision.createdAt,
@@ -467,5 +513,65 @@ export class PrismaContentRepository implements ContentRepository {
       });
       return mapItem(row);
     });
+  }
+
+  async createGeneratedDraft(input: {
+    item: ContentItem;
+    transition: ContentTransitionRecord;
+  }): Promise<ContentItem | null> {
+    try {
+      return await this.prisma.$transaction(async (tx: Db) => {
+        const row = await tx.contentItem.create({
+          data: {
+            id: input.item.id,
+            organizationId: input.item.organizationId,
+            campaignId: input.item.campaignId ?? null,
+            rootContentId: input.item.rootContentId ?? null,
+            variantOfId: input.item.variantOfId ?? null,
+            variantNumber: input.item.variantNumber,
+            title: input.item.title,
+            body: input.item.body,
+            channel: input.item.channel,
+            status: input.item.status,
+            scheduledFor: input.item.scheduledFor ?? null,
+            approvedVersion: input.item.approvedVersion ?? null,
+            contentHash: input.item.contentHash ?? null,
+            sourcePropertyId: input.item.sourcePropertyId ?? null,
+            sourcePropertyVersion: input.item.sourcePropertyVersion ?? null,
+            generatedTemplateId: input.item.generatedTemplateId ?? null,
+            generatedTemplateVersion:
+              input.item.generatedTemplateVersion ?? null,
+            createdBy: input.item.createdBy,
+            createdAt: input.item.createdAt,
+            updatedAt: input.item.updatedAt,
+          },
+        });
+        await tx.contentTransition.create({
+          data: {
+            id: input.transition.id,
+            organizationId: input.transition.organizationId,
+            contentItemId: input.transition.contentItemId,
+            fromStatus: input.transition.fromStatus,
+            toStatus: input.transition.toStatus,
+            reason: input.transition.reason ?? null,
+            failureKind: input.transition.failureKind ?? null,
+            version: input.transition.version ?? null,
+            contentHash: input.transition.contentHash ?? null,
+            actorId: input.transition.actorId,
+            createdAt: input.transition.createdAt,
+          },
+        });
+        return mapItem(row);
+      });
+    } catch (error) {
+      // A vanished tenant/property link mid-flight (composite FK violation)
+      // surfaces as a conflict, mirroring the other race-safe commands.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2003"
+      )
+        return null;
+      throw error;
+    }
   }
 }

@@ -7,7 +7,12 @@ import type {
   ContentMembershipReader,
   ContentRepository,
 } from "./application/content-repository.js";
+import {
+  GenerationApplication,
+  type PropertyProjectionReader,
+} from "./application/generation-application.js";
 import { PrismaContentRepository } from "./infrastructure/prisma-content.repository.js";
+import { PrismaPropertyProjectionReader } from "./infrastructure/prisma-property-projection.reader.js";
 import { ContentController } from "./http/content.controller.js";
 
 class PrismaContentMembershipReader implements ContentMembershipReader {
@@ -41,12 +46,36 @@ class PrismaContentMembershipReader implements ContentMembershipReader {
         new PrismaContentMembershipReader(prisma),
     },
     {
+      provide: PrismaPropertyProjectionReader,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): PropertyProjectionReader =>
+        new PrismaPropertyProjectionReader(prisma),
+    },
+    {
       provide: ContentApplication,
       inject: [PrismaContentRepository, PrismaContentMembershipReader],
       useFactory: (
         repository: ContentRepository,
         membershipReader: ContentMembershipReader,
       ) => new ContentApplication(repository, membershipReader),
+    },
+    {
+      provide: GenerationApplication,
+      inject: [
+        PrismaContentRepository,
+        PrismaContentMembershipReader,
+        PrismaPropertyProjectionReader,
+      ],
+      useFactory: (
+        repository: ContentRepository,
+        membershipReader: ContentMembershipReader,
+        projectionReader: PropertyProjectionReader,
+      ) =>
+        new GenerationApplication(
+          repository,
+          membershipReader,
+          projectionReader,
+        ),
     },
   ],
 })

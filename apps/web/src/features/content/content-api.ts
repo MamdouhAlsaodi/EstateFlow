@@ -4,10 +4,14 @@ import {
   normalizeCalendar,
   normalizeContentDetail,
   normalizeContentList,
+  normalizeGeneratedDraft,
+  normalizeGenerationTemplates,
   normalizeReviewQueue,
   type CalendarResponse,
   type ContentDetailResponse,
   type ContentListPage,
+  type GeneratedDraft,
+  type GenerationTemplatesResponse,
   type ReviewQueueResponse,
 } from "./content-contract";
 
@@ -181,5 +185,52 @@ export function createContentRevision(context: {
       `/organizations/${organizationId}/content/${contentItemId}/revisions`,
       { method: "POST", csrfToken: token, body: {} },
     ),
+  );
+}
+
+/**
+ * EF-403 — deterministic listing-to-content generation. Reads the channel
+ * template catalog, then generates a DRAFT from an allowlisted property
+ * projection; missing facts arrive as visible placeholders.
+ */
+export function fetchGenerationTemplates(context: {
+  organizationId: string;
+}): Promise<GenerationTemplatesResponse> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  return apiClient
+    .request(`/organizations/${organizationId}/content/generation-templates`)
+    .then(normalizeGenerationTemplates);
+}
+
+export type ContentGenerateInput = Readonly<{
+  propertyId: string;
+  channel: string;
+  templateVersion?: number;
+}>;
+
+export function generateContentDraft(
+  context: { organizationId: string },
+  input: ContentGenerateInput,
+): Promise<GeneratedDraft> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  const propertyId = assertUuid("property id", input.propertyId);
+  const body: Record<string, unknown> = {
+    propertyId,
+    channel: input.channel,
+  };
+  if (
+    input.templateVersion !== undefined &&
+    Number.isSafeInteger(input.templateVersion) &&
+    input.templateVersion >= 1
+  )
+    body.templateVersion = input.templateVersion;
+  return csrfToken().then((token) =>
+    apiClient
+      .request(`/organizations/${organizationId}/content/generate`, {
+        method: "POST",
+        csrfToken: token,
+        body,
+      })
+      .then(normalizeGeneratedDraft),
   );
 }
