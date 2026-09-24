@@ -122,6 +122,20 @@
   width: 100%;
 }
 
+.publishingTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-3);
+  margin-top: var(--ef-space-4);
+}
+
+.failureNote {
+  color: #b3423a;
+  display: inline-block;
+  max-width: 20rem;
+  white-space: normal;
+}
+
 .tableWrap table {
   border-collapse: collapse;
   font-size: 0.92rem;

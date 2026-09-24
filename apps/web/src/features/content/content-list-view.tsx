@@ -112,6 +112,12 @@ export function ContentListView() {
           >
             تقويم النشر
           </Link>
+          <Link
+            className="button button-secondary"
+            href={`/ar/organizations/${organizationId}/content/publishing`}
+          >
+            تسليمات ونتائج النشر
+          </Link>
           <button
             className="button button-secondary"
             type="button"

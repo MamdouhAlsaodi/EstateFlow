@@ -24,6 +24,7 @@ import type {
   ContentTransitionCommandResult,
   ReviewQueueEntry,
 } from "./content-repository.js";
+import type { PublishingOccurrenceScheduler } from "./publishing-application.js";
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -89,6 +90,8 @@ export class ContentApplication {
   constructor(
     private readonly repository: ContentRepository,
     private readonly membershipReader: ContentMembershipReader,
+    /** EF-404 occurrence source; attached when the publishing module is wired. */
+    private readonly publishing?: PublishingOccurrenceScheduler,
   ) {}
 
   async createContentItem(
@@ -217,6 +220,17 @@ export class ContentApplication {
       ...(input.scheduledFor === undefined
         ? {}
         : { scheduledFor: input.scheduledFor }),
+      // EF-404: the durable publish occurrence is born in the SAME
+      // transaction as the SCHEDULED transition, so a crash between the two
+      // can never leave a scheduled item without its occurrence.
+      ...(input.toStatus === "SCHEDULED" && this.publishing !== undefined
+        ? {
+            publishJob: this.publishing.prepareOccurrence({
+              item: transitioned.item,
+              at: input.at,
+            }),
+          }
+        : {}),
     });
     if (!recorded)
       return { kind: "conflict", reason: "content-state-conflict" };

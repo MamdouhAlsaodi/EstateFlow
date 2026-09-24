@@ -372,3 +372,162 @@ export const limitParameter = { type: "integer", minimum: 1, maximum: 100 };
 export const calendarFromParameter = utcInstantProperty;
 export const calendarToParameter = utcInstantProperty;
 export const statusParameter = contentStatusSchema;
+
+// ---------------------------------------------------------------------------
+// EF-404 — publishing adapters: upcoming deliveries, publish results, cancel
+// ---------------------------------------------------------------------------
+
+const publishJobOpenStatusSchema = {
+  type: "string",
+  enum: ["QUEUED", "RETRYING"],
+};
+
+const publishOutcomeSchema = {
+  type: "string",
+  enum: ["DELIVERED", "FAILED", "CANCELLED"],
+};
+
+const upcomingDeliverySchema = {
+  type: "object",
+  required: [
+    "contentItemId",
+    "publishJobId",
+    "title",
+    "channel",
+    "variantNumber",
+    "approvedVersion",
+    "scheduledFor",
+    "jobStatus",
+    "attemptCount",
+    "maxAttempts",
+    "nextAttemptAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    contentItemId: uuidParameter,
+    publishJobId: uuidParameter,
+    title: { type: "string", minLength: 1, maxLength: 200 },
+    channel: contentChannelSchema,
+    variantNumber: { type: "integer", minimum: 1 },
+    approvedVersion: { type: "integer", minimum: 1 },
+    scheduledFor: utcInstantProperty,
+    jobStatus: publishJobOpenStatusSchema,
+    attemptCount: { type: "integer", minimum: 0 },
+    maxAttempts: { type: "integer", minimum: 1, maximum: 10 },
+    nextAttemptAt: utcInstantProperty,
+    lastErrorKind: contentFailureKindSchema,
+    lastErrorMessage: { type: "string", minLength: 1, maxLength: 500 },
+  },
+};
+
+const publishResultSchema = {
+  type: "object",
+  required: [
+    "contentItemId",
+    "title",
+    "channel",
+    "approvedVersion",
+    "outcome",
+    "completedAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    contentItemId: uuidParameter,
+    title: { type: "string", minLength: 1, maxLength: 200 },
+    channel: contentChannelSchema,
+    approvedVersion: { type: "integer", minimum: 1 },
+    outcome: publishOutcomeSchema,
+    failureKind: contentFailureKindSchema,
+    reason: { type: "string", minLength: 1, maxLength: 500 },
+    providerMessageId: {
+      type: "string",
+      minLength: 1,
+      maxLength: 200,
+    },
+    completedAt: utcInstantProperty,
+  },
+};
+
+export const scheduledDeliveriesResponse = {
+  type: "object",
+  required: ["items"],
+  additionalProperties: false,
+  properties: { items: { type: "array", items: upcomingDeliverySchema } },
+};
+
+export const publishResultsResponse = {
+  type: "object",
+  required: ["items"],
+  additionalProperties: false,
+  properties: { items: { type: "array", items: publishResultSchema } },
+};
+
+export const cancelPublishingBody = {
+  type: "object",
+  required: ["reason"],
+  additionalProperties: false,
+  description:
+    "Cancels the open publish occurrence and marks the scheduled item failed (SCHEDULE_MISSED) so it can re-enter review. After delivery the published item is immutable and the cancel is typed-rejected.",
+  properties: { reason: optionalText(500) },
+};
+
+const cancelledPublishJobSchema = {
+  type: "object",
+  required: [
+    "id",
+    "organizationId",
+    "contentItemId",
+    "approvedVersion",
+    "channel",
+    "scheduledFor",
+    "contentHash",
+    "executionKey",
+    "status",
+    "attemptCount",
+    "maxAttempts",
+    "nextAttemptAt",
+    "createdAt",
+    "updatedAt",
+  ],
+  additionalProperties: false,
+  properties: {
+    id: uuidParameter,
+    organizationId: uuidParameter,
+    contentItemId: uuidParameter,
+    approvedVersion: { type: "integer", minimum: 1 },
+    channel: contentChannelSchema,
+    scheduledFor: utcInstantProperty,
+    contentHash: { type: "string", minLength: 64, maxLength: 64 },
+    executionKey: { type: "string", minLength: 64, maxLength: 64 },
+    status: {
+      type: "string",
+      enum: [
+        "QUEUED",
+        "RUNNING",
+        "RETRYING",
+        "DELIVERED",
+        "FAILED",
+        "CANCELLED",
+      ],
+    },
+    attemptCount: { type: "integer", minimum: 0 },
+    maxAttempts: { type: "integer", minimum: 1, maximum: 10 },
+    nextAttemptAt: utcInstantProperty,
+    lastErrorKind: contentFailureKindSchema,
+    lastErrorMessage: { type: "string", minLength: 1, maxLength: 500 },
+    startedAt: utcInstantProperty,
+    completedAt: utcInstantProperty,
+    createdAt: utcInstantProperty,
+    updatedAt: utcInstantProperty,
+  },
+};
+
+export const cancelPublishingResponse = {
+  type: "object",
+  required: ["job", "transition"],
+  additionalProperties: false,
+  properties: {
+    job: cancelledPublishJobSchema,
+    transition: contentTransitionSchema,
+  },
+};

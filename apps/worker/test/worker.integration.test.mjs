@@ -390,6 +390,17 @@ test(
         ).kind,
         "enabled",
       );
+      await prisma.$executeRaw`
+        INSERT INTO "NotificationDeliveryPolicy"
+          ("organizationId", "timeZone", "quietStart", "quietEnd", "updatedBy")
+        VALUES
+          (${ids.organizationId}::uuid, 'UTC', '12:00', '12:01', ${ids.ownerId}::uuid)
+        ON CONFLICT ("organizationId") DO UPDATE
+          SET "timeZone" = EXCLUDED."timeZone",
+              "quietStart" = EXCLUDED."quietStart",
+              "quietEnd" = EXCLUDED."quietEnd",
+              "updatedBy" = EXCLUDED."updatedBy"
+      `;
       await seedApp.close();
       seedApp = undefined;
 
