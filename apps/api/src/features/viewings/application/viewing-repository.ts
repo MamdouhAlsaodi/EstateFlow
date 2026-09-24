@@ -29,9 +29,15 @@ export type ViewingPage = Readonly<{
   items: readonly Viewing[];
   nextCursor: string | null;
 }>;
+export type UpcomingViewingReminder = Readonly<{
+  kind: "REMINDER_24H" | "REMINDER_1H" | "OUTCOME_REQUEST";
+  scheduledFor: Date;
+  occurrenceKey: string;
+}>;
 export type ViewingDetail = Readonly<{
   viewing: Viewing;
   transitions: readonly ViewingTransition[];
+  upcomingReminders?: readonly UpcomingViewingReminder[];
 }>;
 
 export interface ViewingRepository {

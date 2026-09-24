@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import { fetchViewings, requestViewing, viewingAction } from "./viewing-api";
 import type { Viewing, ViewingPage } from "./viewing-contract";
@@ -221,6 +222,12 @@ function ViewingCard({
         العميل: <b dir="ltr">{viewing.leadId}</b>
       </span>
       <div className={styles.actions}>
+        <Link
+          className="button button-secondary"
+          href={`/ar/organizations/${organizationId}/viewings/${viewing.id}`}
+        >
+          تفاصيل والتذكيرات
+        </Link>
         {actions.map((item) => (
           <button
             className="button button-secondary"

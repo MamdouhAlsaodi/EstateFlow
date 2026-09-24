@@ -18,6 +18,7 @@ import {
 import type { AutomationJobRepository } from "./job-repository.js";
 import { defaultLeadAutomationRules } from "../domain/lead-automation.js";
 import { defaultFinanceReminderRules } from "../domain/finance-reminder.js";
+import { defaultViewingAutomationRules } from "../domain/viewing-automation.js";
 import type {
   AddRuleVersionConflictReason,
   AutomationRuleRepository,
@@ -164,6 +165,27 @@ export class AutomationRuleApplication {
     if (access.kind !== "authorized") return { kind: "access-denied" };
     let created = 0;
     for (const starter of defaultFinanceReminderRules()) {
+      const result = await this.createRule({
+        ...input,
+        ruleId: crypto.randomUUID(),
+        name: starter.name,
+        definition: starter.definition,
+      });
+      if (result.kind === "created") created += 1;
+    }
+    return { kind: "seeded", created };
+  }
+
+  async seedViewingAutomationDefaults(
+    input: CommandBase & { createdAt: Date },
+  ): Promise<
+    | Readonly<{ kind: "seeded"; created: number }>
+    | Readonly<{ kind: "access-denied" }>
+  > {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return { kind: "access-denied" };
+    let created = 0;
+    for (const starter of defaultViewingAutomationRules()) {
       const result = await this.createRule({
         ...input,
         ruleId: crypto.randomUUID(),

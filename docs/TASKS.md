@@ -91,8 +91,8 @@ EF-700 Pilot hardening and launch
 
 | Task   | Deliverable                                              | Depends on                |
 | ------ | -------------------------------------------------------- | ------------------------- |
-| EF-501 | Viewing availability and DB exclusion constraint         | EF-201, EF-202, EF-104    | done — weekly broker availability/exceptions, audited lifecycle, PostgreSQL confirmed-interval exclusion, typed conflict mapping, Arabic weekly view, and isolated race/DST proof (`docs/handoffs/EF-501/implementation.md`) |
-| EF-502 | Viewing reminders and outcome automation                 | EF-501, EF-302            |
+| EF-501 | Viewing availability and DB exclusion constraint         | EF-201, EF-202, EF-104    | done — weekly broker availability/exceptions, audited lifecycle, PostgreSQL confirmed-interval exclusion, typed conflict mapping, Arabic weekly view, and isolated race/DST proof (`docs/handoffs/EF-501/implementation.md`)                                                                                                                        |
+| EF-502 | Viewing reminders and outcome automation                 | EF-501, EF-302            | done — deterministic 24h/1h occurrences through the existing scheduler tick, reschedule/cancel reset semantics, EF-305 in-app delivery fallback, outcome request, idempotent follow-up task, suggested-only Lead transition, Arabic viewing detail reminders, and isolated worker exactly-once proof (see `docs/handoffs/EF-502/implementation.md`) |
 | EF-510 | Geo search, filters, radius/polygon, clustering          | EF-201, EF-104            |
 | EF-601 | Async media worker and processing states                 | EF-201, EF-302            |
 | EF-610 | Contract generation, sequential signing, immutable audit | EF-203, EF-104            |

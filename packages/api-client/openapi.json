@@ -813,7 +813,10 @@
                                   "lead.next_action_missing",
                                   "receivable.due_soon",
                                   "receivable.overdue",
-                                  "commission.due"
+                                  "commission.due",
+                                  "viewing.reminder_24h",
+                                  "viewing.reminder_1h",
+                                  "viewing.outcome_requested"
                                 ]
                               }
                             }
@@ -899,7 +902,8 @@
                             "enum": [
                               "CREATE_LEAD_TASK",
                               "CREATE_INTERNAL_NOTIFICATION",
-                              "ADD_LEAD_TIMELINE_NOTE"
+                              "ADD_LEAD_TIMELINE_NOTE",
+                              "CREATE_VIEWING_FOLLOW_UP"
                             ]
                           },
                           "payload": {
@@ -1012,7 +1016,10 @@
                                           "lead.next_action_missing",
                                           "receivable.due_soon",
                                           "receivable.overdue",
-                                          "commission.due"
+                                          "commission.due",
+                                          "viewing.reminder_24h",
+                                          "viewing.reminder_1h",
+                                          "viewing.outcome_requested"
                                         ]
                                       }
                                     }
@@ -1102,7 +1109,8 @@
                                     "enum": [
                                       "CREATE_LEAD_TASK",
                                       "CREATE_INTERNAL_NOTIFICATION",
-                                      "ADD_LEAD_TIMELINE_NOTE"
+                                      "ADD_LEAD_TIMELINE_NOTE",
+                                      "CREATE_VIEWING_FOLLOW_UP"
                                     ]
                                   },
                                   "payload": {
@@ -1321,7 +1329,10 @@
                                   "lead.next_action_missing",
                                   "receivable.due_soon",
                                   "receivable.overdue",
-                                  "commission.due"
+                                  "commission.due",
+                                  "viewing.reminder_24h",
+                                  "viewing.reminder_1h",
+                                  "viewing.outcome_requested"
                                 ]
                               }
                             }
@@ -1407,7 +1418,8 @@
                             "enum": [
                               "CREATE_LEAD_TASK",
                               "CREATE_INTERNAL_NOTIFICATION",
-                              "ADD_LEAD_TIMELINE_NOTE"
+                              "ADD_LEAD_TIMELINE_NOTE",
+                              "CREATE_VIEWING_FOLLOW_UP"
                             ]
                           },
                           "payload": {
@@ -1586,7 +1598,10 @@
                                         "lead.next_action_missing",
                                         "receivable.due_soon",
                                         "receivable.overdue",
-                                        "commission.due"
+                                        "commission.due",
+                                        "viewing.reminder_24h",
+                                        "viewing.reminder_1h",
+                                        "viewing.outcome_requested"
                                       ]
                                     }
                                   }
@@ -1676,7 +1691,8 @@
                                   "enum": [
                                     "CREATE_LEAD_TASK",
                                     "CREATE_INTERNAL_NOTIFICATION",
-                                    "ADD_LEAD_TIMELINE_NOTE"
+                                    "ADD_LEAD_TIMELINE_NOTE",
+                                    "CREATE_VIEWING_FOLLOW_UP"
                                   ]
                                 },
                                 "payload": {
@@ -1739,7 +1755,10 @@
                                           "lead.next_action_missing",
                                           "receivable.due_soon",
                                           "receivable.overdue",
-                                          "commission.due"
+                                          "commission.due",
+                                          "viewing.reminder_24h",
+                                          "viewing.reminder_1h",
+                                          "viewing.outcome_requested"
                                         ]
                                       }
                                     }
@@ -1829,7 +1848,8 @@
                                     "enum": [
                                       "CREATE_LEAD_TASK",
                                       "CREATE_INTERNAL_NOTIFICATION",
-                                      "ADD_LEAD_TIMELINE_NOTE"
+                                      "ADD_LEAD_TIMELINE_NOTE",
+                                      "CREATE_VIEWING_FOLLOW_UP"
                                     ]
                                   },
                                   "payload": {
@@ -1944,7 +1964,10 @@
                               "lead.next_action_missing",
                               "receivable.due_soon",
                               "receivable.overdue",
-                              "commission.due"
+                              "commission.due",
+                              "viewing.reminder_24h",
+                              "viewing.reminder_1h",
+                              "viewing.outcome_requested"
                             ],
                             "nullable": true
                           },
@@ -1953,7 +1976,8 @@
                             "enum": [
                               "CREATE_LEAD_TASK",
                               "CREATE_INTERNAL_NOTIFICATION",
-                              "ADD_LEAD_TIMELINE_NOTE"
+                              "ADD_LEAD_TIMELINE_NOTE",
+                              "CREATE_VIEWING_FOLLOW_UP"
                             ]
                           },
                           "targetType": {
@@ -2122,7 +2146,10 @@
                               "lead.next_action_missing",
                               "receivable.due_soon",
                               "receivable.overdue",
-                              "commission.due"
+                              "commission.due",
+                              "viewing.reminder_24h",
+                              "viewing.reminder_1h",
+                              "viewing.outcome_requested"
                             ],
                             "nullable": true
                           },
@@ -2131,7 +2158,8 @@
                             "enum": [
                               "CREATE_LEAD_TASK",
                               "CREATE_INTERNAL_NOTIFICATION",
-                              "ADD_LEAD_TIMELINE_NOTE"
+                              "ADD_LEAD_TIMELINE_NOTE",
+                              "CREATE_VIEWING_FOLLOW_UP"
                             ]
                           },
                           "targetType": {
@@ -2298,7 +2326,10 @@
                             "lead.next_action_missing",
                             "receivable.due_soon",
                             "receivable.overdue",
-                            "commission.due"
+                            "commission.due",
+                            "viewing.reminder_24h",
+                            "viewing.reminder_1h",
+                            "viewing.outcome_requested"
                           ],
                           "nullable": true
                         },
@@ -2307,7 +2338,8 @@
                           "enum": [
                             "CREATE_LEAD_TASK",
                             "CREATE_INTERNAL_NOTIFICATION",
-                            "ADD_LEAD_TIMELINE_NOTE"
+                            "ADD_LEAD_TIMELINE_NOTE",
+                            "CREATE_VIEWING_FOLLOW_UP"
                           ]
                         },
                         "targetType": {
@@ -2473,7 +2505,10 @@
                             "lead.next_action_missing",
                             "receivable.due_soon",
                             "receivable.overdue",
-                            "commission.due"
+                            "commission.due",
+                            "viewing.reminder_24h",
+                            "viewing.reminder_1h",
+                            "viewing.outcome_requested"
                           ],
                           "nullable": true
                         },
@@ -2482,7 +2517,8 @@
                           "enum": [
                             "CREATE_LEAD_TASK",
                             "CREATE_INTERNAL_NOTIFICATION",
-                            "ADD_LEAD_TIMELINE_NOTE"
+                            "ADD_LEAD_TIMELINE_NOTE",
+                            "CREATE_VIEWING_FOLLOW_UP"
                           ]
                         },
                         "targetType": {
@@ -2649,7 +2685,10 @@
                             "lead.next_action_missing",
                             "receivable.due_soon",
                             "receivable.overdue",
-                            "commission.due"
+                            "commission.due",
+                            "viewing.reminder_24h",
+                            "viewing.reminder_1h",
+                            "viewing.outcome_requested"
                           ],
                           "nullable": true
                         },
@@ -2658,7 +2697,8 @@
                           "enum": [
                             "CREATE_LEAD_TASK",
                             "CREATE_INTERNAL_NOTIFICATION",
-                            "ADD_LEAD_TIMELINE_NOTE"
+                            "ADD_LEAD_TIMELINE_NOTE",
+                            "CREATE_VIEWING_FOLLOW_UP"
                           ]
                         },
                         "targetType": {

@@ -18,6 +18,9 @@ export const AUTOMATION_TRIGGER_EVENT_TYPES = [
   "receivable.due_soon",
   "receivable.overdue",
   "commission.due",
+  "viewing.reminder_24h",
+  "viewing.reminder_1h",
+  "viewing.outcome_requested",
 ] as const;
 export type AutomationTriggerEventType =
   (typeof AUTOMATION_TRIGGER_EVENT_TYPES)[number];
@@ -59,6 +62,7 @@ export const AUTOMATION_ACTION_TYPES = [
   "CREATE_LEAD_TASK",
   "CREATE_INTERNAL_NOTIFICATION",
   "ADD_LEAD_TIMELINE_NOTE",
+  "CREATE_VIEWING_FOLLOW_UP",
 ] as const;
 export type AutomationActionType = (typeof AUTOMATION_ACTION_TYPES)[number];
 
