@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { labelFromKey, useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type {
   CampaignAnalyticsResponse,
@@ -35,6 +36,7 @@ import styles from "./campaign-views.module.css";
 export function CampaignDetailView({
   campaignId,
 }: Readonly<{ campaignId: string }>) {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [detail, setDetail] = useState<CampaignDetailResponse | null>(null);
   const [analytics, setAnalytics] = useState<CampaignAnalyticsResponse | null>(
@@ -62,7 +64,7 @@ export function CampaignDetailView({
       setEntries(entryPage.items);
       setAnalytics(analyticsPage);
     } catch {
-      setError("تعذر تحميل الحملة من الخادم.");
+      setError(t("campaigns.detail.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -76,7 +78,7 @@ export function CampaignDetailView({
       await operation();
       await refresh();
     } catch {
-      setError("تعذر تنفيذ الأمر. تحقق من الصلاحيات والبيانات ثم حاول مجددًا.");
+      setError(t("campaigns.detail.actionFailed"));
     } finally {
       setPending(false);
     }
@@ -92,7 +94,7 @@ export function CampaignDetailView({
       });
       setAttribution(result.attribution);
     } catch {
-      setError("تعذر جلب إسناد العميل. تحقق من المعرّف.");
+      setError(t("campaigns.detail.attributionLookupFailed"));
     }
   }
 
@@ -104,9 +106,9 @@ export function CampaignDetailView({
   return (
     <div className="workspace-stack">
       <section aria-labelledby="campaign-detail-title">
-        <p className="eyebrow">EF-401 — تفاصيل الحملة</p>
+        <p className="eyebrow">{t("campaigns.detail.eyebrow")}</p>
         <h1 id="campaign-detail-title">
-          {campaign ? campaign.name : "تفاصيل الحملة"}
+          {campaign ? campaign.name : t("campaigns.detail.fallbackTitle")}
         </h1>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <button
@@ -115,7 +117,9 @@ export function CampaignDetailView({
             onClick={() => void refresh()}
             disabled={loading || pending}
           >
-            {loading ? "جارٍ التحميل…" : "تحديث"}
+            {loading
+              ? t("campaigns.detail.loading")
+              : t("campaigns.detail.refresh")}
           </button>
         </div>
         {error && (
@@ -126,15 +130,21 @@ export function CampaignDetailView({
       </section>
 
       {!campaign ? (
-        <p>اضغط «تحديث» لعرض الحملة.</p>
+        <p>{t("campaigns.detail.pressRefresh")}</p>
       ) : (
         <div className={styles.grid}>
           <section className={styles.panel} aria-labelledby="budget-title">
-            <h2 id="budget-title">الميزانية</h2>
+            <h2 id="budget-title">{t("campaigns.detail.budgetTitle")}</h2>
             <p>
               <StatusChip status={campaign.status} />{" "}
               <span>
-                {campaignChannelLabels[campaign.channel]} — {campaign.objective}
+                {labelFromKey(
+                  campaignChannelLabels,
+                  t,
+                  campaign.channel,
+                  campaign.channel,
+                )}{" "}
+                — {campaign.objective}
               </span>
             </p>
             <BudgetProgressBar
@@ -145,12 +155,14 @@ export function CampaignDetailView({
             {detail && detail.actualByCurrency.length > 0 && (
               <div className={styles.tableWrap}>
                 <table>
-                  <caption>المصروفات المعتمدة حسب العملة</caption>
+                  <caption>
+                    {t("campaigns.detail.spendByCurrencyCaption")}
+                  </caption>
                   <thead>
                     <tr>
-                      <th>العملة</th>
-                      <th>عدد المصروفات</th>
-                      <th>الإجمالي</th>
+                      <th>{t("campaigns.detail.thCurrency")}</th>
+                      <th>{t("campaigns.detail.thExpenseCount")}</th>
+                      <th>{t("campaigns.detail.thTotal")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -168,7 +180,7 @@ export function CampaignDetailView({
             {campaign.status !== "CANCELLED" && (
               <div className={styles.formGrid}>
                 <label>
-                  ميزانية مصححة (أصغر وحدة)
+                  {t("campaigns.detail.correctedBudgetLabel")}
                   <input
                     value={correctedMinor}
                     onChange={(event) => setCorrectedMinor(event.target.value)}
@@ -176,7 +188,7 @@ export function CampaignDetailView({
                   />
                 </label>
                 <label>
-                  سبب التصحيح (إلزامي)
+                  {t("campaigns.detail.reasonLabel")}
                   <input
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
@@ -200,13 +212,13 @@ export function CampaignDetailView({
                   )
                 }
               >
-                تسجيل تصحيح ميزانية
+                {t("campaigns.detail.correctBudget")}
               </button>
             )}
           </section>
 
           <section className={styles.panel} aria-labelledby="analytics-title">
-            <h2 id="analytics-title">تحليلات الحملة</h2>
+            <h2 id="analytics-title">{t("campaigns.detail.analyticsTitle")}</h2>
             {analytics && (
               <>
                 <BudgetProgressBar
@@ -223,35 +235,35 @@ export function CampaignDetailView({
                 />
                 <div className={styles.analyticsGrid}>
                   <div>
-                    <strong>اللمسات</strong>
+                    <strong>{t("campaigns.detail.touches")}</strong>
                     <p>{analytics.analytics.touchCount}</p>
                   </div>
                   <div>
-                    <strong>أول لمسة</strong>
+                    <strong>{t("campaigns.detail.firstTouch")}</strong>
                     <p>
-                      {analytics.analytics.attribution.firstTouchLeadCount}{" "}
-                      عملاء /{" "}
-                      {
-                        analytics.analytics.attribution
-                          .firstTouchQualifiedLeadCount
-                      }{" "}
-                      مؤهل
+                      {t("campaigns.detail.leadsPerQualified", {
+                        leads:
+                          analytics.analytics.attribution.firstTouchLeadCount,
+                        qualified:
+                          analytics.analytics.attribution
+                            .firstTouchQualifiedLeadCount,
+                      })}
                     </p>
                   </div>
                   <div>
-                    <strong>آخر لمسة</strong>
+                    <strong>{t("campaigns.detail.lastTouch")}</strong>
                     <p>
-                      {analytics.analytics.attribution.lastTouchLeadCount} عملاء
-                      /{" "}
-                      {
-                        analytics.analytics.attribution
-                          .lastTouchQualifiedLeadCount
-                      }{" "}
-                      مؤهل
+                      {t("campaigns.detail.leadsPerQualified", {
+                        leads:
+                          analytics.analytics.attribution.lastTouchLeadCount,
+                        qualified:
+                          analytics.analytics.attribution
+                            .lastTouchQualifiedLeadCount,
+                      })}
                     </p>
                   </div>
                   <div>
-                    <strong>الفوز المنسوب</strong>
+                    <strong>{t("campaigns.detail.attributedWins")}</strong>
                     <p>
                       {analytics.analytics.attribution.firstTouchWinCount} /{" "}
                       {analytics.analytics.attribution.lastTouchWinCount}
@@ -261,22 +273,33 @@ export function CampaignDetailView({
                 <ul className={styles.analyticsChannels}>
                   {analytics.analytics.publishedContent.map((item) => (
                     <li key={item.channel}>
-                      منشور {item.channel}: <strong>{item.count}</strong>
+                      {t("campaigns.detail.publishedByChannel", {
+                        channel: item.channel,
+                      })}{" "}
+                      <strong>{item.count}</strong>
                     </li>
                   ))}
                 </ul>
                 <p className={styles.muted}>
-                  تحديث البيانات: <span dir="ltr">{analytics.asOf}</span>
+                  {t("campaigns.detail.dataUpdatedPrefix")}{" "}
+                  <span dir="ltr">{analytics.asOf}</span>
                 </p>
               </>
             )}
           </section>
 
           <section className={styles.panel} aria-labelledby="lifecycle-title">
-            <h2 id="lifecycle-title">دورة الحياة</h2>
+            <h2 id="lifecycle-title">{t("campaigns.detail.lifecycleTitle")}</h2>
             <p>
-              الحالة الحالية:{" "}
-              <strong>{campaignStatusLabels[campaign.status]}</strong>
+              {t("campaigns.detail.currentStatusPrefix")}{" "}
+              <strong>
+                {labelFromKey(
+                  campaignStatusLabels,
+                  t,
+                  campaign.status,
+                  campaign.status,
+                )}
+              </strong>
             </p>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               {campaign.status === "DRAFT" && (
@@ -294,7 +317,7 @@ export function CampaignDetailView({
                     )
                   }
                 >
-                  تنشيط
+                  {t("campaigns.detail.activate")}
                 </button>
               )}
               {campaign.status === "ACTIVE" && (
@@ -312,7 +335,7 @@ export function CampaignDetailView({
                     )
                   }
                 >
-                  إكمال
+                  {t("campaigns.detail.complete")}
                 </button>
               )}
               {(campaign.status === "DRAFT" ||
@@ -321,7 +344,7 @@ export function CampaignDetailView({
                   className="button button-secondary"
                   type="button"
                   disabled={pending || reason.trim().length === 0}
-                  title="الإلغاء يتطلب سببًا مكتوبًا أعلاه"
+                  title={t("campaigns.detail.cancelRequiresReason")}
                   onClick={() =>
                     void act(() =>
                       transitionCampaign({
@@ -333,7 +356,7 @@ export function CampaignDetailView({
                     )
                   }
                 >
-                  إلغاء (بسبب إلزامي)
+                  {t("campaigns.detail.cancel")}
                 </button>
               )}
             </div>
@@ -349,8 +372,19 @@ export function CampaignDetailView({
               >
                 {detail.transitions.map((transition) => (
                   <li key={transition.id}>
-                    {campaignStatusLabels[transition.fromStatus]} →{" "}
-                    {campaignStatusLabels[transition.toStatus]}{" "}
+                    {labelFromKey(
+                      campaignStatusLabels,
+                      t,
+                      transition.fromStatus,
+                      transition.fromStatus,
+                    )}{" "}
+                    →{" "}
+                    {labelFromKey(
+                      campaignStatusLabels,
+                      t,
+                      transition.toStatus,
+                      transition.toStatus,
+                    )}{" "}
                     <span dir="ltr" style={{ color: "var(--ef-ink-muted)" }}>
                       {transition.createdAt}
                     </span>
@@ -361,7 +395,7 @@ export function CampaignDetailView({
             )}
             {detail && detail.budgetCorrections.length > 0 && (
               <>
-                <h3>تصحيحات الميزانية (سجل غير قابل للتغيير)</h3>
+                <h3>{t("campaigns.detail.correctionsTitle")}</h3>
                 <ul
                   style={{
                     listStyle: "none",
@@ -386,23 +420,20 @@ export function CampaignDetailView({
           </section>
 
           <section className={styles.panel} aria-labelledby="entries-title">
-            <h2 id="entries-title">أداء القناة (إدخال يدوي)</h2>
+            <h2 id="entries-title">{t("campaigns.detail.entriesTitle")}</h2>
             {entries.length === 0 ? (
-              <p>لا توجد إدخالات أداء بعد.</p>
+              <p>{t("campaigns.detail.entriesEmpty")}</p>
             ) : (
               <div className={styles.tableWrap}>
                 <table>
-                  <caption>
-                    انطباعات ونقرات وعملاء لكل إدخال يدوي — المال يبقى في
-                    المصروفات المعتمدة فقط
-                  </caption>
+                  <caption>{t("campaigns.detail.entriesCaption")}</caption>
                   <thead>
                     <tr>
-                      <th>الوقت</th>
-                      <th>انطباعات</th>
-                      <th>نقرات</th>
-                      <th>عملاء</th>
-                      <th>ملاحظة</th>
+                      <th>{t("campaigns.detail.thTime")}</th>
+                      <th>{t("campaigns.detail.thImpressions")}</th>
+                      <th>{t("campaigns.detail.thClicks")}</th>
+                      <th>{t("campaigns.detail.thLeads")}</th>
+                      <th>{t("campaigns.detail.thNote")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -422,14 +453,13 @@ export function CampaignDetailView({
           </section>
 
           <section className={styles.panel} aria-labelledby="attribution-title">
-            <h2 id="attribution-title">الإسناد (أول/آخر لمسة)</h2>
-            <p>
-              اعرض إسناد عميل عبر أول لمسة وآخر لمسة، أو صحّح الحملة المسند
-              إليها بسبب موثق.
-            </p>
+            <h2 id="attribution-title">
+              {t("campaigns.detail.attributionTitle")}
+            </h2>
+            <p>{t("campaigns.detail.attributionIntro")}</p>
             <div className={styles.formGrid}>
               <label>
-                معرّف العميل (Lead)
+                {t("campaigns.detail.leadIdLabel")}
                 <input
                   value={leadLookup}
                   onChange={(event) => setLeadLookup(event.target.value)}
@@ -444,7 +474,7 @@ export function CampaignDetailView({
                 disabled={pending || leadLookup.trim().length === 0}
                 onClick={() => void lookupAttribution()}
               >
-                عرض الإسناد
+                {t("campaigns.detail.showAttribution")}
               </button>
               <button
                 className="button button-secondary"
@@ -454,7 +484,7 @@ export function CampaignDetailView({
                   leadLookup.trim().length === 0 ||
                   reason.trim().length === 0
                 }
-                title="التصحيح يتطلب سببًا مكتوبًا في لوحة الميزانية"
+                title={t("campaigns.detail.correctAttributionTitle")}
                 onClick={() =>
                   void act(async () => {
                     await correctLeadAttribution({
@@ -467,24 +497,25 @@ export function CampaignDetailView({
                   })
                 }
               >
-                إسناد هذا العميل إلى هذه الحملة
+                {t("campaigns.detail.attributeToCampaign")}
               </button>
             </div>
             {attribution && (
               <div style={{ display: "grid", gap: "0.5rem" }}>
                 <AttributionLine
-                  label={attributionModelLabels.FIRST_TOUCH}
+                  label={t(attributionModelLabels.FIRST_TOUCH)}
                   campaignId={attribution.firstCampaignId}
                   touch={attribution.firstTouch}
                 />
                 <AttributionLine
-                  label={attributionModelLabels.LAST_TOUCH}
+                  label={t(attributionModelLabels.LAST_TOUCH)}
                   campaignId={attribution.lastCampaignId}
                   touch={attribution.lastTouch}
                 />
                 {attribution.override && (
                   <p style={{ color: "var(--ef-ink-muted)" }}>
-                    إسناد مصحح: {attribution.override.reason}
+                    {t("campaigns.detail.correctedAttributionPrefix")}{" "}
+                    {attribution.override.reason}
                   </p>
                 )}
               </div>
@@ -505,17 +536,24 @@ function AttributionLine(placeholder: {
     source?: string;
   };
 }) {
+  const t = useT();
   if (!placeholder.touch || !placeholder.campaignId)
     return (
       <p>
-        {placeholder.label}: <span>لا توجد لمسة مُسندة لحملة.</span>
+        {placeholder.label}:{" "}
+        <span>{t("campaigns.detail.noAttributedTouch")}</span>
       </p>
     );
   return (
     <p style={{ margin: 0 }}>
       <strong>{placeholder.label}</strong>:{" "}
-      {touchChannelLabels[placeholder.touch.channel]} —{" "}
-      <span dir="ltr">{placeholder.touch.occurredAt}</span>
+      {labelFromKey(
+        touchChannelLabels,
+        t,
+        placeholder.touch.channel,
+        placeholder.touch.channel,
+      )}{" "}
+      — <span dir="ltr">{placeholder.touch.occurredAt}</span>
       {placeholder.touch.source ? ` — ${placeholder.touch.source}` : ""}{" "}
       <span dir="ltr" style={{ color: "var(--ef-ink-muted)" }}>
         ({placeholder.campaignId.slice(0, 8)})

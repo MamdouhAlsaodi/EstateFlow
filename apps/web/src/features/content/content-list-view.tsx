@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   CONTENT_CHANNELS,
@@ -23,10 +24,11 @@ const EMPTY_FORM = {
 };
 
 /**
- * EF-402 — Arabic content list with lifecycle badges and an inline idea
+ * EF-402 — content list with lifecycle badges and an inline idea
  * creation form. Every figure comes from the strict API contract.
  */
 export function ContentListView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [page, setPage] = useState<ContentListPage | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
@@ -46,7 +48,7 @@ export function ContentListView() {
         }),
       );
     } catch {
-      setError("تعذر تحميل المحتوى من الخادم. حاول مرة أخرى.");
+      setError(t("content.list.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -60,7 +62,7 @@ export function ContentListView() {
         form.channel as (typeof CONTENT_CHANNELS)[number],
       )
     ) {
-      setError("تحقق من الحقول: العنوان، النص، والقناة.");
+      setError(t("content.list.validation"));
       return;
     }
     setPending(true);
@@ -80,7 +82,7 @@ export function ContentListView() {
       setForm(EMPTY_FORM);
       await refresh();
     } catch {
-      setError("تعذر إنشاء المحتوى. تحقق من صلاحياتك ومن معرّف الحملة.");
+      setError(t("content.list.createFailed"));
     } finally {
       setPending(false);
     }
@@ -89,34 +91,30 @@ export function ContentListView() {
   return (
     <div className="workspace-stack">
       <section aria-labelledby="content-title">
-        <p className="eyebrow">EF-402 — دورة حياة المحتوى</p>
-        <h1 id="content-title">المحتوى التسويقي</h1>
-        <p>
-          دورة الحياة: فكرة ← مسودة ← مراجعة ← اعتماد ← جدولة ← نشر/فشل. يُقفل
-          الاعتماد نسخة المحتوى وبصمته، والمحتوى المنشور غير قابل للتعديل؛
-          التنقيح ينشئ نسخة جديدة تمرّ بالدورة كاملة.
-        </p>
+        <p className="eyebrow">{t("content.list.eyebrow")}</p>
+        <h1 id="content-title">{t("content.list.title")}</h1>
+        <p>{t("content.list.subtitle")}</p>
         <nav
-          aria-label="أدوات المحتوى"
+          aria-label={t("content.list.toolsAria")}
           style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}
         >
           <Link
             className="button button-secondary"
             href={`/ar/organizations/${organizationId}/content/review-queue`}
           >
-            قائمة المراجعة
+            {t("content.list.reviewQueueLink")}
           </Link>
           <Link
             className="button button-secondary"
             href={`/ar/organizations/${organizationId}/content/calendar`}
           >
-            تقويم النشر
+            {t("content.list.calendarLink")}
           </Link>
           <Link
             className="button button-secondary"
             href={`/ar/organizations/${organizationId}/content/publishing`}
           >
-            تسليمات ونتائج النشر
+            {t("content.list.publishingLink")}
           </Link>
           <button
             className="button button-secondary"
@@ -124,7 +122,9 @@ export function ContentListView() {
             onClick={() => void refresh()}
             disabled={loading || pending}
           >
-            {loading ? "جارٍ التحميل…" : "تحديث القائمة"}
+            {loading
+              ? t("content.common.loading")
+              : t("content.common.refreshList")}
           </button>
         </nav>
         {error && (
@@ -135,25 +135,25 @@ export function ContentListView() {
       </section>
 
       <section aria-labelledby="content-list-title">
-        <h2 id="content-list-title">قائمة المحتوى</h2>
+        <h2 id="content-list-title">{t("content.list.sectionTitle")}</h2>
         <label style={{ display: "grid", gap: "0.25rem", maxWidth: "16rem" }}>
-          تصفية الحالة
+          {t("content.list.statusFilter")}
           <select
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="">كل الحالات</option>
+            <option value="">{t("content.list.allStatuses")}</option>
             {CONTENT_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {contentStatusLabels[status]}
+                {t(contentStatusLabels[status])}
               </option>
             ))}
           </select>
         </label>
         {!page ? (
-          <p>اضغط «تحديث القائمة» للعرض.</p>
+          <p>{t("content.common.pressRefreshList")}</p>
         ) : page.items.length === 0 ? (
-          <p>لا يوجد محتوى في هذه التصفية.</p>
+          <p>{t("content.list.empty")}</p>
         ) : (
           <ul
             style={{
@@ -174,16 +174,16 @@ export function ContentListView() {
         )}
         {page?.nextCursor && (
           <p style={{ color: "var(--ef-ink-muted)" }}>
-            توجد عناصر إضافية — استخدم تصفية الحالة لتضييق القائمة.
+            {t("content.list.morePages")}
           </p>
         )}
       </section>
 
       <section aria-labelledby="content-create-title">
-        <h2 id="content-create-title">فكرة جديدة</h2>
+        <h2 id="content-create-title">{t("content.list.createTitle")}</h2>
         <div className={styles.formGrid}>
           <label>
-            العنوان
+            {t("content.list.titleLabel")}
             <input
               value={form.title}
               onChange={(event) =>
@@ -192,7 +192,7 @@ export function ContentListView() {
             />
           </label>
           <label>
-            النص
+            {t("content.list.bodyLabel")}
             <textarea
               rows={3}
               value={form.body}
@@ -202,7 +202,7 @@ export function ContentListView() {
             />
           </label>
           <label>
-            قناة النشر (تخصيصي)
+            {t("content.list.channelLabel")}
             <select
               value={form.channel}
               onChange={(event) =>
@@ -211,13 +211,13 @@ export function ContentListView() {
             >
               {CONTENT_CHANNELS.map((channel) => (
                 <option key={channel} value={channel}>
-                  {contentChannelLabels[channel]}
+                  {t(contentChannelLabels[channel])}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            معرّف الحملة (اختياري)
+            {t("content.list.campaignIdLabel")}
             <input
               value={form.campaignId}
               onChange={(event) =>
@@ -234,7 +234,7 @@ export function ContentListView() {
             disabled={pending}
             onClick={() => void submitCreate()}
           >
-            {pending ? "جارٍ الإنشاء…" : "إنشاء الفكرة"}
+            {pending ? t("content.list.creating") : t("content.list.create")}
           </button>
         </div>
       </section>
@@ -251,6 +251,7 @@ function ContentCard({
   item: ContentSummary;
   organizationId: string;
 }) {
+  const t = useT();
   return (
     <li
       style={{
@@ -274,27 +275,35 @@ function ContentCard({
         </Link>
         <StatusBadge status={item.status} />
         <span style={{ color: "var(--ef-ink-muted)" }}>
-          {contentChannelLabels[item.channel]}
+          {t(contentChannelLabels[item.channel])}
         </span>
         {item.variantNumber > 1 && (
           <span style={{ color: "var(--ef-ink-muted)" }}>
-            نسخة منقحة #{item.variantNumber}
+            {t("content.common.variantOf", { number: item.variantNumber })}
           </span>
         )}
       </div>
       <span style={{ color: "var(--ef-ink-muted)" }}>
         {item.approvedVersion === undefined
-          ? "لم يُعتمد بعد"
-          : `النسخة المعتمدة: v${item.approvedVersion}`}
+          ? t("content.list.notApproved")
+          : t("content.list.approvedVersion", {
+              version: item.approvedVersion,
+            })}
         {item.scheduledFor === undefined
           ? ""
-          : ` — مجدول: ${new Date(item.scheduledFor).toISOString().slice(0, 16).replace("T", " ")} UTC`}
+          : t("content.list.scheduledSuffix", {
+              value: new Date(item.scheduledFor)
+                .toISOString()
+                .slice(0, 16)
+                .replace("T", " "),
+            })}
       </span>
     </li>
   );
 }
 
 export function StatusBadge({ status }: { status: ContentStatus }) {
+  const t = useT();
   const className = `${styles.statusChip} ${
     status === "IDEA"
       ? styles.statusIdea
@@ -310,5 +319,5 @@ export function StatusBadge({ status }: { status: ContentStatus }) {
                 ? styles.statusPublished
                 : styles.statusFailed
   }`;
-  return <span className={className}>{contentStatusLabels[status]}</span>;
+  return <span className={className}>{t(contentStatusLabels[status])}</span>;
 }

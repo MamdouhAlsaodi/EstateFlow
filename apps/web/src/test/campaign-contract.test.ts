@@ -13,6 +13,7 @@ import {
   campaignStatusLabels,
   touchChannelLabels,
 } from "../features/campaigns/campaign-labels";
+import { arMessages } from "../i18n/catalog";
 
 const orgId = "11111111-1111-4111-8111-111111111111";
 const campaignId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -229,6 +230,6 @@ test("EF-401 Arabic labels are complete for every status, channel, and model", (
     "OTHER",
   ] as const)
     assert.ok(touchChannelLabels[channel].length > 0);
-  assert.equal(attributionModelLabels.FIRST_TOUCH, "أول لمسة");
-  assert.equal(attributionModelLabels.LAST_TOUCH, "آخر لمسة");
+  assert.equal(arMessages[attributionModelLabels.FIRST_TOUCH], "أول لمسة");
+  assert.equal(arMessages[attributionModelLabels.LAST_TOUCH], "آخر لمسة");
 });

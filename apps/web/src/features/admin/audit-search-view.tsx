@@ -2,17 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { fetchAuditEvents } from "./admin-api";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
 import {
   ADMIN_AUDIT_ACTIONS,
   type AdminAuditAction,
   type AdminAuditEvent,
   type AdminAuditPage,
 } from "./admin-contract";
-import {
-  AUDIT_ACTION_LABELS,
-  AUDIT_TARGET_LABELS,
-  labelFrom,
-} from "./admin-labels";
+import { AUDIT_ACTION_LABELS, AUDIT_TARGET_LABELS } from "./admin-labels";
 import styles from "./admin.module.css";
 
 /**
@@ -21,6 +18,7 @@ import styles from "./admin.module.css";
  * action/target identity and the recorded decision reason — no payloads.
  */
 export function AuditSearchView() {
+  const t = useT();
   const [page, setPage] = useState<AdminAuditPage | null>(null);
   const [items, setItems] = useState<readonly AdminAuditEvent[]>([]);
   const [action, setAction] = useState<AdminAuditAction | "">("");
@@ -61,46 +59,43 @@ export function AuditSearchView() {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">لوحة الإدارة</p>
-          <h1>البحث في سجل الإدارة</h1>
-          <p>
-            كل إجراءات الإدارة المميزة مسجّلة بشكل غير قابل للتعديل: الإجراء،
-            الهدف، والسبب المعتمد. لا توجد حمولات خام ولا بيانات سرية.
-          </p>
+          <p className="eyebrow">{t("admin.common.eyebrow")}</p>
+          <h1>{t("admin.audit.title")}</h1>
+          <p>{t("admin.audit.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void load(null, false)}
         >
-          تحديث
+          {t("admin.common.refresh")}
         </button>
       </header>
       <section className="panel" aria-labelledby="audit-filters-title">
-        <h2 id="audit-filters-title">تصفية</h2>
+        <h2 id="audit-filters-title">{t("admin.common.filters")}</h2>
         <div className={styles.filters}>
           <label>
-            الإجراء
+            {t("admin.audit.actionLabel")}
             <select
               value={action}
               onChange={(event) =>
                 setAction(event.target.value as AdminAuditAction | "")
               }
             >
-              <option value="">كل الإجراءات</option>
+              <option value="">{t("admin.audit.allActions")}</option>
               {ADMIN_AUDIT_ACTIONS.map((value) => (
                 <option key={value} value={value}>
-                  {AUDIT_ACTION_LABELS[value]}
+                  {t(AUDIT_ACTION_LABELS[value])}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            معرّف المؤسسة (اختياري)
+            {t("admin.common.organizationIdLabel")}
             <input
               type="text"
               value={organizationId}
-              placeholder="اتركه فارغاً لكل المؤسسات"
+              placeholder={t("admin.common.organizationIdPlaceholder")}
               onChange={(event) => setOrganizationId(event.target.value)}
             />
           </label>
@@ -110,41 +105,70 @@ export function AuditSearchView() {
             disabled={loading}
             onClick={() => void load(null, false)}
           >
-            تطبيق التصفية
+            {t("admin.common.applyFilters")}
           </button>
         </div>
       </section>
-      {loading && <p role="status">جارٍ البحث…</p>}
+      {loading && <p role="status">{t("admin.audit.searching")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر البحث في السجل</strong>
-          <p>تحقق من قيم التصفية ثم حاول مرة أخرى.</p>
+          <strong>{t("admin.audit.loadFailed")}</strong>
+          <p>{t("admin.audit.loadFailedHint")}</p>
         </div>
       )}
       {!loading && !error && (
         <section aria-labelledby="audit-results-title" className="panel">
           <div className={styles.sectionHeading}>
-            <h2 id="audit-results-title">النتائج</h2>
-            <span className="table-count">{items.length} حدث</span>
+            <h2 id="audit-results-title">{t("admin.audit.results")}</h2>
+            <span className="table-count">
+              {t("admin.audit.eventCount", { count: items.length })}
+            </span>
           </div>
           {items.length === 0 ? (
-            <p>لا توجد أحداث مطابقة.</p>
+            <p>{t("admin.audit.empty")}</p>
           ) : (
             <ul className={styles.list}>
               {items.map((event) => (
                 <li key={event.id}>
                   <div>
                     <strong>
-                      {labelFrom(AUDIT_ACTION_LABELS, event.action)}
+                      {labelFromKey(
+                        AUDIT_ACTION_LABELS,
+                        t,
+                        event.action,
+                        event.action,
+                      )}
                     </strong>
                     <span>
-                      النوع: {labelFrom(AUDIT_TARGET_LABELS, event.targetType)}
+                      {t("admin.audit.targetTypePrefix")}{" "}
+                      {labelFromKey(
+                        AUDIT_TARGET_LABELS,
+                        t,
+                        event.targetType,
+                        event.targetType,
+                      )}
                     </span>
-                    <span>المؤسسة: {shortId(event.organizationId)}</span>
-                    <span>المنفّذ: {shortId(event.actorId)}</span>
-                    <span>الهدف: {shortId(event.targetId)}</span>
-                    {event.reason && <span>السبب: {event.reason}</span>}
-                    <time>{formatDate(event.createdAt)}</time>
+                    <span>
+                      {t("admin.audit.orgPrefix")}{" "}
+                      {shortId(event.organizationId)}
+                    </span>
+                    <span>
+                      {t("admin.audit.actorPrefix")} {shortId(event.actorId)}
+                    </span>
+                    <span>
+                      {t("admin.audit.targetPrefix")} {shortId(event.targetId)}
+                    </span>
+                    {event.reason && (
+                      <span>
+                        {t("admin.audit.reasonPrefix")} {event.reason}
+                      </span>
+                    )}
+                    <time>
+                      {formatDate(
+                        event.createdAt,
+                        t("admin.common.timeUnavailable"),
+                      )}
+                    </time>
                   </div>
                 </li>
               ))}
@@ -159,7 +183,7 @@ export function AuditSearchView() {
                   void load(page.nextCursor, true);
                 }}
               >
-                تحميل الأحدث
+                {t("admin.common.loadNewer")}
               </button>
             </div>
           )}
@@ -173,12 +197,10 @@ function shortId(value: string): string {
   return value.length > 12 ? `…${value.slice(-8)}` : value;
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+function formatDate(value: string, fallback: string): string {
+  try {
+    return formatDateTime(value);
+  } catch {
+    return fallback;
+  }
 }

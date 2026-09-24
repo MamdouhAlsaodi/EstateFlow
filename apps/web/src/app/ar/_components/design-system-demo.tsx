@@ -1,91 +1,109 @@
-const statusItems = [
-  { label: "مستحقات قريبة", value: "24,800 ر.س", tone: "status-gold" },
-  { label: "متابعات اليوم", value: "08", tone: "status-teal" },
-  { label: "بانتظار قرار", value: "03", tone: "status-warning" },
-];
+"use client";
 
-const leads = [
+import { useT } from "../../../i18n";
+
+/**
+ * EF-105 design-system demo. Synthetic client names, property names, and
+ * amounts are demo DATA (kept verbatim); every UI label, heading, state, and
+ * action comes from the EF-630 translation catalog.
+ */
+
+const DEMO_LEADS = [
   {
     client: "ريم الشمري",
     property: "شقة النخيل · الرياض",
-    stage: "بانتظار الاتصال",
+    stageKey: "demo.leadStageAwaitingCall",
     amount: "1,450,000 ر.س",
   },
   {
     client: "فهد العتيبي",
     property: "فيلا الوادي · جدة",
-    stage: "معاينة مؤكدة",
+    stageKey: "demo.leadStageViewingConfirmed",
     amount: "2,750,000 ر.س",
   },
   {
     client: "سارة الحربي",
     property: "مكتب الواجهة · الدمام",
-    stage: "عرض قيد المراجعة",
+    stageKey: "demo.leadStageOfferReview",
     amount: "980,000 ر.س",
   },
-];
+] as const;
+
+const STATUS_ITEMS = [
+  { labelKey: "demo.statusDueSoon", value: "24,800 ر.س", tone: "status-gold" },
+  {
+    labelKey: "demo.statusFollowupsToday",
+    value: "08",
+    tone: "status-teal",
+  },
+  {
+    labelKey: "demo.statusAwaitingDecision",
+    value: "03",
+    tone: "status-warning",
+  },
+] as const;
 
 export function DesignSystemDemo() {
+  const t = useT();
   return (
     <div className="page-stack">
-      <section className="page-heading" aria-labelledby="page-title">
+      <section aria-labelledby="page-title" className="page-heading">
         <div>
-          <p className="eyebrow">مكتبة الواجهة · EF-105</p>
-          <h1 id="page-title">أساس عملي لعمليات العقار</h1>
-          <p>
-            هذا ليس Dashboard جاهزًا؛ بل لغة واجهة عربية موحّدة للمال والمتابعة
-            والعقار قبل بناء workflows الحقيقية.
-          </p>
+          <p className="eyebrow">{t("demo.eyebrow")}</p>
+          <h1 id="page-title">{t("demo.title")}</h1>
+          <p>{t("demo.description")}</p>
         </div>
         <button className="button button-primary" type="button">
-          إجراء تجريبي
+          {t("demo.demoAction")}
         </button>
       </section>
 
-      <section aria-label="مؤشرات مختصرة" className="metric-grid">
+      <section aria-label={t("demo.metricsAria")} className="metric-grid">
         <article className="metric-card metric-card-navy">
-          <span>النقد المتاح</span>
-          <strong className="numeric">126,400 ر.س</strong>
-          <small>تحديث توضيحي · اليوم</small>
+          <span>{t("demo.metricCashLabel")}</span>
+          <strong className="numeric">{t("demo.metricCashValue")}</strong>
+          <small>{t("demo.metricCashNote")}</small>
         </article>
         <article className="metric-card">
-          <span>عمولات قيد التحصيل</span>
-          <strong className="numeric">42,600 ر.س</strong>
-          <small className="positive">↑ 12% من الشهر السابق</small>
+          <span>{t("demo.metricCommissionsLabel")}</span>
+          <strong className="numeric">
+            {t("demo.metricCommissionsValue")}
+          </strong>
+          <small className="positive">{t("demo.metricCommissionsNote")}</small>
         </article>
         <article className="metric-card">
-          <span>مهام SLA اليوم</span>
-          <strong className="numeric">08</strong>
-          <small>4 تحتاج متابعة قبل 16:00</small>
+          <span>{t("demo.metricSlaLabel")}</span>
+          <strong className="numeric">{t("demo.metricSlaValue")}</strong>
+          <small>{t("demo.metricSlaNote")}</small>
         </article>
       </section>
 
-      <section className="demo-grid" aria-label="عناصر نظام التصميم">
+      <section aria-label={t("demo.componentsAria")} className="demo-grid">
         <article className="panel panel-wide">
           <div className="section-heading">
             <div>
-              <p className="eyebrow">جدول توضيحي</p>
-              <h2>قائمة الاستفسارات</h2>
+              <p className="eyebrow">{t("demo.tableEyebrow")}</p>
+              <h2>{t("demo.tableTitle")}</h2>
             </div>
-            <span className="table-count">3 عناصر</span>
+            <span className="table-count">{t("demo.tableCount")}</span>
           </div>
           <div className="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th>العميل</th>
-                  <th>العقار</th>
-                  <th>المرحلة</th>
-                  <th>القيمة المتوقعة</th>
+                  <th>{t("demo.theadClient")}</th>
+                  <th>{t("demo.theadProperty")}</th>
+                  <th>{t("demo.theadStage")}</th>
+                  <th>{t("demo.theadValue")}</th>
                 </tr>
               </thead>
               <tbody>
-                {leads.map((lead) => (
+                {DEMO_LEADS.map((lead) => (
                   <tr key={lead.client}>
                     <th scope="row">{lead.client}</th>
                     <td>{lead.property}</td>
                     <td>
-                      <span className="status-pill">{lead.stage}</span>
+                      <span className="status-pill">{t(lead.stageKey)}</span>
                     </td>
                     <td className="numeric">{lead.amount}</td>
                   </tr>
@@ -95,56 +113,56 @@ export function DesignSystemDemo() {
           </div>
         </article>
         <article className="panel">
-          <p className="eyebrow">الحالات</p>
-          <h2>إشارات لا تعتمد على اللون وحده</h2>
+          <p className="eyebrow">{t("demo.statusEyebrow")}</p>
+          <h2>{t("demo.statusTitle")}</h2>
           <ul className="status-list">
-            {statusItems.map((item) => (
-              <li key={item.label}>
+            {STATUS_ITEMS.map((item) => (
+              <li key={item.labelKey}>
                 <span
-                  className={`status-dot ${item.tone}`}
                   aria-hidden="true"
+                  className={`status-dot ${item.tone}`}
                 />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
                 <strong className="numeric">{item.value}</strong>
               </li>
             ))}
           </ul>
         </article>
         <article className="panel">
-          <p className="eyebrow">النماذج</p>
-          <h2>حقل واضح قبل أي workflow</h2>
-          <label htmlFor="sample-note">ملاحظة متابعة</label>
+          <p className="eyebrow">{t("demo.formEyebrow")}</p>
+          <h2>{t("demo.formTitle")}</h2>
+          <label htmlFor="sample-note">{t("demo.noteLabel")}</label>
           <textarea
             id="sample-note"
-            placeholder="اكتب ملخصًا قصيرًا للتواصل القادم"
+            placeholder={t("demo.notePlaceholder")}
             rows={3}
           />
           <div className="button-row">
             <button className="button button-primary" type="button">
-              حفظ تجريبي
+              {t("demo.saveDemo")}
             </button>
             <button className="button button-secondary" type="button">
-              إلغاء
+              {t("demo.cancel")}
             </button>
           </div>
         </article>
       </section>
 
-      <section className="state-grid" aria-label="حالات الواجهة">
+      <section aria-label={t("demo.statesAria")} className="state-grid">
         <article className="state-mini">
           <span aria-hidden="true">⌁</span>
-          <h2>حالة فارغة</h2>
-          <p>لا توجد معاينات مجدولة. أضف معاينة عندما يصبح workflow جاهزًا.</p>
+          <h2>{t("demo.emptyTitle")}</h2>
+          <p>{t("demo.emptyBody")}</p>
           <button className="text-button" type="button">
-            عرض المبدأ
+            {t("demo.emptyAction")}
           </button>
         </article>
         <article className="state-mini">
           <span aria-hidden="true">!</span>
-          <h2>رسالة خطأ واضحة</h2>
-          <p>تعذر حفظ التعديل. تحقق من الحقول المطلوبة ثم أعد المحاولة.</p>
+          <h2>{t("demo.errorTitle")}</h2>
+          <p>{t("demo.errorBody")}</p>
           <button className="text-button" type="button">
-            إعادة المحاولة
+            {t("error.retry")}
           </button>
         </article>
       </section>

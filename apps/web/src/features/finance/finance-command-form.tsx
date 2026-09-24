@@ -1,5 +1,8 @@
+"use client";
+
 import type { FormEvent, ReactNode } from "react";
 import styles from "./receivable-command-workspace.module.css";
+import { useT } from "../../i18n";
 
 export function FinanceCommandForm({
   index,
@@ -20,6 +23,7 @@ export function FinanceCommandForm({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   children: ReactNode;
 }>) {
+  const t = useT();
   return (
     <form className={styles.step} onSubmit={onSubmit}>
       <div className={styles.stepHeading}>
@@ -37,7 +41,7 @@ export function FinanceCommandForm({
         disabled={disabled}
         type="submit"
       >
-        {pending ? "جارٍ التنفيذ…" : action}
+        {pending ? t("finance.formPendingAction") : action}
       </button>
     </form>
   );

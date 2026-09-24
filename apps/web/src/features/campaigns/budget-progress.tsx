@@ -1,14 +1,19 @@
+"use client";
+
 import styles from "./campaign-views.module.css";
+import { useT } from "../../i18n";
 
 /**
  * EF-401 — budget planned vs actual progress. Money never leaves the exact
  * minor-unit strings of the API contract; the percentage is display-only.
+ * Label text is localized (EF-630), the numbers stay verbatim contract data.
  */
 export function BudgetProgressBar(placeholder: {
   plannedMinor: string;
   actualMinor?: string;
   currency: string;
 }) {
+  const t = useT();
   const planned = BigInt(placeholder.plannedMinor);
   const actual =
     placeholder.actualMinor === undefined
@@ -30,7 +35,7 @@ export function BudgetProgressBar(placeholder: {
         {...(percent === null
           ? {}
           : { "aria-valuenow": Math.min(100, Math.round(percent)) })}
-        aria-label="تقدم الميزانية"
+        aria-label={t("campaigns.budgetProgressAria")}
       >
         <div
           className={over ? styles.progressFillOver : styles.progressFill}
@@ -38,11 +43,23 @@ export function BudgetProgressBar(placeholder: {
         />
       </div>
       <p className={styles.progressLabel}>
-        {actual === undefined
-          ? `المخطط: ${placeholder.plannedMinor} ${placeholder.currency} — لا مصروفات معتمدة بعد`
+        {placeholder.actualMinor === undefined
+          ? t("campaigns.budgetPlannedOnly", {
+              plannedMinor: placeholder.plannedMinor,
+              currency: placeholder.currency,
+            })
           : over
-            ? `تجاوز الميزانية: ${placeholder.actualMinor} من ${placeholder.plannedMinor} ${placeholder.currency}`
-            : `المصروف: ${placeholder.actualMinor} من ${placeholder.plannedMinor} ${placeholder.currency} (${percent}%)`}
+            ? t("campaigns.budgetOver", {
+                actualMinor: placeholder.actualMinor,
+                plannedMinor: placeholder.plannedMinor,
+                currency: placeholder.currency,
+              })
+            : t("campaigns.budgetSpent", {
+                actualMinor: placeholder.actualMinor,
+                plannedMinor: placeholder.plannedMinor,
+                currency: placeholder.currency,
+                percent: percent ?? 0,
+              })}
       </p>
     </div>
   );

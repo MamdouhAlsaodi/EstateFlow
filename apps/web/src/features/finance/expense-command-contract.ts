@@ -1,3 +1,4 @@
+import { arMessages, type MessageKey } from "../../i18n";
 import type { ApiError } from "../../lib/api-client/index";
 
 export type ExpenseCommand =
@@ -59,12 +60,13 @@ export const EXPENSE_MEDIA_TYPE_VALUES = [
   "WEBP",
 ] as const;
 
-export function expenseSuccessMessage(command: ExpenseCommand): string {
-  if (command === "draft") return "أُنشئت مسودة المصروف بأبعاده ومرجعه.";
-  if (command === "evidence") return "أُرفقت بيانات المستند المؤيد.";
-  if (command === "submit") return "أُرسل المصروف للاعتماد وفق سياسة الحد.";
-  if (command === "decision") return "سُجل قرار الاعتماد بشكل نهائي.";
-  return "حُفظت سياسة حد الاعتماد للمؤسسة.";
+/** EF-630 — success feedback is a catalog key resolved by the caller. */
+export function expenseSuccessMessage(command: ExpenseCommand): MessageKey {
+  if (command === "draft") return "finance.expense.createdDraft";
+  if (command === "evidence") return "finance.expense.evidenceAttached";
+  if (command === "submit") return "finance.expense.submitted";
+  if (command === "decision") return "finance.expense.decisionRecorded";
+  return "finance.expense.policySaved";
 }
 export function isExpenseReplay(response: unknown): boolean {
   return (
@@ -113,5 +115,7 @@ export function isSessionError(value: unknown): boolean {
 }
 
 export function isSessionErrorMessage(message: string): boolean {
-  return message.includes("انتهت الجلسة");
+  // The session-expired wording lives in the catalog; match the same visible
+  // message without hardcoding Arabic text in feature code.
+  return message.includes(arMessages["finance.expense.sessionExpired"]);
 }

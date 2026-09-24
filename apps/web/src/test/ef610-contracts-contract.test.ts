@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 import {
   CONTRACT_AUDIT_LABELS,
   CONTRACT_STATUS_LABELS,
@@ -204,11 +205,14 @@ test("EF-610 generated contract normalizer enforces the disclaimer", () => {
 });
 
 test("EF-610 Arabic labels and PDF URL are presentable", () => {
-  assert.equal(CONTRACT_STATUS_LABELS.DRAFT, "قيد التوقيع");
-  assert.equal(CONTRACT_STATUS_LABELS.FINALIZED, "مكتمل التوقيع");
-  assert.equal(CONTRACT_STATUS_LABELS.VOID, "ملغى");
-  assert.equal(CONTRACT_AUDIT_LABELS.VOIDED, "إلغاء");
-  assert.equal(CONTRACT_AUDIT_LABELS.SIGNATURE_RECORDED, "تسجيل توقيع");
+  assert.equal(arMessages[CONTRACT_STATUS_LABELS.DRAFT], "قيد التوقيع");
+  assert.equal(arMessages[CONTRACT_STATUS_LABELS.FINALIZED], "مكتمل التوقيع");
+  assert.equal(arMessages[CONTRACT_STATUS_LABELS.VOID], "ملغى");
+  assert.equal(arMessages[CONTRACT_AUDIT_LABELS.VOIDED], "إلغاء");
+  assert.equal(
+    arMessages[CONTRACT_AUDIT_LABELS.SIGNATURE_RECORDED],
+    "تسجيل توقيع",
+  );
   const url = contractPdfUrl(orgId, contractId);
   assert.ok(
     url.startsWith(`/api/organizations/${orgId}/contracts/${contractId}/pdf`),

@@ -3,17 +3,22 @@
  * normalizers: every response field is validated and picked explicitly; the
  * normalizers refuse payloads that carry unexpected shapes.
  *
- * ⚠️ توقيع تشغيلي مبسّط — ليس توقيعًا قانونيًا معتمدًا. The exact operational
- * e-sign disclaimer is part of every contract view payload.
+ * ⚠️ The operational e-sign disclaimer below is also a protocol sentinel:
+ * every contract view payload must carry that exact text. Its written value
+ * lives in the translation catalog (`contracts.esignDisclaimer`) and is read
+ * from the Arabic source of truth here, so the UI label and the API contract
+ * can never drift apart.
  */
+
+import { arMessages, type MessageKey } from "../../i18n";
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 
-export const OPERATIONAL_ESIGN_DISCLAIMER_AR =
-  "توقيع تشغيلي مبسّط — ليس توقيعًا قانونيًا معتمدًا";
+export const OPERATIONAL_ESIGN_DISCLAIMER_AR: string =
+  arMessages["contracts.esignDisclaimer"];
 
 export type ContractStatusView = "DRAFT" | "FINALIZED" | "VOID";
 export type ContractTemplateStatusView = "DRAFT" | "APPROVED";
@@ -345,26 +350,26 @@ export function contractPdfUrl(
 }
 
 export const CONTRACT_STATUS_LABELS: Readonly<
-  Record<ContractStatusView, string>
+  Record<ContractStatusView, MessageKey>
 > = {
-  DRAFT: "قيد التوقيع",
-  FINALIZED: "مكتمل التوقيع",
-  VOID: "ملغى",
+  DRAFT: "contracts.status.DRAFT",
+  FINALIZED: "contracts.status.FINALIZED",
+  VOID: "contracts.status.VOID",
 };
 
 export const CONTRACT_AUDIT_LABELS: Readonly<
-  Record<ContractAuditActionView, string>
+  Record<ContractAuditActionView, MessageKey>
 > = {
-  GENERATED: "توليد العقد",
-  AMEND_REQUESTED: "طلب تعديل",
-  SIGNATURE_RECORDED: "تسجيل توقيع",
-  FINALIZED: "إكمال التوقيع",
-  VOIDED: "إلغاء",
+  GENERATED: "contracts.audit.GENERATED",
+  AMEND_REQUESTED: "contracts.audit.AMEND_REQUESTED",
+  SIGNATURE_RECORDED: "contracts.audit.SIGNATURE_RECORDED",
+  FINALIZED: "contracts.audit.FINALIZED",
+  VOIDED: "contracts.audit.VOIDED",
 };
 
-export const CONTRACT_ROLE_LABELS: Readonly<Record<string, string>> = {
-  OWNER: "المالك",
-  MANAGER: "المدير",
-  BROKER: "الوسيط",
-  CLIENT: "العميل",
+export const CONTRACT_ROLE_LABELS: Readonly<Record<string, MessageKey>> = {
+  OWNER: "contracts.role.OWNER",
+  MANAGER: "contracts.role.MANAGER",
+  BROKER: "contracts.role.BROKER",
+  CLIENT: "contracts.role.CLIENT",
 };

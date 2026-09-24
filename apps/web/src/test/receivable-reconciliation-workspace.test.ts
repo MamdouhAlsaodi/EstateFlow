@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 import {
   appendAgingItems,
   type ReceivableAgingItem,
@@ -88,7 +89,11 @@ test("reconciliation composition keeps commands and bounded panels separate", as
   assert.match(page, /ReceivableReconciliationWorkspace/);
   assert.match(composition, /ReceivableCommandWorkspace/);
   assert.match(cancellation, /cancelInvoice/);
-  assert.match(cancellation, /لا يمكن إلغاء فاتورة عليها دفعة مالية/);
+  assert.match(cancellation, /finance\.cancellation\.paidConflict/);
+  assert.equal(
+    arMessages["finance.cancellation.paidConflict"],
+    "لا يمكن إلغاء فاتورة عليها دفعة مالية.",
+  );
   assert.match(aging, /nextCursor/);
   assert.match(aging, /appendAgingItems/);
   assert.doesNotMatch(

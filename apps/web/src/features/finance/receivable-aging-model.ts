@@ -1,21 +1,27 @@
 import type { ApiError } from "../../lib/api-client/index";
 import type { ReceivableAgingItem } from "../../lib/api-client/receivable-aging";
+import type { MessageKey } from "../../i18n";
 
-export const AGING_BUCKET_LABELS = {
-  CURRENT: "حالي",
-  DAYS_1_30: "من يوم إلى 30 يومًا",
-  DAYS_31_60: "من 31 إلى 60 يومًا",
-  DAYS_61_90: "من 61 إلى 90 يومًا",
-  DAYS_91_PLUS: "أكثر من 90 يومًا",
-} as const;
+/**
+ * EF-630 — labels are catalog keys; the Arabic/English text lives in the
+ * translation catalog (`src/i18n/messages/finance.ts`).
+ */
+export const AGING_BUCKET_LABELS: Readonly<Record<AgingBucket, MessageKey>> = {
+  CURRENT: "finance.agingBucketCurrent",
+  DAYS_1_30: "finance.agingBucket1To30",
+  DAYS_31_60: "finance.agingBucket31To60",
+  DAYS_61_90: "finance.agingBucket61To90",
+  DAYS_91_PLUS: "finance.agingBucket91Plus",
+};
 
-export const AGING_STATUS_LABELS = {
-  OPEN: "مفتوح",
-  PARTIALLY_PAID: "مدفوع جزئيًا",
-} as const;
+export const AGING_STATUS_LABELS: Readonly<Record<AgingStatus, MessageKey>> = {
+  OPEN: "finance.receivableStatusOpen",
+  PARTIALLY_PAID: "finance.receivableStatusPartiallyPaid",
+};
 
-export type AgingBucket = keyof typeof AGING_BUCKET_LABELS;
-export type AgingStatus = keyof typeof AGING_STATUS_LABELS;
+export type AgingBucket =
+  "CURRENT" | "DAYS_1_30" | "DAYS_31_60" | "DAYS_61_90" | "DAYS_91_PLUS";
+export type AgingStatus = "OPEN" | "PARTIALLY_PAID";
 export type { ReceivableAgingItem };
 export type ReceivableAgingResponse = Readonly<{
   asOf: string;
@@ -37,9 +43,16 @@ export function appendAgingItems(
   return [...current, ...appended];
 }
 
-export function presentAgingError(error: unknown): string {
+/**
+ * Classifies the failure; the message key is resolved by the caller so the
+ * model stays free of rendered text.
+ */
+export function agingErrorKey(error: unknown): {
+  key: MessageKey;
+  authorizedIssue: boolean;
+} {
   const apiError = error as Partial<ApiError>;
   if (apiError.status === 401 || apiError.status === 403)
-    return "لا تملك صلاحية عرض مستحقات هذه المؤسسة.";
-  return "تعذر تحميل أعمار المستحقات. تحقق من الاتصال ثم أعد المحاولة.";
+    return { key: "finance.agingNotAuthorized", authorizedIssue: true };
+  return { key: "finance.agingLoadFailed", authorizedIssue: false };
 }

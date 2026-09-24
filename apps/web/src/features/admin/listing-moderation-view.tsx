@@ -8,8 +8,8 @@ import {
   rejectListingModeration,
   takedownListing,
 } from "./admin-api";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
 import {
-  labelFrom,
   LISTING_STATUS_LABELS,
   MODERATION_STATUS_LABELS,
 } from "./admin-labels";
@@ -32,6 +32,7 @@ type PendingCommand = Readonly<{
  * both re-enforced by the API (403 STEP_UP_REQUIRED opens the re-auth form).
  */
 export function ListingModerationView() {
+  const t = useT();
   const [page, setPage] = useState<ModerationQueuePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -70,35 +71,31 @@ export function ListingModerationView() {
           listingId: command.item.listingId,
           reason: command.reason,
         });
-        setNotice("تم اعتماد الإعلان.");
+        setNotice(t("admin.moderation.approvedNotice"));
       } else if (command.decision === "reject") {
         await rejectListingModeration({
           organizationId: command.item.organizationId,
           listingId: command.item.listingId,
           reason: command.reason,
         });
-        setNotice("تم رفض الإعلان وأرشفته.");
+        setNotice(t("admin.moderation.rejectedNotice"));
       } else {
         await takedownListing({
           organizationId: command.item.organizationId,
           listingId: command.item.listingId,
           reason: command.reason,
         });
-        setNotice("تم تخفيض الإعلان عن النشر وأرشفته.");
+        setNotice(t("admin.moderation.takedownNotice"));
       }
       await load();
       return true;
     } catch (caught) {
       if (isStepUpRequiredError(caught)) {
         setPendingCommand(command);
-        setActionError(
-          "يتطلب تخفيض الإعلان إعادة تأكيد كلمة المرور قبل التنفيذ.",
-        );
+        setActionError(t("admin.moderation.stepUpRequired"));
         return false;
       }
-      setActionError(
-        "تعذر تنفيذ قرار المراجعة. تأكد من حالة الإعلان والسبب ثم حاول مرة أخرى.",
-      );
+      setActionError(t("admin.moderation.decideFailed"));
       return false;
     } finally {
       setBusyId(null);
@@ -118,26 +115,23 @@ export function ListingModerationView() {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">لوحة الإدارة</p>
-          <h1>مراجعة الإعلانات</h1>
-          <p>
-            الإعلانات المنشورة في كل المؤسسات بانتظار المراجعة. الاعتماد يبقي
-            الإعلان منشوراً، والرفض أو التخفيض يؤرشفه مع تسجيل السبب.
-          </p>
+          <p className="eyebrow">{t("admin.common.eyebrow")}</p>
+          <h1>{t("admin.moderation.title")}</h1>
+          <p>{t("admin.moderation.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void load()}
         >
-          تحديث
+          {t("admin.common.refresh")}
         </button>
       </header>
-      {loading && <p role="status">جارٍ تحميل قائمة المراجعة…</p>}
+      {loading && <p role="status">{t("admin.moderation.loading")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر تحميل قائمة المراجعة</strong>
-          <p>تحقق من الجلسة ثم حاول مرة أخرى.</p>
+          <strong>{t("admin.moderation.loadFailed")}</strong>
+          <p>{t("admin.moderation.loadFailedHint")}</p>
         </div>
       )}
       {actionError && (
@@ -153,11 +147,15 @@ export function ListingModerationView() {
       {!loading && !error && (
         <section aria-labelledby="queue-title" className="panel">
           <div className={styles.sectionHeading}>
-            <h2 id="queue-title">قائمة المراجعة</h2>
-            <span className="table-count">{page?.items.length ?? 0} عنصر</span>
+            <h2 id="queue-title">{t("admin.moderation.queueTitle")}</h2>
+            <span className="table-count">
+              {t("admin.moderation.itemCount", {
+                count: page?.items.length ?? 0,
+              })}
+            </span>
           </div>
           {page === null || page.items.length === 0 ? (
-            <p>لا توجد إعلانات بانتظار المراجعة. أحسنت!</p>
+            <p>{t("admin.moderation.empty")}</p>
           ) : (
             <ul className={styles.list}>
               {page.items.map((item) => (
@@ -165,21 +163,38 @@ export function ListingModerationView() {
                   <div>
                     <strong>{item.propertyTitle}</strong>
                     <span>
-                      {labelFrom(LISTING_STATUS_LABELS, item.listingStatus)} ·{" "}
-                      {labelFrom(
+                      {labelFromKey(
+                        LISTING_STATUS_LABELS,
+                        t,
+                        item.listingStatus,
+                        item.listingStatus,
+                      )}{" "}
+                      ·{" "}
+                      {labelFromKey(
                         MODERATION_STATUS_LABELS,
+                        t,
+                        item.moderationStatus,
                         item.moderationStatus,
                       )}
                     </span>
                     <span>
-                      نُشر/أُنشئ: {formatDate(item.createdAt)} · آخر تحديث:{" "}
-                      {formatDate(item.updatedAt)}
+                      {t("admin.moderation.publishedPrefix")}{" "}
+                      {formatDate(
+                        item.createdAt,
+                        t("admin.common.timeUnavailable"),
+                      )}{" "}
+                      · {t("admin.moderation.updatedPrefix")}{" "}
+                      {formatDate(
+                        item.updatedAt,
+                        t("admin.common.timeUnavailable"),
+                      )}
                     </span>
                     {item.moderationReason && (
                       <span>
-                        سبب سابق: {item.moderationReason}
+                        {t("admin.moderation.previousReasonPrefix")}{" "}
+                        {item.moderationReason}
                         {item.moderatedAt
-                          ? ` · ${formatDate(item.moderatedAt)}`
+                          ? ` · ${formatDate(item.moderatedAt, t("admin.common.timeUnavailable"))}`
                           : ""}
                       </span>
                     )}
@@ -200,7 +215,7 @@ export function ListingModerationView() {
                         });
                       }}
                     >
-                      اعتماد
+                      {t("admin.moderation.approve")}
                     </button>
                     <button
                       className="button button-secondary"
@@ -211,7 +226,7 @@ export function ListingModerationView() {
                         )
                       }
                     >
-                      رفض / تخفيض
+                      {t("admin.moderation.rejectOrTakedown")}
                     </button>
                   </div>
                   {openFormId === item.listingId && (
@@ -245,8 +260,8 @@ export function ListingModerationView() {
         </section>
       )}
       {pendingCommand && (
-        <section className="panel" aria-label="إعادة تأكيد كلمة المرور">
-          <h2>إعادة تأكيد الهوية</h2>
+        <section className="panel" aria-label={t("admin.common.stepUpAria")}>
+          <h2>{t("admin.common.stepUpTitle")}</h2>
           <StepUpForm
             onConfirmed={() => void onStepUpConfirmed()}
             onCancel={() => setPendingCommand(null)}
@@ -272,6 +287,7 @@ function ModerationForm({
   onTakedown: (reason: string) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [reason, setReason] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -279,7 +295,7 @@ function ModerationForm({
     event.preventDefault();
     const trimmed = reason.trim();
     if (trimmed.length === 0 || trimmed.length > 500) {
-      setLocalError("السبب مطلوب ولا يتجاوز 500 حرف.");
+      setLocalError(t("admin.common.reasonInvalid"));
       return;
     }
     setLocalError(null);
@@ -292,9 +308,9 @@ function ModerationForm({
       className={styles.commandForm}
       onSubmit={(event) => event.preventDefault()}
     >
-      <strong>قرار المراجعة</strong>
+      <strong>{t("admin.moderation.decisionTitle")}</strong>
       <label>
-        السبب (إلزامي)
+        {t("admin.common.reasonLabel")}
         <textarea
           value={reason}
           maxLength={500}
@@ -314,7 +330,7 @@ function ModerationForm({
           disabled={busy}
           onClick={(event) => submit(event, "reject")}
         >
-          رفض وأرشفة
+          {t("admin.moderation.reject")}
         </button>
         <button
           className="button button-primary"
@@ -322,7 +338,7 @@ function ModerationForm({
           disabled={busy}
           onClick={(event) => submit(event, "takedown")}
         >
-          تخفيض عن النشر
+          {t("admin.moderation.takedown")}
         </button>
         <button
           className="button button-secondary"
@@ -330,19 +346,17 @@ function ModerationForm({
           onClick={onCancel}
           disabled={busy}
         >
-          إلغاء
+          {t("admin.common.cancel")}
         </button>
       </div>
     </form>
   );
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+function formatDate(value: string, fallback: string): string {
+  try {
+    return formatDateTime(value);
+  } catch {
+    return fallback;
+  }
 }

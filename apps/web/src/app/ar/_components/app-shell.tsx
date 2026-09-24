@@ -1,55 +1,55 @@
+"use client";
+
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useT } from "../../../i18n";
 
-const navigation = [
-  { label: "نظرة عامة", href: "/ar", active: true },
-  { label: "الاستفسارات", href: "/ar#leads" },
-  { label: "العقارات", href: "/ar#properties" },
-  { label: "الصفقات والمال", href: "/ar#finance" },
-  { label: "المهام والمتابعة", href: "/ar#tasks" },
-];
+const NAVIGATION = [
+  { labelKey: "shell.navOverview", href: "/ar", active: true },
+  { labelKey: "shell.navLeads", href: "/ar#leads", active: false },
+  { labelKey: "shell.navProperties", href: "/ar#properties", active: false },
+  { labelKey: "shell.navFinance", href: "/ar#finance", active: false },
+  { labelKey: "shell.navTasks", href: "/ar#tasks", active: false },
+] as const;
 
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
+  const t = useT();
   return (
     <div className="app-frame">
       <a className="skip-link" href="#main-content">
-        تجاوز إلى المحتوى
+        {t("shell.skipToContent")}
       </a>
       <header className="topbar">
-        <Link
-          aria-label="EstateFlow، العودة إلى النموذج"
-          className="brand"
-          href="/ar"
-        >
+        <Link aria-label={t("shell.brandAria")} className="brand" href="/ar">
           <span aria-hidden="true" className="brand-mark">
             E
           </span>
           <span>EstateFlow</span>
         </Link>
         <div className="topbar-meta">
-          <span className="environment-badge">نموذج تجريبي</span>
+          <span className="environment-badge">{t("shell.envBadge")}</span>
           <button
-            aria-label="فتح الإشعارات"
+            aria-label={t("shell.notificationsAria")}
             className="icon-button"
             type="button"
           >
             <span aria-hidden="true">◌</span>
           </button>
           <button
-            aria-label="فتح قائمة الحساب"
+            aria-label={t("shell.accountMenuAria")}
             className="avatar-button"
             type="button"
           >
-            م
+            {t("shell.avatarInitial")}
           </button>
         </div>
       </header>
       <div className="workspace">
-        <aside aria-label="التنقل الرئيسي" className="sidebar">
-          <p className="sidebar-label">مساحة المالك</p>
+        <aside aria-label={t("shell.mainNavAria")} className="sidebar">
+          <p className="sidebar-label">{t("shell.workspaceLabel")}</p>
           <nav>
             <ul className="nav-list">
-              {navigation.map((item) => (
+              {NAVIGATION.map((item) => (
                 <li key={item.href}>
                   <Link
                     aria-current={item.active ? "page" : undefined}
@@ -58,15 +58,15 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
                     }
                     href={item.href}
                   >
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </li>
               ))}
             </ul>
           </nav>
           <div className="sidebar-note">
-            <strong>واجهة الأساس</strong>
-            <span>بيانات توضيحية فقط، بلا اتصال تشغيلي.</span>
+            <strong>{t("shell.sidebarNoteTitle")}</strong>
+            <span>{t("shell.sidebarNoteBody")}</span>
           </div>
         </aside>
         <main id="main-content" className="main-content">

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 
 const root = new URL("../", import.meta.url);
 async function source(path: string): Promise<string> {
@@ -30,11 +31,19 @@ test("workspace exposes exactly the accepted Arabic expense command sequence", a
   assert.match(workspace, /\/submit`/);
   assert.match(workspace, /\/decision`/);
   assert.match(workspace, /expense-approval-policy/);
-  assert.match(workspace, /إنشاء مسودة مصروف/);
-  assert.match(workspace, /إرفاق بيانات المستند/);
-  assert.match(workspace, /الإرسال للاعتماد/);
-  assert.match(workspace, /قرار الاعتماد/);
-  assert.match(workspace, /سياسة حد الاعتماد/);
+  assert.match(workspace, /finance\.expense\.draftTitle/);
+  assert.match(workspace, /finance\.expense\.evidenceTitle/);
+  assert.match(workspace, /finance\.expense\.submitTitle/);
+  assert.match(workspace, /finance\.expense\.decisionTitle/);
+  assert.match(workspace, /finance\.expense\.policyTitle/);
+  assert.equal(arMessages["finance.expense.draftTitle"], "إنشاء مسودة مصروف");
+  assert.equal(
+    arMessages["finance.expense.evidenceTitle"],
+    "إرفاق بيانات المستند",
+  );
+  assert.equal(arMessages["finance.expense.submitTitle"], "الإرسال للاعتماد");
+  assert.equal(arMessages["finance.expense.decisionTitle"], "قرار الاعتماد");
+  assert.equal(arMessages["finance.expense.policyTitle"], "سياسة حد الاعتماد");
   assert.match(workspace, /createSessionCsrfProvider/);
   assert.match(workspace, /evidenceKey/);
   assert.match(workspace, /crypto\.randomUUID\(\)/);
@@ -62,9 +71,14 @@ test("workspace keeps evidence retry identity until success and validates before
   assert.match(workspace, /encodeURIComponent\(form\.expenseId\)/);
   assert.match(workspace, /sessionCsrfProvider\.getToken\(\)/);
   assert.match(workspace, /sessionCsrfProvider\.clear\(\)/);
-  assert.match(workspace, /إعادة التحقق من الجلسة/);
+  assert.match(workspace, /finance\.command\.reauthButton/);
+  assert.equal(
+    arMessages["finance.command.reauthButton"],
+    "إعادة التحقق من الجلسة",
+  );
   assert.match(workspace, /REJECTED/);
-  assert.match(workspace, /الرفض يتطلب سببًا/);
+  assert.match(workspace, /finance\.expense\.decisionNote/);
+  assert.match(arMessages["finance.expense.decisionNote"], /الرفض يتطلب سببًا/);
 });
 
 test("workspace styles encode a responsive five-step financial rail", async () => {

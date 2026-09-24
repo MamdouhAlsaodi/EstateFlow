@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ApiError } from "../lib/api-client/index.js";
 import { LeadStage } from "../lib/api-client/leads.js";
+import { arMessages } from "../i18n/catalog.js";
 import {
   appendLeadBoardPage,
   getLeadBoardErrorState,
@@ -49,7 +50,9 @@ test("groups leads into exactly the four approved stages", () => {
   ]);
   assert.equal(grouped.NEW.length, 1);
   assert.equal(grouped.QUALIFIED.length, 1);
-  assert.equal(LEAD_STAGE_LABELS.NEW, "جديد");
+  // EF-630: the label map holds catalog keys; the Arabic text lives in the
+  // merged catalog and must resolve to the same wording.
+  assert.equal(arMessages[LEAD_STAGE_LABELS.NEW], "جديد");
 });
 
 test("appends a paginated page without changing lead fields", () => {
@@ -159,7 +162,7 @@ test("board composes an organization-scoped inline workspace disclosure", async 
     new URL("../features/leads/lead-workspace.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(boardSource, /عرض ملف العميل/);
+  assert.match(boardSource, /leads\.board\.openProfile/);
   assert.match(boardSource, /organizationId/);
   assert.match(boardSource, /leadId/);
   assert.match(boardSource, /LeadWorkspace/);
@@ -252,7 +255,7 @@ test("board exposes explicit transition commands with pending and safe conflict 
   assert.match(source, /setLoading/);
   assert.match(source, /setRetryKey/);
   assert.match(source, /nextCursor/);
-  assert.match(source, /تحميل المزيد/);
+  assert.match(source, /leads\.board\.loadMore/);
   assert.match(source, /transitionLead/);
   assert.match(source, /sessionCsrfProvider\.clear\(\)/);
   assert.match(
@@ -263,9 +266,11 @@ test("board exposes explicit transition commands with pending and safe conflict 
   assert.match(source, /getToken\(\)/);
   assert.match(source, /SessionCsrfProvider/);
   assert.match(source, /expectedVersion/);
-  assert.match(source, /إعادة تحميل/);
+  assert.match(source, /leads\.board\.reload/);
   assert.match(source, /disabled=.*pending|pending.*disabled/is);
   assert.doesNotMatch(source, /onDrop|dragStart|dragOver/);
   assert.doesNotMatch(source, /catch \([^)]*\)[\s\S]{0,180}transitionLead/);
-  assert.doesNotMatch(source, /setStage|stageSetter|stage\s*:/i);
+  // EF-630: `stage:` was narrowed out — interpolation var keys legitimately
+  // contain `stage:` now; the guard's intent is the setter identifiers.
+  assert.doesNotMatch(source, /setStage|stageSetter/i);
 });

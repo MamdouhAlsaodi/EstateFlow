@@ -1,18 +1,18 @@
 "use client";
 
+import { useT } from "../../i18n";
+
 export default function Error({
   reset,
 }: Readonly<{ error: Error & { digest?: string }; reset: () => void }>) {
+  const t = useT();
   return (
     <section className="state-card" role="alert">
-      <p className="eyebrow">تعذر تحميل الواجهة</p>
-      <h1>لم نتمكن من عرض هذه الصفحة الآن</h1>
-      <p>
-        جرّب إعادة المحاولة. إذا استمرت المشكلة، راجع حالة الخدمة قبل إدخال أي
-        بيانات.
-      </p>
+      <p className="eyebrow">{t("error.eyebrow")}</p>
+      <h1>{t("error.title")}</h1>
+      <p>{t("error.description")}</p>
       <button className="button button-primary" onClick={reset} type="button">
-        إعادة المحاولة
+        {t("error.retry")}
       </button>
     </section>
   );

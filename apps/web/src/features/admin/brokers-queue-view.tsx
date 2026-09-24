@@ -8,7 +8,8 @@ import {
   suspendBroker,
 } from "./admin-api";
 import { isStepUpRequiredError } from "./admin-api";
-import { labelFrom, MEMBERSHIP_STATUS_LABELS } from "./admin-labels";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
+import { MEMBERSHIP_STATUS_LABELS } from "./admin-labels";
 import type { PendingBroker, PendingBrokersPage } from "./admin-contract";
 import { StepUpForm } from "./step-up-form";
 import styles from "./admin.module.css";
@@ -30,6 +31,7 @@ type PendingCommand = Readonly<{
  * retried once).
  */
 export function BrokersQueueView() {
+  const t = useT();
   const [page, setPage] = useState<PendingBrokersPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -66,7 +68,7 @@ export function BrokersQueueView() {
       });
       await load();
     } catch {
-      setActionError("تعذر اعتماد الوسيط. تحقق من الجلسة وحاول مرة أخرى.");
+      setActionError(t("admin.brokers.approveFailed"));
     } finally {
       setBusyId(null);
       setOpenFormId(null);
@@ -95,14 +97,10 @@ export function BrokersQueueView() {
     } catch (caught) {
       if (isStepUpRequiredError(caught)) {
         setPendingCommand(command);
-        setActionError(
-          "يتطلب هذا الإجراء إعادة تأكيد كلمة المرور قبل التنفيذ.",
-        );
+        setActionError(t("admin.brokers.stepUpRequired"));
         return false;
       }
-      setActionError(
-        "تعذر تنفيذ القرار. تأكد من كتابة السبب وحالة الوسيط ثم حاول مرة أخرى.",
-      );
+      setActionError(t("admin.brokers.decideFailed"));
       return false;
     } finally {
       setBusyId(null);
@@ -122,26 +120,23 @@ export function BrokersQueueView() {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">لوحة الإدارة</p>
-          <h1>الوسطاء العقاريون</h1>
-          <p>
-            طلبات انضمام الوسطاء في كل المؤسسات، وإدارة الإيقاف على مستوى
-            المنصة.
-          </p>
+          <p className="eyebrow">{t("admin.common.eyebrow")}</p>
+          <h1>{t("admin.brokers.title")}</h1>
+          <p>{t("admin.brokers.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void load()}
         >
-          تحديث
+          {t("admin.common.refresh")}
         </button>
       </header>
-      {loading && <p role="status">جارٍ تحميل الطلبات…</p>}
+      {loading && <p role="status">{t("admin.brokers.loading")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر تحميل قائمة الوسطاء</strong>
-          <p>تحقق من الجلسة ثم حاول مرة أخرى.</p>
+          <strong>{t("admin.brokers.loadFailed")}</strong>
+          <p>{t("admin.brokers.loadFailedHint")}</p>
         </div>
       )}
       {actionError && (
@@ -152,11 +147,13 @@ export function BrokersQueueView() {
       {!loading && !error && (
         <section aria-labelledby="brokers-title" className="panel">
           <div className={styles.sectionHeading}>
-            <h2 id="brokers-title">الوسطاء وحالاتهم</h2>
-            <span className="table-count">{page?.items.length ?? 0} عنصر</span>
+            <h2 id="brokers-title">{t("admin.brokers.listTitle")}</h2>
+            <span className="table-count">
+              {t("admin.brokers.itemCount", { count: page?.items.length ?? 0 })}
+            </span>
           </div>
           {page === null || page.items.length === 0 ? (
-            <p>لا توجد طلبات أو وسطاء مطابقون حالياً.</p>
+            <p>{t("admin.brokers.empty")}</p>
           ) : (
             <ul className={styles.list}>
               {page.items.map((broker) => (
@@ -164,13 +161,22 @@ export function BrokersQueueView() {
                   <div>
                     <strong>{broker.organizationName}</strong>
                     <span>
-                      الحالة:{" "}
-                      {labelFrom(MEMBERSHIP_STATUS_LABELS, broker.status)}
+                      {t("admin.brokers.statusPrefix")}{" "}
+                      {labelFromKey(
+                        MEMBERSHIP_STATUS_LABELS,
+                        t,
+                        broker.status,
+                        broker.status,
+                      )}
                     </span>
                     <span>
-                      طلب الانضمام: {formatDate(broker.createdAt)}
+                      {t("admin.brokers.requestPrefix")}{" "}
+                      {formatDate(
+                        broker.createdAt,
+                        t("admin.common.timeUnavailable"),
+                      )}
                       {broker.approvedAt
-                        ? ` · الاعتماد: ${formatDate(broker.approvedAt)}`
+                        ? ` · ${t("admin.brokers.approvedPrefix")} ${formatDate(broker.approvedAt, t("admin.common.timeUnavailable"))}`
                         : ""}
                     </span>
                   </div>
@@ -182,7 +188,7 @@ export function BrokersQueueView() {
                         disabled={busyId === broker.membershipId}
                         onClick={() => void approve(broker)}
                       >
-                        اعتماد
+                        {t("admin.brokers.approve")}
                       </button>
                     )}
                     {broker.status === "ACTIVE" && (
@@ -197,7 +203,7 @@ export function BrokersQueueView() {
                           )
                         }
                       >
-                        إيقاف
+                        {t("admin.brokers.suspend")}
                       </button>
                     )}
                     {broker.status === "SUSPENDED" && (
@@ -212,7 +218,7 @@ export function BrokersQueueView() {
                           )
                         }
                       >
-                        إعادة التفعيل
+                        {t("admin.brokers.reinstate")}
                       </button>
                     )}
                   </div>
@@ -220,13 +226,13 @@ export function BrokersQueueView() {
                     <ReasonForm
                       title={
                         broker.status === "ACTIVE"
-                          ? "إيقاف الوسيط على مستوى المنصة"
-                          : "إعادة تفعيل الوسيط"
+                          ? t("admin.brokers.suspendTitle")
+                          : t("admin.brokers.reinstateTitle")
                       }
                       hint={
                         broker.status === "ACTIVE"
-                          ? "الإيقاف حسّاس: يُطلب السبب ثم إعادة تأكيد كلمة المرور، ويُسجَّل كل ذلك في سجل الإدارة."
-                          : "اذكر سبب إعادة التفعيل؛ يُسجَّل في سجل الإدارة ولا يمكن تعديله."
+                          ? t("admin.brokers.suspendHint")
+                          : t("admin.brokers.reinstateHint")
                       }
                       busy={busyId === broker.membershipId}
                       onSubmit={(reason) =>
@@ -249,8 +255,8 @@ export function BrokersQueueView() {
         </section>
       )}
       {pendingCommand && (
-        <section className="panel" aria-label="إعادة تأكيد كلمة المرور">
-          <h2>إعادة تأكيد الهوية</h2>
+        <section className="panel" aria-label={t("admin.common.stepUpAria")}>
+          <h2>{t("admin.common.stepUpTitle")}</h2>
           <StepUpForm
             onConfirmed={() => void onStepUpConfirmed()}
             onCancel={() => setPendingCommand(null)}
@@ -275,6 +281,7 @@ function ReasonForm({
   onSubmit: (reason: string) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [reason, setReason] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -282,7 +289,7 @@ function ReasonForm({
     event.preventDefault();
     const trimmed = reason.trim();
     if (trimmed.length === 0 || trimmed.length > 500) {
-      setLocalError("السبب مطلوب ولا يتجاوز 500 حرف.");
+      setLocalError(t("admin.common.reasonInvalid"));
       return;
     }
     setLocalError(null);
@@ -294,7 +301,7 @@ function ReasonForm({
       <strong>{title}</strong>
       <p className={styles.hint}>{hint}</p>
       <label>
-        السبب (إلزامي)
+        {t("admin.common.reasonLabel")}
         <textarea
           value={reason}
           maxLength={500}
@@ -309,7 +316,7 @@ function ReasonForm({
       )}
       <div className="button-row">
         <button className="button button-primary" type="submit" disabled={busy}>
-          {busy ? "جارٍ التنفيذ…" : "متابعة"}
+          {busy ? t("admin.common.pending") : t("admin.common.continue")}
         </button>
         <button
           className="button button-secondary"
@@ -317,19 +324,17 @@ function ReasonForm({
           onClick={onCancel}
           disabled={busy}
         >
-          إلغاء
+          {t("admin.common.cancel")}
         </button>
       </div>
     </form>
   );
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+function formatDate(value: string, fallback: string): string {
+  try {
+    return formatDateTime(value);
+  } catch {
+    return fallback;
+  }
 }

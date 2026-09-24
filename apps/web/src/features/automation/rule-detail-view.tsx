@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type {
   AutomationJobRecord,
@@ -23,6 +24,7 @@ import styles from "./automation-visibility.module.css";
  * execution history with retry/cancel. No other editor UI exists here.
  */
 export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [detail, setDetail] = useState<AutomationRuleDetailResponse | null>(
     null,
@@ -65,7 +67,7 @@ export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
       });
       await load();
     } catch (actionFailure) {
-      setActionError(getAutomationActionError(actionFailure).message);
+      setActionError(t(getAutomationActionError(actionFailure).messageKey));
     } finally {
       setBusy(false);
     }
@@ -75,23 +77,25 @@ export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">تفاصيل قاعدة الأتمتة</p>
-          <h1>{detail ? detail.rule.name : "قاعدة الأتمتة"}</h1>
-          <p>التعريف الحالي وسجل الإصدارات والتنفيذ؛ لا يوجد محرر قواعد.</p>
+          <p className="eyebrow">{t("automation.rule.eyebrow")}</p>
+          <h1>
+            {detail ? detail.rule.name : t("automation.rule.fallbackTitle")}
+          </h1>
+          <p>{t("automation.rule.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           onClick={() => void load()}
           type="button"
         >
-          تحديث
+          {t("automation.common.refresh")}
         </button>
       </header>
-      {loading && <p role="status">جارٍ تحميل القاعدة…</p>}
+      {loading && <p role="status">{t("automation.rule.loading")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر تحميل القاعدة</strong>
-          <p>تحقق من الرابط والجلسة ثم حاول مرة أخرى.</p>
+          <strong>{t("automation.rule.loadFailed")}</strong>
+          <p>{t("automation.rule.loadFailedHint")}</p>
         </div>
       )}
       {actionError && (
@@ -103,20 +107,20 @@ export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
         <>
           <section aria-labelledby="rule-state-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="rule-state-title">حالة القاعدة</h2>
+              <h2 id="rule-state-title">{t("automation.rule.stateTitle")}</h2>
               <span
                 className={
                   detail.rule.enabled ? styles.enabled : styles.disabled
                 }
               >
-                {detail.rule.enabled ? "مفعّلة" : "متوقفة"} · الإصدار{" "}
+                {detail.rule.enabled
+                  ? t("automation.visibility.enabled")
+                  : t("automation.visibility.disabled")}{" "}
+                · {t("automation.common.versionPrefix")}{" "}
                 {detail.rule.currentVersion}
               </span>
             </div>
-            <p>
-              تشغيل القاعدة أو إيقافها متاح لصاحب المؤسسة أو المدير فقط. الإيقاف
-              لا يحذف التاريخ ولا يعيد الوظائف السابقة.
-            </p>
+            <p>{t("automation.rule.stateNote")}</p>
             <div className={styles.actions}>
               {detail.rule.enabled ? (
                 <button
@@ -125,7 +129,7 @@ export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
                   disabled={busy}
                   onClick={() => void toggleEnabled(false)}
                 >
-                  إيقاف القاعدة
+                  {t("automation.rule.disable")}
                 </button>
               ) : (
                 <button
@@ -134,49 +138,65 @@ export function RuleDetailView({ ruleId }: Readonly<{ ruleId: string }>) {
                   disabled={busy}
                   onClick={() => void toggleEnabled(true)}
                 >
-                  تفعيل القاعدة
+                  {t("automation.rule.enable")}
                 </button>
               )}
               <Link
                 className={styles.ruleLink}
                 href={`/ar/organizations/${organizationId}/automation/jobs`}
               >
-                سجل تنفيذ المؤسسة
+                {t("automation.rule.orgHistory")}
               </Link>
             </div>
           </section>
           <section aria-labelledby="rule-definition-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="rule-definition-title">التعريف الحالي</h2>
+              <h2 id="rule-definition-title">
+                {t("automation.rule.definitionTitle")}
+              </h2>
             </div>
-            {describeDefinition(detail)}
+            {describeDefinition(detail, t)}
           </section>
           <section aria-labelledby="rule-versions-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="rule-versions-title">سجل الإصدارات</h2>
+              <h2 id="rule-versions-title">
+                {t("automation.rule.versionsTitle")}
+              </h2>
               <span className="table-count">
-                {detail.versions.length} إصدار
+                {t("automation.common.countVersions", {
+                  count: detail.versions.length,
+                })}
               </span>
             </div>
             <ol className={styles.timeline}>
               {[...detail.versions].reverse().map((version) => (
                 <li key={version.version}>
-                  <strong>الإصدار {version.version}</strong>
+                  <strong>
+                    {t("automation.rule.versionLabel", {
+                      version: version.version,
+                    })}
+                  </strong>
                   <span>
                     {formatDate(version.createdAt)}
                     {version.supersedesVersion
-                      ? ` · حلّ محل الإصدار ${version.supersedesVersion}`
+                      ? ` · ${t("automation.rule.supersedes", { version: version.supersedesVersion })}`
                       : ""}
                   </span>
-                  {version.note && <span>ملاحظة: {version.note}</span>}
+                  {version.note && (
+                    <span>
+                      {t("automation.rule.notePrefix")} {version.note}
+                    </span>
+                  )}
                 </li>
               ))}
             </ol>
           </section>
           <section aria-labelledby="rule-jobs-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="rule-jobs-title">سجل التنفيذ لهذه القاعدة</h2>
-              <span className="table-count">{jobs.length} وظيفة</span>
+              <h2 id="rule-jobs-title">{t("automation.rule.jobsTitle")}</h2>
+              <span className="table-count">
+                {t("automation.common.countJobs", { count: jobs.length })}
+              </span>
             </div>
             <AutomationJobList
               organizationId={organizationId}
@@ -218,63 +238,63 @@ function parseDefinition(
   };
 }
 
-function describeDefinition(detail: AutomationRuleDetailResponse): ReactNode {
+function describeDefinition(
+  detail: AutomationRuleDetailResponse,
+  t: ReturnType<typeof useT>,
+): ReactNode {
   const parsed = parseDefinition(detail.rule.definition);
-  if (!parsed) return <p>تعريف غير متاح.</p>;
+  if (!parsed) return <p>{t("automation.rule.definitionUnavailable")}</p>;
   const eventType = parsed.trigger.eventType;
   const scheduleTime = parsed.trigger.timeOfDayUtc;
   const actionType = parsed.action.actionType;
   return (
     <div className={styles.definitionGrid}>
       <div>
-        <strong>المحفّز</strong>
+        <strong>{t("automation.rule.trigger")}</strong>
         <span>
           {typeof eventType === "string"
-            ? `عند ${eventType}`
+            ? t("automation.rule.triggerOnEvent", { eventType })
             : typeof scheduleTime === "string"
-              ? `يوميًا على الساعة ${scheduleTime} بتوقيت UTC`
-              : "غير معروف"}
+              ? t("automation.rule.triggerDailyAt", { time: scheduleTime })
+              : t("automation.rule.unknown")}
         </span>
       </div>
       <div>
-        <strong>الشروط</strong>
+        <strong>{t("automation.rule.conditions")}</strong>
         {parsed.conditions.length === 0 ? (
-          <span>بدون شروط إضافية</span>
+          <span>{t("automation.rule.noConditions")}</span>
         ) : (
           parsed.conditions.map((condition, index) => (
-            <span key={index}>{describeCondition(condition)}</span>
+            <span key={index}>{describeCondition(condition, t)}</span>
           ))
         )}
       </div>
       <div>
-        <strong>الإجراء</strong>
+        <strong>{t("automation.rule.action")}</strong>
         <span>
           {typeof actionType === "string"
-            ? (jobActionLabels[actionType] ?? actionType)
-            : "غير معروف"}
+            ? labelFromKey(jobActionLabels, t, actionType, actionType)
+            : t("automation.rule.unknown")}
         </span>
       </div>
     </div>
   );
 }
 
-function describeCondition(condition: Record<string, unknown>): string {
+function describeCondition(
+  condition: Record<string, unknown>,
+  t: ReturnType<typeof useT>,
+): string {
   const field = typeof condition.field === "string" ? condition.field : "?";
   const op = typeof condition.op === "string" ? condition.op : "?";
-  const operatorLabel = conditionOperatorLabels[op] ?? op;
+  const operatorLabel = labelFromKey(conditionOperatorLabels, t, op, op);
   if (condition.value === undefined) return `${field} ${operatorLabel}`;
   const value = Array.isArray(condition.value)
-    ? condition.value.join("، ")
+    ? condition.value.join(t("common.listSeparator"))
     : String(condition.value);
   return `${field} ${operatorLabel} ${value}`;
 }
 
 function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+  return formatDateTime(value);
 }

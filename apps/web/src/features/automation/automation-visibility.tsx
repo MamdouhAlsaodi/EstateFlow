@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { createApiClient } from "../../lib/api-client/index";
+import { formatDateTime, useT, type MessageKey } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type {
   AutomationFailedJob,
@@ -18,22 +19,23 @@ import styles from "./automation-visibility.module.css";
 
 const apiClient = createApiClient();
 
-const eventLabels: Record<string, string> = {
-  "lead.created": "إنشاء عميل",
-  "lead.stage_changed": "تغيير مرحلة",
-  "lead.assignment_changed": "تغيير المسؤول",
-  "lead.response_sla_breached": "تجاوز مهلة الرد",
-  "lead.inactivity_breached": "خمول العميل",
-  "lead.next_action_missing": "غياب الإجراء التالي",
-  "receivable.due_soon": "استحقاق ذمة قريب",
-  "receivable.overdue": "ذمة متأخرة",
-  "commission.due": "عمولة مستحقة",
-  "viewing.reminder_24h": "تذكير معاينة قبل 24 ساعة",
-  "viewing.reminder_1h": "تذكير معاينة قبل ساعة",
-  "viewing.outcome_requested": "طلب نتيجة المعاينة والمتابعة",
+const eventLabels: Record<string, MessageKey> = {
+  "lead.created": "automation.event.lead.created",
+  "lead.stage_changed": "automation.event.lead.stage_changed",
+  "lead.assignment_changed": "automation.event.lead.assignment_changed",
+  "lead.response_sla_breached": "automation.event.lead.response_sla_breached",
+  "lead.inactivity_breached": "automation.event.lead.inactivity_breached",
+  "lead.next_action_missing": "automation.event.lead.next_action_missing",
+  "receivable.due_soon": "automation.event.receivable.due_soon",
+  "receivable.overdue": "automation.event.receivable.overdue",
+  "commission.due": "automation.event.commission.due",
+  "viewing.reminder_24h": "automation.event.viewing.reminder_24h",
+  "viewing.reminder_1h": "automation.event.viewing.reminder_1h",
+  "viewing.outcome_requested": "automation.event.viewing.outcome_requested",
 };
 
 export function AutomationVisibility() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [rules, setRules] = useState<readonly AutomationRuleSummary[]>([]);
   const [jobs, setJobs] = useState<readonly AutomationFailedJob[]>([]);
@@ -93,7 +95,10 @@ export function AutomationVisibility() {
           csrfToken,
         });
       } else {
-        const reason = window.prompt("سبب الرفض")?.trim() ?? "";
+        const reason =
+          window
+            .prompt(t("automation.visibility.rejectReasonPrompt"))
+            ?.trim() ?? "";
         if (!reason) return;
         await apiClient.rejectNotification({
           organizationId,
@@ -116,46 +121,50 @@ export function AutomationVisibility() {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">تشغيل آلي قابل للمراجعة</p>
-          <h1>الأتمتة والمتابعة</h1>
-          <p>
-            قائمة القواعد وحالات التنفيذ الفاشلة فقط؛ لا يوجد محرر قواعد هنا.
-          </p>
+          <p className="eyebrow">{t("automation.visibility.eyebrow")}</p>
+          <h1>{t("automation.visibility.title")}</h1>
+          <p>{t("automation.visibility.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           onClick={() => void load()}
           type="button"
         >
-          تحديث
+          {t("automation.common.refresh")}
         </button>
       </header>
       {refreshedAt && (
-        <p className={styles.freshness}>آخر تحديث: {formatDate(refreshedAt)}</p>
+        <p className={styles.freshness}>
+          {t("automation.common.lastUpdatePrefix")} {formatDate(refreshedAt)}
+        </p>
       )}
-      {loading && <p role="status">جارٍ تحميل الأتمتة…</p>}
+      {loading && <p role="status">{t("automation.visibility.loading")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر تحميل الأتمتة</strong>
-          <p>تحقق من الجلسة ثم حاول مرة أخرى.</p>
+          <strong>{t("automation.visibility.loadFailed")}</strong>
+          <p>{t("automation.visibility.loadFailedHint")}</p>
         </div>
       )}
       {!loading && !error && (
         <>
           <section aria-labelledby="automation-rules-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="automation-rules-title">القواعد الحالية</h2>
-              <span className="table-count">{rules.length} قاعدة</span>
+              <h2 id="automation-rules-title">
+                {t("automation.visibility.currentRules")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countRules", { count: rules.length })}
+              </span>
             </div>
             {rules.length === 0 ? (
-              <p>لا توجد قواعد مفعّلة أو منشأة بعد.</p>
+              <p>{t("automation.visibility.rulesEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {rules.map((rule) => (
                   <li key={rule.id}>
                     <div>
                       <strong>{rule.name}</strong>
-                      <span>{describeTrigger(rule)}</span>
+                      <span>{describeTrigger(rule, t)}</span>
                     </div>
                     <div className={styles.actions}>
                       <span
@@ -163,14 +172,17 @@ export function AutomationVisibility() {
                           rule.enabled ? styles.enabled : styles.disabled
                         }
                       >
-                        {rule.enabled ? "مفعّلة" : "متوقفة"} · الإصدار{" "}
+                        {rule.enabled
+                          ? t("automation.visibility.enabled")
+                          : t("automation.visibility.disabled")}{" "}
+                        · {t("automation.common.versionPrefix")}{" "}
                         {rule.currentVersion}
                       </span>
                       <Link
                         className={styles.ruleLink}
                         href={`/ar/organizations/${organizationId}/automation/rules/${rule.id}`}
                       >
-                        التفاصيل
+                        {t("automation.visibility.details")}
                       </Link>
                     </div>
                   </li>
@@ -180,26 +192,31 @@ export function AutomationVisibility() {
           </section>
           <section aria-labelledby="automation-history-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="automation-history-title">سجل التنفيذ</h2>
+              <h2 id="automation-history-title">
+                {t("automation.visibility.historyTitle")}
+              </h2>
             </div>
-            <p>
-              حالات الوظائف وأسباب الفشل المكتوبة لكل القواعد في المؤسسة، مع
-              إعادة المحاولة والإلغاء حسب الصلاحية.
-            </p>
+            <p>{t("automation.visibility.historyBody")}</p>
             <Link
               className={styles.ruleLink}
               href={`/ar/organizations/${organizationId}/automation/jobs`}
             >
-              عرض سجل تنفيذ المؤسسة
+              {t("automation.visibility.historyLink")}
             </Link>
           </section>
           <section aria-labelledby="finance-reminders-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="finance-reminders-title">وظائف التذكير المالي الأخيرة</h2>
-              <span className="table-count">{financeJobs.length} وظيفة</span>
+              <h2 id="finance-reminders-title">
+                {t("automation.visibility.financeReminders")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countJobs", {
+                  count: financeJobs.length,
+                })}
+              </span>
             </div>
             {financeJobs.length === 0 ? (
-              <p>لا توجد وظائف تذكير مالي حديثة.</p>
+              <p>{t("automation.visibility.financeEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {financeJobs.map((job) => (
@@ -207,8 +224,8 @@ export function AutomationVisibility() {
                     <div>
                       <strong>
                         {job.targetType === "RECEIVABLE"
-                          ? "ذمة مدينة"
-                          : "عمولة"}
+                          ? t("automation.target.RECEIVABLE")
+                          : t("automation.target.COMMISSION")}
                       </strong>
                       <span>
                         {job.status} · {job.targetType}
@@ -227,11 +244,17 @@ export function AutomationVisibility() {
             className="panel"
           >
             <div className={styles.sectionHeading}>
-              <h2 id="notification-templates-title">قوالب الإشعارات</h2>
-              <span className="table-count">{templates.length} إصدار</span>
+              <h2 id="notification-templates-title">
+                {t("automation.visibility.templates")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countVersions", {
+                  count: templates.length,
+                })}
+              </span>
             </div>
             {templates.length === 0 ? (
-              <p>لا توجد قوالب بعد.</p>
+              <p>{t("automation.visibility.templatesEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {templates.map((template) => (
@@ -241,7 +264,9 @@ export function AutomationVisibility() {
                         {template.templateKey} · {template.locale}
                       </strong>
                       <span>
-                        {template.status} · الإصدار {template.version}
+                        {template.status} ·{" "}
+                        {t("automation.visibility.templateVersionPrefix")}{" "}
+                        {template.version}
                       </span>
                     </div>
                   </li>
@@ -254,11 +279,17 @@ export function AutomationVisibility() {
             className="panel"
           >
             <div className={styles.sectionHeading}>
-              <h2 id="notification-approvals-title">طلبات الموافقة المعلقة</h2>
-              <span className="table-count">{approvals.length} طلب</span>
+              <h2 id="notification-approvals-title">
+                {t("automation.visibility.approvals")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countRequests", {
+                  count: approvals.length,
+                })}
+              </span>
             </div>
             {approvals.length === 0 ? (
-              <p>لا توجد طلبات معلقة.</p>
+              <p>{t("automation.visibility.approvalsEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {approvals.map((approval) => (
@@ -267,7 +298,10 @@ export function AutomationVisibility() {
                       <strong>
                         {approval.channel} · {approval.locale}
                       </strong>
-                      <span>المستلم: {approval.recipientUserId}</span>
+                      <span>
+                        {t("automation.visibility.recipientPrefix")}{" "}
+                        {approval.recipientUserId}
+                      </span>
                     </div>
                     <div>
                       <button
@@ -275,14 +309,14 @@ export function AutomationVisibility() {
                         type="button"
                         onClick={() => void decide(approval.id, "approve")}
                       >
-                        اعتماد
+                        {t("automation.visibility.approve")}
                       </button>
                       <button
                         className="button button-secondary"
                         type="button"
                         onClick={() => void decide(approval.id, "reject")}
                       >
-                        رفض
+                        {t("automation.visibility.reject")}
                       </button>
                     </div>
                   </li>
@@ -292,11 +326,15 @@ export function AutomationVisibility() {
           </section>
           <section aria-labelledby="notification-sends-title" className="panel">
             <div className={styles.sectionHeading}>
-              <h2 id="notification-sends-title">الإرسالات الأخيرة</h2>
-              <span className="table-count">{sends.length} إرسال</span>
+              <h2 id="notification-sends-title">
+                {t("automation.visibility.sends")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countSends", { count: sends.length })}
+              </span>
             </div>
             {sends.length === 0 ? (
-              <p>لا توجد إرسالات بعد.</p>
+              <p>{t("automation.visibility.sendsEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {sends.map((send) => (
@@ -306,7 +344,7 @@ export function AutomationVisibility() {
                       <span>
                         {send.status}
                         {send.suppressionReason
-                          ? ` · سبب الحجب: ${send.suppressionReason}`
+                          ? ` · ${t("automation.visibility.suppressionPrefix")} ${send.suppressionReason}`
                           : ""}
                       </span>
                     </div>
@@ -323,11 +361,15 @@ export function AutomationVisibility() {
             className="panel"
           >
             <div className={styles.sectionHeading}>
-              <h2 id="automation-failures-title">فشل الوظائف الأخيرة</h2>
-              <span className="table-count">{jobs.length} فشل</span>
+              <h2 id="automation-failures-title">
+                {t("automation.visibility.failures")}
+              </h2>
+              <span className="table-count">
+                {t("automation.common.countFailures", { count: jobs.length })}
+              </span>
             </div>
             {jobs.length === 0 ? (
-              <p>لا توجد وظائف فاشلة حديثة.</p>
+              <p>{t("automation.visibility.failuresEmpty")}</p>
             ) : (
               <ul className={styles.list}>
                 {jobs.map((job) => (
@@ -335,8 +377,9 @@ export function AutomationVisibility() {
                     <div>
                       <strong>{job.lastError.message}</strong>
                       <span>
-                        {job.actionType} · المحاولة {job.attemptCount}/
-                        {job.maxAttempts}
+                        {job.actionType} ·{" "}
+                        {t("automation.common.attemptPrefix")}{" "}
+                        {job.attemptCount}/{job.maxAttempts}
                       </span>
                     </div>
                     <time dateTime={job.failedAt}>
@@ -353,21 +396,21 @@ export function AutomationVisibility() {
   );
 }
 
-function describeTrigger(rule: AutomationRuleSummary): string {
+function describeTrigger(
+  rule: AutomationRuleSummary,
+  t: ReturnType<typeof useT>,
+): string {
   const trigger = rule.definition.trigger;
-  if (typeof trigger !== "object" || trigger === null) return "قاعدة مخصصة";
+  if (typeof trigger !== "object" || trigger === null)
+    return t("automation.visibility.customRule");
   const eventType = (trigger as { eventType?: unknown }).eventType;
   return typeof eventType === "string"
-    ? (eventLabels[eventType] ?? eventType)
-    : "جدول يومي";
+    ? eventLabels[eventType]
+      ? t(eventLabels[eventType])
+      : eventType
+    : t("automation.visibility.dailySchedule");
 }
 
 function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+  return formatDateTime(value);
 }

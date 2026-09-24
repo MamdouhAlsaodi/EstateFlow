@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT, type Translator } from "../../i18n";
 import { ApiError, createApiClient } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import { useOrganizationContext } from "../organization-context/organization-context";
@@ -11,6 +12,7 @@ const apiClient = createApiClient();
 const csrfProvider = createSessionCsrfProvider(apiClient);
 
 export function ReceivableCancellationPanel() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [invoiceId, setInvoiceId] = useState("");
   const [reason, setReason] = useState("");
@@ -27,7 +29,10 @@ export function ReceivableCancellationPanel() {
     const normalizedReason = reason.trim();
     const normalizedInvoiceId = invoiceId.trim();
     if (!isUuid(normalizedInvoiceId)) {
-      setMessage({ kind: "error", text: "تحقق من معرّف الفاتورة." });
+      setMessage({
+        kind: "error",
+        text: t("finance.cancellation.invoiceValidation"),
+      });
       return;
     }
     if (
@@ -36,7 +41,7 @@ export function ReceivableCancellationPanel() {
     ) {
       setMessage({
         kind: "error",
-        text: "أدخل سببًا من 1 إلى 500 حرفًا.",
+        text: t("finance.cancellation.reasonValidation"),
       });
       return;
     }
@@ -53,7 +58,7 @@ export function ReceivableCancellationPanel() {
       setReason("");
       setMessage({
         kind: "success",
-        text: "أُلغيت الفاتورة بنجاح دون تعديل أي دفعة.",
+        text: t("finance.cancellation.success"),
       });
     } catch (error) {
       if (
@@ -61,7 +66,7 @@ export function ReceivableCancellationPanel() {
         (error.status === 401 || error.status === 403)
       )
         csrfProvider.clear();
-      setMessage({ kind: "error", text: cancellationError(error) });
+      setMessage({ kind: "error", text: cancellationError(t, error) });
     } finally {
       setPending(false);
     }
@@ -70,13 +75,13 @@ export function ReceivableCancellationPanel() {
   return (
     <section className={styles.panel} aria-labelledby="cancel-invoice-title">
       <div className={styles.panelHeading}>
-        <p className="eyebrow">إجراء مضبوط</p>
-        <h2 id="cancel-invoice-title">إلغاء فاتورة</h2>
-        <p>يقرر الخادم صلاحية الإلغاء. لا يمكن إلغاء فاتورة لها دفعة.</p>
+        <p className="eyebrow">{t("finance.cancellation.eyebrow")}</p>
+        <h2 id="cancel-invoice-title">{t("finance.cancellation.title")}</h2>
+        <p>{t("finance.cancellation.subtitle")}</p>
       </div>
       <form className={styles.form} onSubmit={submit}>
         <label>
-          معرّف الفاتورة
+          {t("finance.cancellation.invoiceLabel")}
           <input
             dir="ltr"
             required
@@ -85,7 +90,7 @@ export function ReceivableCancellationPanel() {
           />
         </label>
         <label>
-          سبب الإلغاء
+          {t("finance.cancellation.reasonLabel")}
           <textarea
             required
             maxLength={500}
@@ -98,7 +103,9 @@ export function ReceivableCancellationPanel() {
           type="submit"
           disabled={pending}
         >
-          {pending ? "جارٍ الإلغاء…" : "إلغاء الفاتورة"}
+          {pending
+            ? t("finance.cancellation.cancelling")
+            : t("finance.cancellation.submit")}
         </button>
       </form>
       {message && (
@@ -113,13 +120,13 @@ export function ReceivableCancellationPanel() {
   );
 }
 
-function cancellationError(error: unknown): string {
+function cancellationError(t: Translator, error: unknown): string {
   if (error instanceof ApiError && error.status === 409)
-    return "لا يمكن إلغاء فاتورة عليها دفعة مالية.";
+    return t("finance.cancellation.paidConflict");
   if (
     error instanceof ApiError &&
     (error.status === 401 || error.status === 403)
   )
-    return "انتهت الجلسة أو لا تملك الصلاحية. أعد التحقق ثم حاول مجددًا.";
-  return "تعذر إلغاء الفاتورة. بقي المعرّف والسبب كما هما لمحاولة آمنة.";
+    return t("finance.cancellation.sessionExpired");
+  return t("finance.cancellation.genericError");
 }

@@ -4,6 +4,12 @@ import type {
   GeoSearchPage,
 } from "./geo-search-contract";
 
+/**
+ * EF-630 — stable failure code; the visible message is resolved from the
+ * translation catalog by the view (`search.apiLoadFailed`).
+ */
+export const GEO_SEARCH_LOAD_FAILED = "GEO_SEARCH_LOAD_FAILED";
+
 function queryString(input: GeoSearchInput): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(input)) {
@@ -21,7 +27,7 @@ async function get<T>(
     `/api/organizations/${encodeURIComponent(organizationId)}/search/properties${path}?${queryString(input)}`,
     { credentials: "include", headers: { accept: "application/json" } },
   );
-  if (!response.ok) throw new Error("تعذر تحميل نتائج البحث الجغرافي");
+  if (!response.ok) throw new Error(GEO_SEARCH_LOAD_FAILED);
   return (await response.json()) as T;
 }
 

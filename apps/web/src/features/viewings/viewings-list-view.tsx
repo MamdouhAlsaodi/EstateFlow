@@ -2,18 +2,25 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { labelFromKey, useT, type MessageKey } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import { fetchViewings, requestViewing, viewingAction } from "./viewing-api";
 import type { Viewing, ViewingPage } from "./viewing-contract";
 import styles from "./viewing-views.module.css";
 
-const labels: Record<Viewing["status"], string> = {
-  REQUESTED: "قيد الطلب",
-  CONFIRMED: "مؤكدة",
-  CANCELLED: "ملغاة",
-  COMPLETED: "مكتملة",
-  NO_SHOW: "لم يحضر",
+/**
+ * EF-630 — status labels are catalog keys resolved through the translator.
+ */
+export const VIEWING_STATUS_LABELS: Readonly<
+  Record<Viewing["status"], MessageKey>
+> = {
+  REQUESTED: "viewings.status.REQUESTED",
+  CONFIRMED: "viewings.status.CONFIRMED",
+  CANCELLED: "viewings.status.CANCELLED",
+  COMPLETED: "viewings.status.COMPLETED",
+  NO_SHOW: "viewings.status.NO_SHOW",
 };
+
 const EMPTY_FORM = {
   leadId: "",
   propertyId: "",
@@ -23,6 +30,7 @@ const EMPTY_FORM = {
 };
 
 export function ViewingsListView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [page, setPage] = useState<ViewingPage | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -46,11 +54,11 @@ export function ViewingsListView() {
         }),
       );
     } catch {
-      setError("تعذر تحميل جدول المعاينات.");
+      setError(t("viewings.list.loadFailed"));
     } finally {
       setBusy(false);
     }
-  }, [organizationId]);
+  }, [organizationId, t]);
   useEffect(() => {
     void refresh();
   }, [refresh]);
@@ -63,8 +71,8 @@ export function ViewingsListView() {
     } catch (caught) {
       setError(
         caught instanceof Error && caught.message.includes("VIEWING_CONFLICT")
-          ? "هذا الموعد يتعارض مع معاينة مؤكدة أخرى."
-          : "تعذر تنفيذ الإجراء. تحقق من الحالة والصلاحيات.",
+          ? t("viewings.list.conflict")
+          : t("viewings.list.actionFailed"),
       );
       setBusy(false);
     }
@@ -77,7 +85,7 @@ export function ViewingsListView() {
       !form.startAt ||
       !form.endAt
     ) {
-      setError("أدخل معرّفات العميل والعقار والوسيط والوقت UTC.");
+      setError(t("viewings.list.requiredFields"));
       return;
     }
     await mutate(async () => {
@@ -93,9 +101,9 @@ export function ViewingsListView() {
   return (
     <main className={styles.grid}>
       <section aria-labelledby="viewings-title">
-        <p className="eyebrow">EF-501 — المواعيد والتوافر</p>
-        <h1 id="viewings-title">معاينات هذا الأسبوع</h1>
-        <p>الأوقات محفوظة كـ UTC، ولا يحجز وقت الوسيط إلا الموعد المؤكد.</p>
+        <p className="eyebrow">{t("viewings.list.eyebrow")}</p>
+        <h1 id="viewings-title">{t("viewings.list.title")}</h1>
+        <p>{t("viewings.list.subtitle")}</p>
         <div className={styles.toolbar}>
           <button
             className="button button-secondary"
@@ -103,17 +111,17 @@ export function ViewingsListView() {
             onClick={() => void refresh()}
             disabled={busy}
           >
-            {busy ? "جارٍ التنفيذ…" : "تحديث الأسبوع"}
+            {busy ? t("viewings.list.pending") : t("viewings.list.refresh")}
           </button>
         </div>
         {error && <p role="alert">{error}</p>}
       </section>
       <section aria-labelledby="calendar-title">
-        <h2 id="calendar-title">اليوم / الأسبوع</h2>
+        <h2 id="calendar-title">{t("viewings.list.calendarTitle")}</h2>
         {!page ? (
-          <p>جارٍ التحميل…</p>
+          <p>{t("viewings.list.loading")}</p>
         ) : page.items.length === 0 ? (
-          <p>لا توجد معاينات في هذا الأسبوع.</p>
+          <p>{t("viewings.list.empty")}</p>
         ) : (
           <ul className={styles.cards}>
             {page.items.map((viewing) => (
@@ -129,15 +137,15 @@ export function ViewingsListView() {
         )}
       </section>
       <section aria-labelledby="request-title">
-        <h2 id="request-title">طلب معاينة</h2>
+        <h2 id="request-title">{t("viewings.list.requestTitle")}</h2>
         <div className={styles.form}>
           {(["leadId", "propertyId", "brokerId"] as const).map((field) => (
             <label key={field}>
               {field === "leadId"
-                ? "معرّف العميل"
+                ? t("viewings.list.leadIdLabel")
                 : field === "propertyId"
-                  ? "معرّف العقار"
-                  : "معرّف الوسيط"}
+                  ? t("viewings.list.propertyIdLabel")
+                  : t("viewings.list.brokerIdLabel")}
               <input
                 dir="ltr"
                 value={form[field]}
@@ -148,7 +156,7 @@ export function ViewingsListView() {
             </label>
           ))}
           <label>
-            البداية UTC
+            {t("viewings.list.startLabel")}
             <input
               dir="ltr"
               type="datetime-local"
@@ -159,7 +167,7 @@ export function ViewingsListView() {
             />
           </label>
           <label>
-            النهاية UTC
+            {t("viewings.list.endLabel")}
             <input
               dir="ltr"
               type="datetime-local"
@@ -176,7 +184,7 @@ export function ViewingsListView() {
           onClick={() => void create()}
           disabled={busy}
         >
-          إرسال طلب المعاينة
+          {t("viewings.list.submit")}
         </button>
       </section>
     </main>
@@ -193,40 +201,49 @@ function ViewingCard({
   busy: boolean;
   mutate: (operation: () => Promise<unknown>) => Promise<void>;
 }) {
+  const t = useT();
   const actions: readonly {
     action: "confirm" | "cancel" | "complete" | "no-show";
-    label: string;
+    labelKey: MessageKey;
   }[] =
     viewing.status === "REQUESTED"
       ? [
-          { action: "confirm", label: "تأكيد" },
-          { action: "cancel", label: "إلغاء" },
+          {
+            action: "confirm",
+            labelKey: "viewings.list.actionConfirm",
+          },
+          { action: "cancel", labelKey: "viewings.list.actionCancel" },
         ]
       : viewing.status === "CONFIRMED"
         ? [
-            { action: "complete", label: "إتمام" },
-            { action: "no-show", label: "لم يحضر" },
-            { action: "cancel", label: "إلغاء" },
+            {
+              action: "complete",
+              labelKey: "viewings.list.actionComplete",
+            },
+            { action: "no-show", labelKey: "viewings.list.actionNoShow" },
+            { action: "cancel", labelKey: "viewings.list.actionCancel" },
           ]
         : [];
   return (
     <li className={styles.card}>
-      <strong>{labels[viewing.status]}</strong>
+      <strong>
+        {labelFromKey(VIEWING_STATUS_LABELS, t, viewing.status, viewing.status)}
+      </strong>
       <span className={styles.meta} dir="ltr">
         {viewing.startAt} — {viewing.endAt}
       </span>
       <span className={styles.meta}>
-        الوسيط: <b dir="ltr">{viewing.brokerId}</b>
+        {t("viewings.list.brokerPrefix")} <b dir="ltr">{viewing.brokerId}</b>
       </span>
       <span className={styles.meta}>
-        العميل: <b dir="ltr">{viewing.leadId}</b>
+        {t("viewings.list.leadPrefix")} <b dir="ltr">{viewing.leadId}</b>
       </span>
       <div className={styles.actions}>
         <Link
           className="button button-secondary"
           href={`/ar/organizations/${organizationId}/viewings/${viewing.id}`}
         >
-          تفاصيل والتذكيرات
+          {t("viewings.list.detailsLink")}
         </Link>
         {actions.map((item) => (
           <button
@@ -244,7 +261,7 @@ function ViewingCard({
               )
             }
           >
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
       </div>

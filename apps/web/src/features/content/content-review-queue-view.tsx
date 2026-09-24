@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type { ReviewQueueResponse } from "./content-contract";
 import { contentChannelLabels } from "./content-labels";
@@ -9,10 +10,11 @@ import { fetchReviewQueue } from "./content-api";
 import styles from "./content-views.module.css";
 
 /**
- * EF-402 — Arabic review queue: every content item waiting for approval,
+ * EF-402 — review queue: every content item waiting for approval,
  * oldest submission first, so the reviewer always works in fairness order.
  */
 export function ContentReviewQueueView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [queue, setQueue] = useState<ReviewQueueResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,7 +26,7 @@ export function ContentReviewQueueView() {
     try {
       setQueue(await fetchReviewQueue({ organizationId }));
     } catch {
-      setError("تعذر تحميل قائمة المراجعة. حاول مرة أخرى.");
+      setError(t("content.review.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -33,19 +35,18 @@ export function ContentReviewQueueView() {
   return (
     <div className="workspace-stack">
       <section aria-labelledby="review-queue-title">
-        <p className="eyebrow">EF-402 — قائمة المراجعة</p>
-        <h1 id="review-queue-title">محتوى ينتظر الاعتماد</h1>
-        <p>
-          العناصر في حالة «قيد المراجعة» مرتبة من الأقدم إلى الأحدث. الاعتماد
-          يقفل نسخة المحتوى وبصمته، وهو متاح لصاحب المكتب والمدير فقط.
-        </p>
+        <p className="eyebrow">{t("content.review.eyebrow")}</p>
+        <h1 id="review-queue-title">{t("content.review.title")}</h1>
+        <p>{t("content.review.subtitle")}</p>
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void refresh()}
           disabled={loading}
         >
-          {loading ? "جارٍ التحميل…" : "تحديث القائمة"}
+          {loading
+            ? t("content.common.loading")
+            : t("content.common.refreshList")}
         </button>
         {error && (
           <div role="alert" style={{ color: "#b3423a", marginTop: "0.75rem" }}>
@@ -55,19 +56,19 @@ export function ContentReviewQueueView() {
       </section>
 
       <section aria-labelledby="review-queue-items-title">
-        <h2 id="review-queue-items-title">عناصر في الانتظار</h2>
+        <h2 id="review-queue-items-title">{t("content.review.itemsTitle")}</h2>
         {!queue ? (
-          <p>اضغط «تحديث القائمة» للعرض.</p>
+          <p>{t("content.common.pressRefreshList")}</p>
         ) : queue.items.length === 0 ? (
-          <p>لا يوجد محتوى ينتظر المراجعة.</p>
+          <p>{t("content.review.empty")}</p>
         ) : (
           <div className={styles.tableWrap}>
             <table>
               <thead>
                 <tr>
-                  <th scope="col">العنوان</th>
-                  <th scope="col">القناة</th>
-                  <th scope="col">أُرسل للمراجعة</th>
+                  <th scope="col">{t("content.review.thTitle")}</th>
+                  <th scope="col">{t("content.review.thChannel")}</th>
+                  <th scope="col">{t("content.review.thSubmitted")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -79,11 +80,13 @@ export function ContentReviewQueueView() {
                       >
                         {entry.title}
                         {entry.variantNumber > 1
-                          ? ` (نسخة منقحة #${entry.variantNumber})`
+                          ? t("content.review.variantSuffix", {
+                              number: entry.variantNumber,
+                            })
                           : ""}
                       </Link>
                     </td>
-                    <td>{contentChannelLabels[entry.channel]}</td>
+                    <td>{t(contentChannelLabels[entry.channel])}</td>
                     <td>
                       {entry.submittedAt.slice(0, 16).replace("T", " ")} UTC
                     </td>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useT } from "../../i18n";
 import {
   CONTENT_CHANNELS,
   type GeneratedDraft,
@@ -11,7 +12,7 @@ import {
 import { splitPlaceholderSegments } from "./content-contract";
 import {
   contentChannelLabels,
-  generationPanelIntro,
+  generationPanelIntroKey,
   generationProvenanceLabel,
   generationSlotLabels,
 } from "./content-labels";
@@ -22,7 +23,7 @@ const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 /**
- * EF-403 — Arabic generate-to-review flow. A generate button scoped to one
+ * EF-403 — generate-to-review flow. A generate button scoped to one
  * property: the deterministic template renders a DRAFT whose missing facts
  * are highlighted placeholders; the draft enters the normal review queue and
  * the provenance stamp (property version + template version) is shown.
@@ -30,6 +31,7 @@ const UUID =
 export function ContentGenerationPanel({
   organizationId,
 }: Readonly<{ organizationId: string }>) {
+  const t = useT();
   const [templates, setTemplates] =
     useState<GenerationTemplatesResponse | null>(null);
   const [channel, setChannel] = useState<string>("INSTAGRAM");
@@ -45,7 +47,7 @@ export function ContentGenerationPanel({
       setTemplates(response);
       if (response.items.length > 0) setChannel(response.items[0].channel);
     } catch {
-      setError("تعذر تحميل قوالب التوليد من الخادم. حاول مرة أخرى.");
+      setError(t("content.generation.templatesLoadFailed"));
     }
   }, [organizationId]);
 
@@ -58,13 +60,13 @@ export function ContentGenerationPanel({
 
   async function submitGenerate(): Promise<void> {
     if (!UUID.test(propertyId.trim())) {
-      setError("أدخل معرّف عقار صحيحاً (UUID).");
+      setError(t("content.generation.propertyValidation"));
       return;
     }
     if (
       !CONTENT_CHANNELS.includes(channel as (typeof CONTENT_CHANNELS)[number])
     ) {
-      setError("اختر قناة صحيحة.");
+      setError(t("content.generation.channelValidation"));
       return;
     }
     setPending(true);
@@ -80,8 +82,8 @@ export function ContentGenerationPanel({
       setDraft(null);
       setError(
         caught instanceof TypeError
-          ? "تعذر توليد المسودة: تحقق من معرّف العقار وصلاحياتك."
-          : "تعذر توليد المسودة. تحقق من بيانات العقار (البيانات المحتوية على وعود قانونية ترفض آلياً).",
+          ? t("content.generation.generateContractFailed")
+          : t("content.generation.generateFailed"),
       );
     } finally {
       setPending(false);
@@ -90,11 +92,11 @@ export function ContentGenerationPanel({
 
   return (
     <section aria-labelledby="content-generate-title">
-      <h2 id="content-generate-title">توليد مسودة من عقار</h2>
-      <p>{generationPanelIntro}</p>
+      <h2 id="content-generate-title">{t("content.generation.title")}</h2>
+      <p>{t(generationPanelIntroKey)}</p>
       <div className={styles.generationControls}>
         <label>
-          معرّف العقار
+          {t("content.generation.propertyLabel")}
           <input
             value={propertyId}
             onChange={(event) => setPropertyId(event.target.value)}
@@ -103,7 +105,7 @@ export function ContentGenerationPanel({
           />
         </label>
         <label>
-          قناة النشر
+          {t("content.generation.channelLabel")}
           <select
             value={channel}
             onChange={(event) => setChannel(event.target.value)}
@@ -113,11 +115,11 @@ export function ContentGenerationPanel({
               : CONTENT_CHANNELS
             ).map((value) => (
               <option key={value} value={value}>
-                {
+                {t(
                   contentChannelLabels[
                     value as keyof typeof contentChannelLabels
-                  ]
-                }
+                  ],
+                )}
               </option>
             ))}
           </select>
@@ -137,7 +139,9 @@ export function ContentGenerationPanel({
           disabled={pending}
           onClick={() => void submitGenerate()}
         >
-          {pending ? "جارٍ التوليد…" : "توليد مسودة"}
+          {pending
+            ? t("content.generation.generating")
+            : t("content.generation.generate")}
         </button>
         <button
           className="button button-secondary"
@@ -145,13 +149,13 @@ export function ContentGenerationPanel({
           disabled={pending}
           onClick={() => void refreshTemplates()}
         >
-          تحديث القوالب
+          {t("content.generation.refreshTemplates")}
         </button>
         <Link
           className="button button-secondary"
           href={`/ar/organizations/${organizationId}/content/review-queue`}
         >
-          فتح قائمة المراجعة
+          {t("content.generation.openReviewQueue")}
         </Link>
       </div>
       {error && (
@@ -168,7 +172,7 @@ export function ContentGenerationPanel({
           {draft.placeholders.length > 0 && (
             <div>
               <p style={{ margin: "0 0 0.4rem" }}>
-                عناصر نائبة تحتاج استكمالاً يدوياً قبل الاعتماد:
+                {t("content.generation.placeholdersTitle")}
               </p>
               <div className={styles.slotChips}>
                 {draft.placeholders.map((slot) => (
@@ -179,11 +183,12 @@ export function ContentGenerationPanel({
           )}
           <p className={styles.provenanceLine}>
             {generationProvenanceLabel(
+              t,
               draft.templateId,
               draft.templateVersion,
               draft.item.sourcePropertyVersion ?? 0,
             )}{" "}
-            — أُنشئت كمسودة عادية: مراجعة ← اعتماد، بلا أي تجاوز للدورة.
+            {t("content.generation.draftNote")}
           </p>
         </div>
       )}
@@ -208,10 +213,10 @@ function PlaceholderText({ value }: Readonly<{ value: string }>) {
 }
 
 function SlotChip({ slot }: Readonly<{ slot: GenerationSlot }>) {
-  const label = generationSlotLabels[slot] ?? slot;
+  const t = useT();
   return (
     <span className={styles.slotChip}>
-      {label} <span dir="ltr">[{slot}]</span>
+      {t(generationSlotLabels[slot])} <span dir="ltr">[{slot}]</span>
     </span>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createApiClient, type ApiError } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import type { CommissionPlanInput } from "../../lib/api-client/commission";
+import { arMessages, useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import styles from "./commission-command-workspace.module.css";
 
@@ -38,6 +39,7 @@ const EMPTY: FormState = {
 };
 
 export function CommissionCommandWorkspace() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [pending, setPending] = useState<Command | null>(null);
@@ -64,16 +66,16 @@ export function CommissionCommandWorkspace() {
       setMessage({
         kind: "success",
         text: isReplay(result)
-          ? "تمت إعادة تشغيل الأمر بنجاح."
-          : "تم تنفيذ الأمر بنجاح.",
+          ? t("finance.commission.replayedNotice")
+          : t("finance.commission.successNotice"),
       });
     } catch (error) {
       if (isSessionError(error)) sessionCsrfProvider.clear();
       setMessage({
         kind: "error",
         text: isSessionError(error)
-          ? "انتهت الجلسة. أعد التحقق ثم حاول مرة أخرى."
-          : "تعذر تنفيذ الأمر. راجع البيانات وحاول مرة أخرى.",
+          ? t("finance.commission.sessionExpired")
+          : t("finance.commission.actionFailed"),
       });
     } finally {
       setPending(null);
@@ -95,7 +97,7 @@ export function CommissionCommandWorkspace() {
     ) {
       setMessage({
         kind: "validation",
-        text: "تحقق من رقم النسخة ونسب التوزيع.",
+        text: t("finance.commission.planValidation"),
       });
       return;
     }
@@ -129,7 +131,7 @@ export function CommissionCommandWorkspace() {
     if (!isUuid(form.dealId) || !form.amountMinor || !form.capturedAt) {
       setMessage({
         kind: "validation",
-        text: "تحقق من معرّف الصفقة والمبلغ ووقت الالتقاط.",
+        text: t("finance.commission.valueValidation"),
       });
       return;
     }
@@ -160,7 +162,7 @@ export function CommissionCommandWorkspace() {
     ) {
       setMessage({
         kind: "validation",
-        text: "تحقق من معرّفات الصفقة والقيمة والخطة والحدث.",
+        text: t("finance.commission.accrualValidation"),
       });
       return;
     }
@@ -193,15 +195,15 @@ export function CommissionCommandWorkspace() {
       aria-labelledby="commission-command-title"
     >
       <header className={styles.heading}>
-        <p className="eyebrow">أوامر العمولات</p>
-        <h1 id="commission-command-title">مساحة أوامر العمولة</h1>
-        <p>تنفيذ أوامر محددة للمؤسسة الحالية، دون عرض أرصدة أو تقارير.</p>
+        <p className="eyebrow">{t("finance.commission.eyebrow")}</p>
+        <h1 id="commission-command-title">{t("finance.commission.title")}</h1>
+        <p>{t("finance.commission.subtitle")}</p>
       </header>
       <div className={styles.grid}>
         <form className={styles.card} onSubmit={submitPlan}>
-          <h2>إنشاء نسخة خطة العمولة</h2>
+          <h2>{t("finance.commission.planTitle")}</h2>
           <label>
-            رقم النسخة
+            {t("finance.commission.versionLabel")}
             <input
               required
               inputMode="numeric"
@@ -210,7 +212,8 @@ export function CommissionCommandWorkspace() {
             />
           </label>
           <label>
-            المعدل بالنقاط الأساسية <span>(اختياري للخطة الافتراضية)</span>
+            {t("finance.commission.rateLabel")}{" "}
+            <span>{t("finance.commission.rateHint")}</span>
             <input
               inputMode="numeric"
               value={form.rateBps}
@@ -220,7 +223,7 @@ export function CommissionCommandWorkspace() {
           {form.rateBps && (
             <>
               <label>
-                حصة الوسيط
+                {t("finance.commission.brokerSplitLabel")}
                 <input
                   required
                   inputMode="numeric"
@@ -231,7 +234,7 @@ export function CommissionCommandWorkspace() {
                 />
               </label>
               <label>
-                حصة المكتب
+                {t("finance.commission.officeSplitLabel")}
                 <input
                   required
                   inputMode="numeric"
@@ -248,28 +251,30 @@ export function CommissionCommandWorkspace() {
             disabled={pending === "plan"}
             type="submit"
           >
-            {pending === "plan" ? "جارٍ التنفيذ…" : "إنشاء الخطة"}
+            {pending === "plan"
+              ? t("finance.formPendingAction")
+              : t("finance.commission.planSubmit")}
           </button>
         </form>
         <form className={styles.card} onSubmit={submitValue}>
-          <h2>التقاط القيمة القابلة للعمولة</h2>
+          <h2>{t("finance.commission.valueTitle")}</h2>
           <TextField
-            label="معرّف الصفقة"
+            label={t("finance.field.dealId")}
             value={form.dealId}
             onChange={(value) => update("dealId", value)}
           />
           <TextField
-            label="المبلغ بوحدة صغرى"
+            label={t("finance.field.amountMinor")}
             value={form.amountMinor}
             onChange={(value) => update("amountMinor", value)}
           />
           <TextField
-            label="العملة"
+            label={t("finance.field.currency")}
             value={form.currency}
             onChange={(value) => update("currency", value)}
           />
           <TextField
-            label="وقت الالتقاط UTC"
+            label={t("finance.commission.capturedAtLabel")}
             value={form.capturedAt}
             onChange={(value) => update("capturedAt", value)}
           />
@@ -278,28 +283,30 @@ export function CommissionCommandWorkspace() {
             disabled={pending === "value"}
             type="submit"
           >
-            {pending === "value" ? "جارٍ التنفيذ…" : "التقاط القيمة"}
+            {pending === "value"
+              ? t("finance.formPendingAction")
+              : t("finance.commission.valueSubmit")}
           </button>
         </form>
         <form className={styles.card} onSubmit={submitAccrual}>
-          <h2>إنشاء الاستحقاق المتوقع</h2>
+          <h2>{t("finance.commission.accrualTitle")}</h2>
           <TextField
-            label="معرّف الصفقة"
+            label={t("finance.field.dealId")}
             value={form.dealId}
             onChange={(value) => update("dealId", value)}
           />
           <TextField
-            label="معرّف القيمة القابلة للعمولة"
+            label={t("finance.commission.valueIdLabel")}
             value={form.commissionableValueId}
             onChange={(value) => update("commissionableValueId", value)}
           />
           <TextField
-            label="معرّف نسخة الخطة"
+            label={t("finance.commission.planIdLabel")}
             value={form.planId}
             onChange={(value) => update("planId", value)}
           />
           <TextField
-            label="معرّف حدث إغلاق الصفقة"
+            label={t("finance.commission.eventIdLabel")}
             value={form.eventId}
             onChange={(value) => update("eventId", value)}
           />
@@ -308,7 +315,9 @@ export function CommissionCommandWorkspace() {
             disabled={pending === "accrual"}
             type="submit"
           >
-            {pending === "accrual" ? "جارٍ التنفيذ…" : "إنشاء الاستحقاق"}
+            {pending === "accrual"
+              ? t("finance.formPendingAction")
+              : t("finance.commission.accrualSubmit")}
           </button>
         </form>
       </div>
@@ -327,7 +336,7 @@ export function CommissionCommandWorkspace() {
               }}
               type="button"
             >
-              إعادة التحقق من الجلسة
+              {t("finance.command.reauthButton")}
             </button>
           )}
         </div>
@@ -381,5 +390,7 @@ function isUuid(value: string): boolean {
   );
 }
 function isSessionErrorMessage(value: string): boolean {
-  return value.includes("انتهت الجلسة");
+  // The session-expired wording lives in the catalog; match the same visible
+  // message without hardcoding Arabic text in feature code.
+  return value.includes(arMessages["finance.commission.sessionExpired"]);
 }

@@ -1,56 +1,53 @@
 /**
- * EF-620 — Arabic labels for the admin console. Statuses, audit actions, and
- * typed failure kinds render as written Arabic; unknown values keep the raw
- * typed code so nothing is ever invented.
+ * EF-620/EF-630 — admin label maps hold translation-catalog keys; the
+ * written Arabic/English text lives in `src/i18n/messages/admin.ts`.
+ * Unknown values keep the raw typed code so nothing is ever invented.
  */
 
+import type { MessageKey } from "../../i18n";
 import type { AdminAuditAction } from "./admin-contract";
 
-export const MEMBERSHIP_STATUS_LABELS: Readonly<Record<string, string>> = {
-  PENDING: "بانتظار الموافقة",
-  ACTIVE: "نشط",
-  SUSPENDED: "موقوف",
-  REVOKED: "ملغى",
+export const MEMBERSHIP_STATUS_LABELS: Readonly<Record<string, MessageKey>> = {
+  PENDING: "admin.membership.PENDING",
+  ACTIVE: "admin.membership.ACTIVE",
+  SUSPENDED: "admin.membership.SUSPENDED",
+  REVOKED: "admin.membership.REVOKED",
 };
 
-export const LISTING_STATUS_LABELS: Readonly<Record<string, string>> = {
-  DRAFT: "مسودة",
-  PUBLISHED: "منشور",
-  ARCHIVED: "مؤرشف",
+export const LISTING_STATUS_LABELS: Readonly<Record<string, MessageKey>> = {
+  DRAFT: "admin.listing.DRAFT",
+  PUBLISHED: "admin.listing.PUBLISHED",
+  ARCHIVED: "admin.listing.ARCHIVED",
 };
 
-export const MODERATION_STATUS_LABELS: Readonly<Record<string, string>> = {
-  PENDING: "بانتظار المراجعة",
-  APPROVED: "معتمد",
-  REJECTED: "مرفوض",
-  TAKEN_DOWN: "خُفّض عن النشر",
+export const MODERATION_STATUS_LABELS: Readonly<Record<string, MessageKey>> = {
+  PENDING: "admin.moderation.PENDING",
+  APPROVED: "admin.moderation.APPROVED",
+  REJECTED: "admin.moderation.REJECTED",
+  TAKEN_DOWN: "admin.moderation.TAKEN_DOWN",
 };
 
-export const AUDIT_ACTION_LABELS: Readonly<Record<AdminAuditAction, string>> = {
-  BROKER_APPROVED: "اعتماد وسيب عقاري",
-  BROKER_SUSPENDED: "إيقاف وسيب عقاري",
-  BROKER_REINSTATED: "إعادة تفعيل وسيب عقاري",
-  LISTING_MODERATION_APPROVED: "اعتماد إعلان عقاري",
-  LISTING_MODERATION_REJECTED: "رفض إعلان عقاري",
-  LISTING_MODERATION_TAKEN_DOWN: "تخفيض إعلان عن النشر",
+export const AUDIT_ACTION_LABELS: Readonly<
+  Record<AdminAuditAction, MessageKey>
+> = {
+  BROKER_APPROVED: "admin.auditAction.BROKER_APPROVED",
+  BROKER_SUSPENDED: "admin.auditAction.BROKER_SUSPENDED",
+  BROKER_REINSTATED: "admin.auditAction.BROKER_REINSTATED",
+  LISTING_MODERATION_APPROVED: "admin.auditAction.LISTING_MODERATION_APPROVED",
+  LISTING_MODERATION_REJECTED: "admin.auditAction.LISTING_MODERATION_REJECTED",
+  LISTING_MODERATION_TAKEN_DOWN:
+    "admin.auditAction.LISTING_MODERATION_TAKEN_DOWN",
 };
 
-export const AUDIT_TARGET_LABELS: Readonly<Record<string, string>> = {
-  MEMBERSHIP: "عضوية",
-  LISTING: "إعلان عقاري",
+export const AUDIT_TARGET_LABELS: Readonly<Record<string, MessageKey>> = {
+  MEMBERSHIP: "admin.auditTarget.MEMBERSHIP",
+  LISTING: "admin.auditTarget.LISTING",
 };
 
-export const FAILURE_KIND_LABELS: Readonly<Record<string, string>> = {
-  "action-executor-not-configured": "المنفّذ غير مُعدّ",
-  "action-permanent-failure": "فشل دائم في التنفيذ",
-  "action-transient-failure": "فشل مؤقت في التنفيذ",
-  "unexpected-executor-error": "خطأ غير متوقع في المنفّذ",
+export const FAILURE_KIND_LABELS: Readonly<Record<string, MessageKey>> = {
+  "action-executor-not-configured":
+    "admin.failure.action-executor-not-configured",
+  "action-permanent-failure": "admin.failure.action-permanent-failure",
+  "action-transient-failure": "admin.failure.action-transient-failure",
+  "unexpected-executor-error": "admin.failure.unexpected-executor-error",
 };
-
-export function labelFrom(
-  labels: Readonly<Record<string, string>>,
-  value: string | null | undefined,
-): string {
-  if (!value) return "غير متاح";
-  return labels[value] ?? value;
-}

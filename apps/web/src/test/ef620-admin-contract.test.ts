@@ -13,10 +13,10 @@ import {
 import {
   AUDIT_ACTION_LABELS,
   FAILURE_KIND_LABELS,
-  labelFrom,
   MEMBERSHIP_STATUS_LABELS,
   MODERATION_STATUS_LABELS,
 } from "../features/admin/admin-labels";
+import { arMessages, createTranslator, labelFromKey } from "../i18n/catalog";
 import { isStepUpRequiredError } from "../features/admin/admin-api";
 import { ApiError } from "../lib/api-client";
 
@@ -260,24 +260,34 @@ test("EF-620 decision payloads normalize for command feedback", () => {
 });
 
 test("EF-620 Arabic labels cover every audited action and typed failure kind", () => {
+  const t = createTranslator("ar");
   for (const action of ADMIN_AUDIT_ACTIONS) {
     assert.equal(typeof AUDIT_ACTION_LABELS[action], "string");
     assert.ok(AUDIT_ACTION_LABELS[action].length > 0);
+    // EF-630: every action key must resolve to written Arabic in the catalog.
+    assert.match(arMessages[AUDIT_ACTION_LABELS[action]], /[\u0600-\u06FF]/);
   }
   assert.equal(
-    labelFrom(FAILURE_KIND_LABELS, "action-permanent-failure"),
+    labelFromKey(
+      FAILURE_KIND_LABELS,
+      t,
+      "action-permanent-failure",
+      "unknown-kind",
+    ),
     "فشل دائم في التنفيذ",
   );
-  assert.equal(labelFrom(FAILURE_KIND_LABELS, "unknown-kind"), "unknown-kind");
   assert.equal(
-    labelFrom(MEMBERSHIP_STATUS_LABELS, "PENDING"),
+    labelFromKey(FAILURE_KIND_LABELS, t, "unknown-kind", "unknown-kind"),
+    "unknown-kind",
+  );
+  assert.equal(
+    labelFromKey(MEMBERSHIP_STATUS_LABELS, t, "PENDING", "PENDING"),
     "بانتظار الموافقة",
   );
   assert.equal(
-    labelFrom(MODERATION_STATUS_LABELS, "TAKEN_DOWN"),
+    labelFromKey(MODERATION_STATUS_LABELS, t, "TAKEN_DOWN", "TAKEN_DOWN"),
     "خُفّض عن النشر",
   );
-  assert.equal(labelFrom(MEMBERSHIP_STATUS_LABELS, null), "غير متاح");
 });
 
 test("EF-620 keyset query serialization is explicit and bounded", () => {

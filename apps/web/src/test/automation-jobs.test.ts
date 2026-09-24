@@ -14,6 +14,7 @@ import {
   normalizeAutomationRuleDetail,
 } from "../features/automation/automation-contract";
 import { getAutomationActionError } from "../features/automation/automation-jobs-model";
+import { arMessages, createTranslator } from "../i18n/catalog";
 
 const root = new URL("../", import.meta.url);
 
@@ -133,20 +134,24 @@ test("typed retry/cancel gating mirrors the API states", () => {
   assert.equal(canCancelAutomationJob("RETRYING"), true);
   assert.equal(canCancelAutomationJob("RUNNING"), false);
   assert.equal(canCancelAutomationJob("FAILED"), false);
-  assert.equal(jobStatusLabels.FAILED, "فاشلة");
-  assert.equal(jobStatusLabels.QUEUED, "في الانتظار");
-  assert.equal(jobErrorKindLabels["action-permanent-failure"], "فشل دائم");
+  assert.equal(arMessages[jobStatusLabels.FAILED], "فاشلة");
+  assert.equal(arMessages[jobStatusLabels.QUEUED], "في الانتظار");
+  assert.equal(
+    arMessages[jobErrorKindLabels["action-permanent-failure"]],
+    "فشل دائم",
+  );
 });
 
 test("action errors surface the authority matrix in Arabic", () => {
+  const t = createTranslator("ar");
   const forbidden = getAutomationActionError(
     new ApiError({ status: 403, code: "HTTP_403", message: "Forbidden" }),
   );
-  assert.match(forbidden.message, /صاحب المؤسسة أو المدير/);
+  assert.match(t(forbidden.messageKey), /صاحب المؤسسة أو المدير/);
   const stale = getAutomationActionError(
     new ApiError({ status: 409, code: "HTTP_409", message: "Conflict" }),
   );
-  assert.match(stale.message, /تغيرت حالة الوظيفة/);
+  assert.match(t(stale.messageKey), /تغيرت حالة الوظيفة/);
 });
 
 test("rule detail view is organization-scoped and exposes no editor beyond enable/disable", async () => {
@@ -162,9 +167,13 @@ test("rule detail view is organization-scoped and exposes no editor beyond enabl
 
   const view = await source("features/automation/rule-detail-view.tsx");
   assert.match(view, /setAutomationRuleEnabled/);
-  assert.match(view, /تفعيل القاعدة/);
-  assert.match(view, /إيقاف القاعدة/);
-  assert.match(view, /سجل الإصدارات/);
+  // EF-630: wording moved to the catalog; assert key + resolved Arabic.
+  assert.match(view, /automation\.rule\.enable/);
+  assert.match(view, /automation\.rule\.disable/);
+  assert.equal(arMessages["automation.rule.enable"], "تفعيل القاعدة");
+  assert.equal(arMessages["automation.rule.disable"], "إيقاف القاعدة");
+  assert.match(view, /automation\.rule\.versionsTitle/);
+  assert.equal(arMessages["automation.rule.versionsTitle"], "سجل الإصدارات");
   // No rule name/definition editor inputs anywhere.
   assert.doesNotMatch(view, /<input|<textarea|window\.prompt/);
   assert.doesNotMatch(view, /fetch\s*\(/);
@@ -176,12 +185,17 @@ test("execution history views stay typed, Arabic-first, and mobile-responsive", 
   assert.match(jobList, /canCancelAutomationJob/);
   assert.match(jobList, /retryAutomationJob/);
   assert.match(jobList, /cancelAutomationJob/);
-  assert.match(jobList, /سبب الفشل/);
+  assert.match(jobList, /automation\.common\.failureReasonPrefix/);
+  assert.equal(
+    arMessages["automation.common.failureReasonPrefix"],
+    "سبب الفشل:",
+  );
   assert.doesNotMatch(jobList, /job\.executionKey|job\.eventId|\.payload/);
 
   const history = await source("features/automation/jobs-history-view.tsx");
   assert.match(history, /fetchAutomationJobs/);
-  assert.match(history, /سجل تنفيذ الأتمتة/);
+  assert.match(history, /automation\.history\.title/);
+  assert.equal(arMessages["automation.history.title"], "سجل تنفيذ الأتمتة");
   assert.match(history, /role="status"/);
   assert.match(history, /role="alert"/);
 

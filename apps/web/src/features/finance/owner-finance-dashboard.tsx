@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   getOwnerAgingSummary,
@@ -48,6 +49,7 @@ function shortId(id: string): string {
 }
 
 export function OwnerFinanceDashboard() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [cashFlow, setCashFlow] = useState<OwnerCashFlow | null>(null);
   const [aging, setAging] = useState<OwnerAgingSummary | null>(null);
@@ -97,7 +99,7 @@ export function OwnerFinanceDashboard() {
       setCampaignFirstTouch(campaignsFirst);
       setCampaignLastTouch(campaignsLast);
     } catch {
-      setError("تعذر تحميل التقرير من الخادم. بقيت البيانات كما هي.");
+      setError(t("finance.owner.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -113,7 +115,7 @@ export function OwnerFinanceDashboard() {
     try {
       await operation();
     } catch {
-      setError("تعذر تنفيذ الطلب. حاول مرة أخرى.");
+      setError(t("finance.owner.actionFailed"));
     } finally {
       setPending(null);
     }
@@ -131,8 +133,8 @@ export function OwnerFinanceDashboard() {
       setDrillDownState(config, append, page);
     } catch (drillError) {
       if (drillError instanceof TypeError)
-        setError("استجابة الخادم غير مطابقة للعقد المتوقع.");
-      else setError("تعذر تنفيذ الطلب. حاول مرة أخرى.");
+        setError(t("finance.owner.contractMismatch"));
+      else setError(t("finance.owner.actionFailed"));
     } finally {
       setDrillLoading(false);
     }
@@ -201,12 +203,9 @@ export function OwnerFinanceDashboard() {
   return (
     <div className={styles.workspace}>
       <section className={styles.header} aria-labelledby="owner-report-title">
-        <p className="eyebrow">تقرير المالك — FIN-05</p>
-        <h1 id="owner-report-title">لوحة المالية للمالك</h1>
-        <p>
-          أرقام للقراءة فقط من الخادم، مع طابع زمني لحداثة كل قراءة، وتفصيل لكل
-          رقم حتى صفوفه الأصلية.
-        </p>
+        <p className="eyebrow">{t("finance.owner.eyebrow")}</p>
+        <h1 id="owner-report-title">{t("finance.owner.title")}</h1>
+        <p>{t("finance.owner.subtitle")}</p>
         <div className={styles.actions}>
           <button
             className="button button-secondary"
@@ -214,11 +213,13 @@ export function OwnerFinanceDashboard() {
             onClick={() => void run("refresh", refresh)}
             disabled={loading || pending !== null}
           >
-            {loading ? "جارٍ التحديث…" : "تحديث التقرير"}
+            {loading
+              ? t("finance.owner.refreshing")
+              : t("finance.owner.refresh")}
           </button>
           {cashFlow && (
             <span className={styles.freshness}>
-              حداثة القراءة: <b dir="ltr">{cashFlow.asOf}</b>
+              {t("finance.owner.freshness")} <b dir="ltr">{cashFlow.asOf}</b>
             </span>
           )}
         </div>
@@ -231,31 +232,31 @@ export function OwnerFinanceDashboard() {
 
       <div className={styles.grid}>
         <section className={styles.panel} aria-labelledby="cash-flow-title">
-          <h2 id="cash-flow-title">التدفق النقدي</h2>
+          <h2 id="cash-flow-title">{t("finance.owner.cashFlowTitle")}</h2>
           {!cashFlow ? (
-            <p className={styles.state}>اضغط «تحديث التقرير» للعرض.</p>
+            <p className={styles.state}>{t("finance.owner.pressRefresh")}</p>
           ) : (
             <>
               <MoneyTable
-                caption="المقبوضات والمدفوعات وصافي النقد لكل عملة"
+                caption={t("finance.owner.cashFlowCaption")}
                 rows={[
                   ...cashFlow.cashIn.map((row) => ({
                     key: `in-${row.currency}`,
-                    label: "مقبوضات",
+                    label: t("finance.owner.inflows"),
                     currency: row.currency,
                     count: row.count,
                     amountMinor: row.amountMinor,
                   })),
                   ...cashFlow.cashOut.map((row) => ({
                     key: `out-${row.currency}`,
-                    label: "مدفوعات",
+                    label: t("finance.owner.outflows"),
                     currency: row.currency,
                     count: row.count,
                     amountMinor: row.amountMinor,
                   })),
                   ...cashFlow.netCash.map((row) => ({
                     key: `net-${row.currency}`,
-                    label: "صافي النقد",
+                    label: t("finance.owner.netCash"),
                     currency: row.currency,
                     count: null,
                     amountMinor: row.amountMinor,
@@ -272,12 +273,12 @@ export function OwnerFinanceDashboard() {
                       loadDrill(
                         {
                           kind: "inflows",
-                          title: "تفصيل المقبوضات — صفوف الدفعات الأصلية",
+                          title: t("finance.owner.inflowsDrillTitle"),
                           head: [
-                            "معرّف الدفعة",
-                            "المبلغ",
-                            "وقت التسجيل",
-                            "الصفقة",
+                            t("finance.head.paymentId"),
+                            t("finance.head.amount"),
+                            t("finance.head.recordedAt"),
+                            t("finance.head.deal"),
                           ],
                           fetch: paymentRows(),
                         },
@@ -286,7 +287,7 @@ export function OwnerFinanceDashboard() {
                     )
                   }
                 >
-                  تفصيل المقبوضات
+                  {t("finance.owner.inflowsButton")}
                 </button>
                 <button
                   className="button button-secondary"
@@ -297,13 +298,13 @@ export function OwnerFinanceDashboard() {
                       loadDrill(
                         {
                           kind: "outflows",
-                          title: "تفصيل المدفوعات — المصروفات المعتمدة",
+                          title: t("finance.owner.outflowsDrillTitle"),
                           head: [
-                            "معرّف المصروف",
-                            "المبلغ",
-                            "الفئة",
-                            "الجهة",
-                            "وقت الاعتماد",
+                            t("finance.head.expenseId"),
+                            t("finance.head.amount"),
+                            t("finance.head.category"),
+                            t("finance.head.vendor"),
+                            t("finance.head.approvedAt"),
                           ],
                           fetch: expenseRows(),
                         },
@@ -312,7 +313,7 @@ export function OwnerFinanceDashboard() {
                     )
                   }
                 >
-                  تفصيل المدفوعات
+                  {t("finance.owner.outflowsButton")}
                 </button>
               </div>
             </>
@@ -320,33 +321,33 @@ export function OwnerFinanceDashboard() {
         </section>
 
         <section className={styles.panel} aria-labelledby="aging-title">
-          <h2 id="aging-title">أعمار المستحقات</h2>
+          <h2 id="aging-title">{t("finance.owner.agingTitle")}</h2>
           {!aging ? (
-            <p className={styles.state}>اضغط «تحديث التقرير» للعرض.</p>
+            <p className={styles.state}>{t("finance.owner.pressRefresh")}</p>
           ) : (
             <>
               <p className={styles.freshness}>
-                حتى <b dir="ltr">{aging.asOf}</b>
+                {t("finance.aging.asOfPrefix")} <b dir="ltr">{aging.asOf}</b>
               </p>
               {aging.buckets.length === 0 ? (
-                <p className={styles.state}>لا توجد مستحقات مفتوحة.</p>
+                <p className={styles.state}>{t("finance.owner.noAging")}</p>
               ) : (
                 <div className={styles.tableWrap}>
                   <table>
-                    <caption>إجمالي المتبقي لكل فئة عمرية وعملة</caption>
+                    <caption>{t("finance.owner.agingCaption")}</caption>
                     <thead>
                       <tr>
-                        <th>الفئة</th>
-                        <th>العملة</th>
-                        <th>العدد</th>
-                        <th>المتبقي</th>
-                        <th>تفصيل</th>
+                        <th>{t("finance.th.bucket")}</th>
+                        <th>{t("finance.th.currency")}</th>
+                        <th>{t("finance.th.count")}</th>
+                        <th>{t("finance.th.outstanding")}</th>
+                        <th>{t("finance.th.drill")}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {aging.buckets.map((row) => (
                         <tr key={`${row.bucket}-${row.currency}`}>
-                          <td>{AGING_BUCKET_LABELS[row.bucket]}</td>
+                          <td>{t(AGING_BUCKET_LABELS[row.bucket])}</td>
                           <td dir="ltr">{row.currency}</td>
                           <td>{row.count}</td>
                           <td dir="ltr">{row.outstandingMinor}</td>
@@ -360,13 +361,20 @@ export function OwnerFinanceDashboard() {
                                   loadDrill(
                                     {
                                       kind: `aging-${row.bucket}-${row.currency}`,
-                                      title: `تفصيل الفئة: ${AGING_BUCKET_LABELS[row.bucket]}`,
+                                      title: t(
+                                        "finance.owner.bucketDrillTitle",
+                                        {
+                                          bucket: t(
+                                            AGING_BUCKET_LABELS[row.bucket],
+                                          ),
+                                        },
+                                      ),
                                       head: [
-                                        "المستحق",
-                                        "المتبقي",
-                                        "الحالة",
-                                        "أيام متأخرة",
-                                        "الاستحقاق",
+                                        t("finance.head.amountDue"),
+                                        t("finance.head.outstanding"),
+                                        t("finance.head.status"),
+                                        t("finance.head.daysPastDue"),
+                                        t("finance.head.dueDate"),
                                       ],
                                       fetch: async (page) => {
                                         const result =
@@ -409,7 +417,7 @@ export function OwnerFinanceDashboard() {
                                 )
                               }
                             >
-                              عرض الصفوف
+                              {t("finance.owner.showRows")}
                             </button>
                           </td>
                         </tr>
@@ -423,43 +431,56 @@ export function OwnerFinanceDashboard() {
         </section>
 
         <section className={styles.panel} aria-labelledby="commissions-title">
-          <h2 id="commissions-title">العمولات</h2>
+          <h2 id="commissions-title">{t("finance.owner.commissionsTitle")}</h2>
           {!commissions ? (
-            <p className={styles.state}>اضغط «تحديث التقرير» للعرض.</p>
+            <p className={styles.state}>{t("finance.owner.pressRefresh")}</p>
           ) : (
             <>
               <p className={styles.freshness}>
-                حتى <b dir="ltr">{commissions.asOf}</b>
+                {t("finance.aging.asOfPrefix")}{" "}
+                <b dir="ltr">{commissions.asOf}</b>
               </p>
               <div className={styles.tableWrap}>
                 <table>
-                  <caption>العمولات المتوقعة والمستحقة والمدفوعة</caption>
+                  <caption>{t("finance.owner.commissionsCaption")}</caption>
                   <thead>
                     <tr>
-                      <th>البند</th>
-                      <th>العملة</th>
-                      <th>العدد</th>
-                      <th>المبلغ</th>
-                      <th>تفصيل</th>
+                      <th>{t("finance.th.item")}</th>
+                      <th>{t("finance.th.currency")}</th>
+                      <th>{t("finance.th.count")}</th>
+                      <th>{t("finance.th.amount")}</th>
+                      <th>{t("finance.th.drill")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {[
                       ...commissions.expected.map((row) => ({
                         key: `expected-${row.currency}`,
-                        label: "متوقعة",
+                        label: t(
+                          COMMISSION_STATUS_LABELS[
+                            "EXPECTED" as CommissionItemStatus
+                          ],
+                        ),
                         status: "EXPECTED" as CommissionItemStatus,
                         ...row,
                       })),
                       ...commissions.due.map((row) => ({
                         key: `due-${row.currency}`,
-                        label: "مستحقة",
+                        label: t(
+                          COMMISSION_STATUS_LABELS[
+                            "DUE" as CommissionItemStatus
+                          ],
+                        ),
                         status: "DUE" as CommissionItemStatus,
                         ...row,
                       })),
                       ...commissions.paid.map((row) => ({
                         key: `paid-${row.currency}`,
-                        label: "مدفوعة",
+                        label: t(
+                          COMMISSION_STATUS_LABELS[
+                            "PAID" as CommissionItemStatus
+                          ],
+                        ),
                         status: "PAID" as CommissionItemStatus,
                         ...row,
                       })),
@@ -479,13 +500,16 @@ export function OwnerFinanceDashboard() {
                                 loadDrill(
                                   {
                                     kind: `commission-${row.status}-${row.currency}`,
-                                    title: `تفصيل العمولات: ${row.label}`,
+                                    title: t(
+                                      "finance.owner.commissionDrillTitle",
+                                      { status: row.label },
+                                    ),
                                     head: [
-                                      "الاستحقاق",
-                                      "الصفقة",
-                                      "المبلغ",
-                                      "الحالة",
-                                      "النصيبان",
+                                      t("finance.head.dueDate"),
+                                      t("finance.head.deal"),
+                                      t("finance.head.amount"),
+                                      t("finance.head.status"),
+                                      t("finance.head.splits"),
                                     ],
                                     fetch: async (page) => {
                                       const result =
@@ -511,10 +535,11 @@ export function OwnerFinanceDashboard() {
                                             },
                                             {
                                               label: "status",
-                                              value:
+                                              value: t(
                                                 COMMISSION_STATUS_LABELS[
                                                   item.status
                                                 ],
+                                              ),
                                             },
                                             {
                                               label: "splits",
@@ -536,7 +561,7 @@ export function OwnerFinanceDashboard() {
                               )
                             }
                           >
-                            عرض الصفوف
+                            {t("finance.owner.showRows")}
                           </button>
                         </td>
                       </tr>
@@ -549,18 +574,19 @@ export function OwnerFinanceDashboard() {
         </section>
 
         <section className={styles.panel} aria-labelledby="performance-title">
-          <h2 id="performance-title">الإيراد والهامش</h2>
+          <h2 id="performance-title">{t("finance.owner.performanceTitle")}</h2>
           {!performance ? (
-            <p className={styles.state}>اضغط «تحديث التقرير» للعرض.</p>
+            <p className={styles.state}>{t("finance.owner.pressRefresh")}</p>
           ) : (
             <>
               <p className={styles.freshness}>
-                حتى <b dir="ltr">{performance.asOf}</b>
+                {t("finance.aging.asOfPrefix")}{" "}
+                <b dir="ltr">{performance.asOf}</b>
               </p>
-              <h3>حسب الصفقة</h3>
+              <h3>{t("finance.owner.byDeal")}</h3>
               <PerformanceTable
                 rows={performance.deals}
-                emptyLabel="لا توجد حركات على الصفقات."
+                emptyLabel={t("finance.owner.noDealActivity")}
               />
               <div className={styles.buttonRow}>
                 {performance.deals.slice(0, 5).map((row) => (
@@ -574,12 +600,14 @@ export function OwnerFinanceDashboard() {
                         loadDrill(
                           {
                             kind: `deal-payments-${row.keyId}`,
-                            title: `مقبوضات الصفقة ${shortId(row.keyId)}`,
+                            title: t("finance.owner.dealPaymentsTitle", {
+                              id: shortId(row.keyId),
+                            }),
                             head: [
-                              "معرّف الدفعة",
-                              "المبلغ",
-                              "وقت التسجيل",
-                              "الصفقة",
+                              t("finance.head.paymentId"),
+                              t("finance.head.amount"),
+                              t("finance.head.recordedAt"),
+                              t("finance.head.deal"),
                             ],
                             fetch: paymentRows({ dealId: row.keyId }),
                           },
@@ -588,14 +616,16 @@ export function OwnerFinanceDashboard() {
                       )
                     }
                   >
-                    مقبوضات {shortId(row.keyId)}
+                    {t("finance.owner.dealPaymentsButton", {
+                      id: shortId(row.keyId),
+                    })}
                   </button>
                 ))}
               </div>
-              <h3>حسب العقار</h3>
+              <h3>{t("finance.owner.byProperty")}</h3>
               <PerformanceTable
                 rows={performance.properties}
-                emptyLabel="لا توجد حركات على العقارات."
+                emptyLabel={t("finance.owner.noPropertyActivity")}
               />
               <div className={styles.buttonRow}>
                 {performance.properties.slice(0, 5).map((row) => (
@@ -609,13 +639,15 @@ export function OwnerFinanceDashboard() {
                         loadDrill(
                           {
                             kind: `property-costs-${row.keyId}`,
-                            title: `مصروفات العقار ${shortId(row.keyId)}`,
+                            title: t("finance.owner.propertyCostsTitle", {
+                              id: shortId(row.keyId),
+                            }),
                             head: [
-                              "معرّف المصروف",
-                              "المبلغ",
-                              "الفئة",
-                              "الجهة",
-                              "وقت الاعتماد",
+                              t("finance.head.expenseId"),
+                              t("finance.head.amount"),
+                              t("finance.head.category"),
+                              t("finance.head.vendor"),
+                              t("finance.head.approvedAt"),
                             ],
                             fetch: expenseRows({ propertyId: row.keyId }),
                           },
@@ -624,14 +656,16 @@ export function OwnerFinanceDashboard() {
                       )
                     }
                   >
-                    مصروفات {shortId(row.keyId)}
+                    {t("finance.owner.costsButton", {
+                      id: shortId(row.keyId),
+                    })}
                   </button>
                 ))}
               </div>
-              <h3>حسب الحملة (EF-401)</h3>
+              <h3>{t("finance.owner.byCampaign")}</h3>
               {campaignFirstTouch === null || campaignLastTouch === null ? (
                 <p className={styles.state}>
-                  اضغط «تحديث التقرير» لعرض الإيراد والهامش حسب الحملة.
+                  {t("finance.owner.pressRefreshCampaigns")}
                 </p>
               ) : (
                 (
@@ -641,10 +675,10 @@ export function OwnerFinanceDashboard() {
                   ] as const
                 ).map(([model, report]) => (
                   <div key={model}>
-                    <h4>{attributionModelLabelsAr[model]}</h4>
+                    <h4>{t(attributionModelLabelsAr[model])}</h4>
                     <PerformanceTable
                       rows={report.campaigns}
-                      emptyLabel="لا توجد حركات مُسندة لحملات بعد."
+                      emptyLabel={t("finance.owner.noCampaignActivity")}
                     />
                     <div className={styles.buttonRow}>
                       {report.campaigns.slice(0, 5).map((row) => (
@@ -658,13 +692,16 @@ export function OwnerFinanceDashboard() {
                               loadDrill(
                                 {
                                   kind: `campaign-costs-${model}-${row.keyId}`,
-                                  title: `مصروفات الحملة ${shortId(row.keyId)} — ${attributionModelLabelsAr[model]}`,
+                                  title: t("finance.owner.campaignCostsTitle", {
+                                    id: shortId(row.keyId),
+                                    model: t(attributionModelLabelsAr[model]),
+                                  }),
                                   head: [
-                                    "معرّف المصروف",
-                                    "المبلغ",
-                                    "الفئة",
-                                    "الجهة",
-                                    "وقت الاعتماد",
+                                    t("finance.head.expenseId"),
+                                    t("finance.head.amount"),
+                                    t("finance.head.category"),
+                                    t("finance.head.vendor"),
+                                    t("finance.head.approvedAt"),
                                   ],
                                   fetch: expenseRows({ campaignId: row.keyId }),
                                 },
@@ -673,7 +710,9 @@ export function OwnerFinanceDashboard() {
                             )
                           }
                         >
-                          مصروفات {shortId(row.keyId)}
+                          {t("finance.owner.costsButton", {
+                            id: shortId(row.keyId),
+                          })}
                         </button>
                       ))}
                     </div>
@@ -694,7 +733,7 @@ export function OwnerFinanceDashboard() {
               type="button"
               onClick={() => setDrill(null)}
             >
-              إغلاق
+              {t("finance.owner.close")}
             </button>
           </div>
           <div className={styles.tableWrap}>
@@ -728,7 +767,9 @@ export function OwnerFinanceDashboard() {
                 void loadDrill(drill.config, true, drill.nextCursor)
               }
             >
-              {drillLoading ? "جارٍ التحميل…" : "تحميل المزيد"}
+              {drillLoading
+                ? t("finance.owner.loading")
+                : t("finance.aging.loadMore")}
             </button>
           )}
         </section>
@@ -747,16 +788,17 @@ function MoneyTable(placeholder: {
     amountMinor: string;
   }[];
 }) {
+  const t = useT();
   return (
     <div className={styles.tableWrap}>
       <table>
         <caption>{placeholder.caption}</caption>
         <thead>
           <tr>
-            <th>البند</th>
-            <th>العملة</th>
-            <th>عدد الحركات</th>
-            <th>المبلغ</th>
+            <th>{t("finance.th.item")}</th>
+            <th>{t("finance.th.currency")}</th>
+            <th>{t("finance.th.movementCount")}</th>
+            <th>{t("finance.th.amount")}</th>
           </tr>
         </thead>
         <tbody>
@@ -784,6 +826,7 @@ function PerformanceTable(placeholder: {
   }[];
   emptyLabel: string;
 }) {
+  const t = useT();
   if (placeholder.rows.length === 0)
     return <p className={styles.state}>{placeholder.emptyLabel}</p>;
   return (
@@ -791,11 +834,11 @@ function PerformanceTable(placeholder: {
       <table>
         <thead>
           <tr>
-            <th>المعرّف</th>
-            <th>العملة</th>
-            <th>الإيراد</th>
-            <th>التكلفة</th>
-            <th>الهامش</th>
+            <th>{t("finance.th.id")}</th>
+            <th>{t("finance.th.currency")}</th>
+            <th>{t("finance.th.revenue")}</th>
+            <th>{t("finance.th.costs")}</th>
+            <th>{t("finance.th.margin")}</th>
           </tr>
         </thead>
         <tbody>

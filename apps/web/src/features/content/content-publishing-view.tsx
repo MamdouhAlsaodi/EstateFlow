@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   cancelScheduledPublishing,
@@ -20,8 +21,9 @@ import styles from "./content-views.module.css";
 
 type PublishingTab = "scheduled" | "results";
 
-/** EF-404 — Arabic publishing operations: upcoming deliveries and outcomes. */
+/** EF-404 — publishing operations: upcoming deliveries and outcomes. */
 export function ContentPublishingView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [tab, setTab] = useState<PublishingTab>("scheduled");
   const [scheduled, setScheduled] =
@@ -43,7 +45,7 @@ export function ContentPublishingView() {
       setScheduled(nextScheduled);
       setResults(nextResults);
     } catch {
-      setError("تعذر تحميل حالة النشر. حاول مرة أخرى.");
+      setError(t("content.publishing.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -54,7 +56,10 @@ export function ContentPublishingView() {
   }, [refresh]);
 
   async function cancel(itemId: string): Promise<void> {
-    const reason = window.prompt("سبب الإلغاء قبل النشر:", "تغيير خطة الحملة");
+    const reason = window.prompt(
+      t("content.publishing.cancelPrompt"),
+      t("content.publishing.cancelDefaultReason"),
+    );
     if (reason === null || reason.trim().length === 0) return;
     setPendingId(itemId);
     setError(null);
@@ -65,10 +70,10 @@ export function ContentPublishingView() {
         contentItemId: itemId,
         reason,
       });
-      setNotice("تم إلغاء التسليم قبل موعده وتوثيق السبب.");
+      setNotice(t("content.publishing.cancelledNotice"));
       await refresh();
     } catch {
-      setError("تعذر إلغاء التسليم؛ قد يكون قد بدأ أو اكتمل بالفعل.");
+      setError(t("content.publishing.cancelFailed"));
     } finally {
       setPendingId(null);
     }
@@ -77,13 +82,13 @@ export function ContentPublishingView() {
   return (
     <div className="workspace-stack">
       <section aria-labelledby="publishing-title">
-        <p className="eyebrow">EF-404 — تشغيل النشر</p>
-        <h1 id="publishing-title">تسليمات النشر ونتائجها</h1>
-        <p>
-          هذه شاشة تشغيل داخلية للتسليمات المجدولة. القنوات الحالية تجريبية
-          deterministic فقط؛ لا توجد حسابات خارجية أو أسرار أو نشر حقيقي.
-        </p>
-        <nav className={styles.publishingTabs} aria-label="تبويبات النشر">
+        <p className="eyebrow">{t("content.publishing.eyebrow")}</p>
+        <h1 id="publishing-title">{t("content.publishing.title")}</h1>
+        <p>{t("content.publishing.subtitle")}</p>
+        <nav
+          className={styles.publishingTabs}
+          aria-label={t("content.publishing.tabsAria")}
+        >
           <button
             type="button"
             className={
@@ -94,7 +99,7 @@ export function ContentPublishingView() {
             aria-selected={tab === "scheduled"}
             onClick={() => setTab("scheduled")}
           >
-            التسليمات المجدولة
+            {t("content.publishing.tabScheduled")}
           </button>
           <button
             type="button"
@@ -106,13 +111,13 @@ export function ContentPublishingView() {
             aria-selected={tab === "results"}
             onClick={() => setTab("results")}
           >
-            نتائج النشر
+            {t("content.publishing.tabResults")}
           </button>
           <Link
             className="button button-secondary"
             href={`/ar/organizations/${organizationId}/content`}
           >
-            العودة إلى المحتوى
+            {t("content.publishing.backToContent")}
           </Link>
           <button
             className="button button-secondary"
@@ -120,7 +125,9 @@ export function ContentPublishingView() {
             onClick={() => void refresh()}
             disabled={loading || pendingId !== null}
           >
-            {loading ? "جارٍ التحميل…" : "تحديث"}
+            {loading
+              ? t("content.common.loading")
+              : t("content.publishing.refresh")}
           </button>
         </nav>
         {notice && <p role="status">{notice}</p>}
@@ -156,23 +163,24 @@ function ScheduledPanel({
   pendingId: string | null;
   onCancel: (itemId: string) => void;
 }) {
+  const t = useT();
   return (
     <section className={styles.panel} aria-labelledby="scheduled-title">
-      <h2 id="scheduled-title">التسليمات القادمة</h2>
+      <h2 id="scheduled-title">{t("content.publishing.scheduledTitle")}</h2>
       {response === null ? (
-        <p>جارٍ تحميل التسليمات…</p>
+        <p>{t("content.publishing.loadingScheduled")}</p>
       ) : response.items.length === 0 ? (
-        <p>لا توجد تسليمات مفتوحة حاليًا.</p>
+        <p>{t("content.publishing.noScheduled")}</p>
       ) : (
         <div className={styles.tableWrap}>
           <table>
             <thead>
               <tr>
-                <th>المحتوى</th>
-                <th>القناة</th>
-                <th>الموعد UTC</th>
-                <th>المحاولة</th>
-                <th>الإجراء</th>
+                <th>{t("content.publishing.thContent")}</th>
+                <th>{t("content.publishing.thChannel")}</th>
+                <th>{t("content.publishing.thScheduledFor")}</th>
+                <th>{t("content.publishing.thAttempt")}</th>
+                <th>{t("content.publishing.thAction")}</th>
               </tr>
             </thead>
             <tbody>
@@ -186,17 +194,19 @@ function ScheduledPanel({
                     </Link>
                     <small>
                       <br />
-                      النسخة المعتمدة v{item.approvedVersion}
+                      {t("content.common.approvedVersion", {
+                        version: item.approvedVersion,
+                      })}
                     </small>
                   </td>
-                  <td>{contentChannelLabels[item.channel]}</td>
+                  <td>{t(contentChannelLabels[item.channel])}</td>
                   <td dir="ltr">{item.scheduledFor.replace("T", " ")}</td>
                   <td>
                     {item.attemptCount} / {item.maxAttempts}
                     {item.lastErrorKind && (
                       <small className={styles.failureNote}>
                         <br />
-                        {contentFailureKindLabels[item.lastErrorKind]}
+                        {t(contentFailureKindLabels[item.lastErrorKind])}
                         {item.lastErrorMessage
                           ? `: ${item.lastErrorMessage}`
                           : ""}
@@ -211,8 +221,8 @@ function ScheduledPanel({
                       onClick={() => onCancel(item.contentItemId)}
                     >
                       {pendingId === item.contentItemId
-                        ? "جارٍ الإلغاء…"
-                        : "إلغاء قبل النشر"}
+                        ? t("content.publishing.cancelling")
+                        : t("content.publishing.cancelButton")}
                     </button>
                   </td>
                 </tr>
@@ -230,40 +240,41 @@ function ResultsPanel({
 }: {
   response: PublishResultsResponse | null;
 }) {
+  const t = useT();
   return (
     <section className={styles.panel} aria-labelledby="results-title">
-      <h2 id="results-title">نتائج النشر</h2>
+      <h2 id="results-title">{t("content.publishing.tabResults")}</h2>
       {response === null ? (
-        <p>جارٍ تحميل النتائج…</p>
+        <p>{t("content.publishing.loadingResults")}</p>
       ) : response.items.length === 0 ? (
-        <p>لم تُسجل نتائج نشر بعد.</p>
+        <p>{t("content.publishing.noResults")}</p>
       ) : (
         <div className={styles.tableWrap}>
           <table>
             <thead>
               <tr>
-                <th>المحتوى</th>
-                <th>القناة</th>
-                <th>النتيجة</th>
-                <th>سبب الفشل المطبّع</th>
-                <th>وقت الاكتمال UTC</th>
+                <th>{t("content.publishing.thContent")}</th>
+                <th>{t("content.publishing.thChannel")}</th>
+                <th>{t("content.publishing.thOutcome")}</th>
+                <th>{t("content.publishing.thFailure")}</th>
+                <th>{t("content.publishing.thCompletedAt")}</th>
               </tr>
             </thead>
             <tbody>
               {response.items.map((item) => (
                 <tr key={`${item.contentItemId}-${item.completedAt}`}>
                   <td>{item.title}</td>
-                  <td>{contentChannelLabels[item.channel]}</td>
+                  <td>{t(contentChannelLabels[item.channel])}</td>
                   <td>
                     {item.outcome === "DELIVERED"
-                      ? "تم التسليم"
+                      ? t("content.publishing.outcomeDelivered")
                       : item.outcome === "CANCELLED"
-                        ? "أُلغي"
-                        : "فشل"}
+                        ? t("content.publishing.outcomeCancelled")
+                        : t("content.publishing.outcomeFailed")}
                   </td>
                   <td>
                     {item.failureKind
-                      ? contentFailureKindLabels[item.failureKind]
+                      ? t(contentFailureKindLabels[item.failureKind])
                       : "—"}
                     {item.reason && (
                       <small className={styles.failureNote}>

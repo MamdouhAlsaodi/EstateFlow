@@ -2,32 +2,34 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useT, type MessageKey } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type { CalendarResponse } from "./content-contract";
 import { contentChannelLabels, contentStatusLabels } from "./content-labels";
 import { fetchCalendar } from "./content-api";
 import styles from "./content-views.module.css";
 
-const WEEKDAY_LABELS = [
-  "الاثنين",
-  "الثلاثاء",
-  "الأربعاء",
-  "الخميس",
-  "الجمعة",
-  "السبت",
-  "الأحد",
-] as const;
+const WEEKDAY_KEYS: readonly MessageKey[] = [
+  "content.weekday.monday",
+  "content.weekday.tuesday",
+  "content.weekday.wednesday",
+  "content.weekday.thursday",
+  "content.weekday.friday",
+  "content.weekday.saturday",
+  "content.weekday.sunday",
+];
 
 function utcDateKey(iso: string): string {
   return iso.slice(0, 10);
 }
 
 /**
- * EF-402 — Arabic month-grid publishing calendar (UTC). Each cell lists the
+ * EF-402 — month-grid publishing calendar (UTC). Each cell lists the
  * scheduled/published/failed items whose scheduled timestamp falls on that
  * UTC day; cells link straight to the item detail.
  */
 export function ContentCalendarView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [month, setMonth] = useState<string>(
     new Date().toISOString().slice(0, 7),
@@ -38,7 +40,7 @@ export function ContentCalendarView() {
 
   const refresh = useCallback(async () => {
     if (!/^\d{4}-\d{2}$/.test(month)) {
-      setError("اختر شهرًا صحيحًا.");
+      setError(t("content.calendar.monthValidation"));
       return;
     }
     const from = `${month}-01T00:00:00.000Z`;
@@ -50,7 +52,7 @@ export function ContentCalendarView() {
     try {
       setCalendar(await fetchCalendar({ organizationId, from, to }));
     } catch {
-      setError("تعذر تحميل تقويم النشر. حاول مرة أخرى.");
+      setError(t("content.calendar.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -78,16 +80,12 @@ export function ContentCalendarView() {
   return (
     <div className="workspace-stack">
       <section aria-labelledby="calendar-title">
-        <p className="eyebrow">EF-402 — تقويم النشر</p>
-        <h1 id="calendar-title">تقويم المحتوى المجدول</h1>
-        <p>
-          العناصر المجدولة والمنشورة (والمتوقف عن النشر) حسب موعدها بالتوقيت
-          العالمي UTC. الجدولة تسجل الموعد والقناة فقط؛ التنفيذ الفعلي على
-          القنوات مهمة EF-404.
-        </p>
+        <p className="eyebrow">{t("content.calendar.eyebrow")}</p>
+        <h1 id="calendar-title">{t("content.calendar.title")}</h1>
+        <p>{t("content.calendar.subtitle")}</p>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <label style={{ display: "grid", gap: "0.25rem" }}>
-            الشهر
+            {t("content.calendar.monthLabel")}
             <input
               type="month"
               value={month}
@@ -101,7 +99,9 @@ export function ContentCalendarView() {
             disabled={loading}
             style={{ alignSelf: "end" }}
           >
-            {loading ? "جارٍ التحميل…" : "عرض الشهر"}
+            {loading
+              ? t("content.common.loading")
+              : t("content.calendar.showMonth")}
           </button>
         </div>
         {error && (
@@ -112,18 +112,18 @@ export function ContentCalendarView() {
       </section>
 
       <section aria-labelledby="calendar-grid-title">
-        <h2 id="calendar-grid-title">شبكة الشهر</h2>
+        <h2 id="calendar-grid-title">{t("content.calendar.gridTitle")}</h2>
         {!calendar ? (
-          <p>اختر الشهر واضغط «عرض الشهر».</p>
+          <p>{t("content.calendar.pressShow")}</p>
         ) : (
           <div className={styles.calendarGrid} role="grid">
-            {WEEKDAY_LABELS.map((day) => (
+            {WEEKDAY_KEYS.map((day) => (
               <span
                 key={day}
                 className={styles.calendarHeadCell}
                 role="columnheader"
               >
-                {day}
+                {t(day)}
               </span>
             ))}
             {cells.map((day, index) => {
@@ -151,10 +151,10 @@ export function ContentCalendarView() {
                             ? styles.calendarFailed
                             : styles.calendarScheduled
                       }`}
-                      title={`${entry.title} — ${contentStatusLabels[entry.status]}`}
+                      title={`${entry.title} — ${t(contentStatusLabels[entry.status])}`}
                     >
                       {entry.scheduledFor.slice(11, 16)}{" "}
-                      {contentChannelLabels[entry.channel]} · {entry.title}
+                      {t(contentChannelLabels[entry.channel])} · {entry.title}
                     </Link>
                   ))}
                 </span>

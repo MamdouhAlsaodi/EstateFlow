@@ -1,4 +1,5 @@
 import { ApiError } from "../../lib/api-client/index";
+import type { MessageKey } from "../../i18n";
 import { LeadStage, type LeadBoardLeadDto } from "../../lib/api-client/leads";
 
 export const LEAD_STAGES = [
@@ -8,11 +9,15 @@ export const LEAD_STAGES = [
   LeadStage.NURTURING,
 ] as const;
 
-export const LEAD_STAGE_LABELS: Record<LeadStage, string> = {
-  NEW: "جديد",
-  CONTACTED: "تم التواصل",
-  QUALIFIED: "مؤهل",
-  NURTURING: "قيد المتابعة",
+/**
+ * EF-630 — stage labels are translation-catalog keys; the rendered text
+ * lives in `src/i18n/messages/leads.ts`.
+ */
+export const LEAD_STAGE_LABELS: Record<LeadStage, MessageKey> = {
+  NEW: "leads.stage.new",
+  CONTACTED: "leads.stage.contacted",
+  QUALIFIED: "leads.stage.qualified",
+  NURTURING: "leads.stage.nurturing",
 };
 
 const ALLOWED_LEAD_TRANSITIONS: Readonly<
@@ -70,10 +75,13 @@ export function groupLeadsByStage(
   return grouped;
 }
 
+export type LeadBoardErrorKind =
+  "unauthorized" | "forbidden" | "not-found" | "stale" | "csrf" | "error";
+
 export type LeadBoardErrorState = Readonly<{
-  kind: "unauthorized" | "forbidden" | "not-found" | "stale" | "csrf" | "error";
-  title: string;
-  description: string;
+  kind: LeadBoardErrorKind;
+  titleKey: MessageKey;
+  descriptionKey: MessageKey;
 }>;
 
 export function isLeadMutationSessionRejection(error: unknown): boolean {
@@ -92,37 +100,36 @@ export function getLeadBoardErrorState(
   if (context.mutation && isLeadMutationSessionRejection(error))
     return {
       kind: "csrf",
-      title: "تعذر التحقق من الجلسة",
-      description:
-        "انتهت الجلسة أو تعذر التحقق من طلبك. أعد التحقق من الجلسة قبل المحاولة مرة أخرى.",
+      titleKey: "leads.error.csrfTitle",
+      descriptionKey: "leads.error.csrfDescription",
     };
   if (error instanceof ApiError && error.status === 401)
     return {
       kind: "unauthorized",
-      title: "يلزم تسجيل الدخول",
-      description: "سجّل الدخول لعرض العملاء المحتملين.",
+      titleKey: "leads.error.unauthorizedTitle",
+      descriptionKey: "leads.error.unauthorizedDescription",
     };
   if (error instanceof ApiError && error.status === 403)
     return {
       kind: "forbidden",
-      title: "لا تملك صلاحية العرض",
-      description: "لا يمكن عرض عملاء هذه المؤسسة بهذا الحساب.",
+      titleKey: "leads.error.forbiddenTitle",
+      descriptionKey: "leads.error.forbiddenDescription",
     };
   if (error instanceof ApiError && error.status === 404)
     return {
       kind: "not-found",
-      title: "المؤسسة غير موجودة",
-      description: "تحقق من الرابط أو اطلب من المسؤول مراجعة المؤسسة.",
+      titleKey: "leads.error.notFoundTitle",
+      descriptionKey: "leads.error.notFoundDescription",
     };
   if (error instanceof ApiError && error.status === 409)
     return {
       kind: "stale",
-      title: "تغيرت بيانات العميل",
-      description: "أعد تحميل اللوحة قبل تنفيذ هذا الإجراء.",
+      titleKey: "leads.error.staleTitle",
+      descriptionKey: "leads.error.staleDescription",
     };
   return {
     kind: "error",
-    title: "تعذر تنفيذ الإجراء",
-    description: "حدث خطأ غير متوقع. جرّب مرة أخرى.",
+    titleKey: "leads.error.genericTitle",
+    descriptionKey: "leads.error.genericDescription",
   };
 }

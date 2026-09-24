@@ -8,6 +8,7 @@ import {
   createSessionCsrfProvider,
   type SessionCsrfProvider,
 } from "../../lib/api-client/session";
+import { useT, type MessageKey } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   appendLeadBoardPage,
@@ -31,6 +32,7 @@ type BoardState = Readonly<{
 }>;
 
 export function LeadBoard() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [board, setBoard] = useState<BoardState>({
     items: [],
@@ -151,17 +153,17 @@ export function LeadBoard() {
     return (
       <BoardStateCard
         busy
-        title="جارٍ تحميل العملاء المحتملين"
-        description="نجهز لوحة المتابعة."
+        title={t("leads.board.loadingTitle")}
+        description={t("leads.board.loadingDescription")}
       />
     );
   if (error) {
     const state = getLeadBoardErrorState(error);
     return (
       <BoardStateCard
-        title={state.title}
-        description={state.description}
-        actionLabel="إعادة المحاولة"
+        title={t(state.titleKey)}
+        description={t(state.descriptionKey)}
+        actionLabel={t("leads.board.retry")}
         onAction={() => setRetryKey((key) => key + 1)}
       />
     );
@@ -171,24 +173,26 @@ export function LeadBoard() {
     <section className="page-stack" aria-labelledby="lead-board-title">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">مساحة المؤسسة</p>
-          <h1 id="lead-board-title">لوحة العملاء المحتملين</h1>
-          <p>عرض للقراءة فقط لمتابعة العملاء حسب المرحلة.</p>
+          <p className="eyebrow">{t("leads.board.orgEyebrow")}</p>
+          <h1 id="lead-board-title">{t("leads.board.title")}</h1>
+          <p>{t("leads.board.subtitle")}</p>
         </div>
         <span
           className="table-count"
-          aria-label={`إجمالي العملاء المحتملين: ${board.items.length}`}
+          aria-label={t("leads.board.totalAria", {
+            count: board.items.length,
+          })}
         >
-          {board.items.length} عميل
+          {t("leads.board.totalCount", { count: board.items.length })}
         </span>
       </header>
       {board.items.length === 0 ? (
         <BoardStateCard
-          title="لا توجد عملاء محتملون بعد"
-          description="ستظهر العملاء هنا عند وصول بيانات المؤسسة."
+          title={t("leads.board.emptyTitle")}
+          description={t("leads.board.emptyDescription")}
         />
       ) : (
-        <div className={styles.board} aria-label="مراحل العملاء المحتملين">
+        <div className={styles.board} aria-label={t("leads.board.stagesAria")}>
           {LEAD_STAGES.map((stage) => (
             <section
               className={styles.column}
@@ -196,10 +200,15 @@ export function LeadBoard() {
               aria-labelledby={`lead-stage-${stage}`}
             >
               <header className={styles.columnHeading}>
-                <h2 id={`lead-stage-${stage}`}>{LEAD_STAGE_LABELS[stage]}</h2>
+                <h2 id={`lead-stage-${stage}`}>
+                  {t(LEAD_STAGE_LABELS[stage])}
+                </h2>
                 <span
                   className="table-count"
-                  aria-label={`عدد ${LEAD_STAGE_LABELS[stage]}: ${grouped[stage].length}`}
+                  aria-label={t("leads.board.stageCountAria", {
+                    stage: t(LEAD_STAGE_LABELS[stage]),
+                    count: grouped[stage].length,
+                  })}
                 >
                   {grouped[stage].length}
                 </span>
@@ -224,7 +233,7 @@ export function LeadBoard() {
                   />
                 ))}
                 {grouped[stage].length === 0 && (
-                  <p className={styles.empty}>لا توجد سجلات</p>
+                  <p className={styles.empty}>{t("leads.board.columnEmpty")}</p>
                 )}
               </div>
             </section>
@@ -249,7 +258,9 @@ export function LeadBoard() {
             onClick={() => void load(board.nextCursor ?? undefined)}
             type="button"
           >
-            {loadingMore ? "جارٍ التحميل…" : "تحميل المزيد"}
+            {loadingMore
+              ? t("leads.board.loadingMore")
+              : t("leads.board.loadMore")}
           </button>
         </div>
       )}
@@ -274,23 +285,26 @@ function LeadCard({
   onReacquireSession: (leadId: string) => void;
   onOpenWorkspace: (opener: HTMLButtonElement) => void;
 }>) {
+  const t = useT();
   const errorState = actionError
     ? getLeadBoardErrorState(actionError, { mutation: true })
     : null;
   return (
     <article className={styles.card}>
       <strong>{lead.nextAction}</strong>
-      <span>المصدر: {lead.source}</span>
+      <span>{t("leads.board.cardSource", { source: lead.source })}</span>
       <div
         className="button-row"
-        aria-label={`إجراءات ${LEAD_STAGE_LABELS[lead.stage]}`}
+        aria-label={t("leads.board.cardActionsAria", {
+          stage: t(LEAD_STAGE_LABELS[lead.stage]),
+        })}
       >
         <button
           className="button button-secondary"
           onClick={(event) => onOpenWorkspace(event.currentTarget)}
           type="button"
         >
-          عرض ملف العميل
+          {t("leads.board.openProfile")}
         </button>
         {getAllowedLeadTransitions(lead.stage).map((to) => (
           <button
@@ -301,22 +315,22 @@ function LeadCard({
             type="button"
           >
             {pendingTransition(to)
-              ? "جارٍ الحفظ…"
-              : `نقل إلى ${LEAD_STAGE_LABELS[to]}`}
+              ? t("leads.board.saving")
+              : t("leads.board.moveTo", { stage: t(LEAD_STAGE_LABELS[to]) })}
           </button>
         ))}
       </div>
       {errorState && (
         <div role="alert">
-          <p>{errorState.title}</p>
-          <p>{errorState.description}</p>
+          <p>{t(errorState.titleKey)}</p>
+          <p>{t(errorState.descriptionKey)}</p>
           {errorState.kind === "stale" && (
             <button
               className="button button-secondary"
               onClick={onReload}
               type="button"
             >
-              إعادة تحميل
+              {t("leads.board.reload")}
             </button>
           )}
           {errorState.kind === "csrf" && (
@@ -325,7 +339,7 @@ function LeadCard({
               onClick={() => void onReacquireSession(lead.id)}
               type="button"
             >
-              إعادة التحقق من الجلسة
+              {t("leads.board.reacquireSession")}
             </button>
           )}
         </div>
@@ -347,13 +361,14 @@ function BoardStateCard({
   actionLabel?: string;
   onAction?: () => void;
 }>) {
+  const t = useT();
   return (
     <section
       aria-busy={busy}
       className="state-card"
       role={busy ? "status" : "alert"}
     >
-      <p className="eyebrow">العملاء المحتملون</p>
+      <p className="eyebrow">{t("leads.board.eyebrow")}</p>
       <h1>{title}</h1>
       <p>{description}</p>
       {actionLabel && onAction && (
@@ -368,3 +383,5 @@ function BoardStateCard({
     </section>
   );
 }
+
+export type { MessageKey };
