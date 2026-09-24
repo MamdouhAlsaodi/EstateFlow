@@ -10,6 +10,7 @@ import { AutomationModule } from "./features/automation/automation.module.js";
 import { CampaignsModule } from "./features/campaigns/campaigns.module.js";
 import { ContentModule } from "./features/content/content.module.js";
 import { ViewingsModule } from "./features/viewings/viewings.module.js";
+import { MediaModule } from "./features/media/media.module.js";
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ViewingsModule } from "./features/viewings/viewings.module.js";
     CampaignsModule,
     ContentModule,
     ViewingsModule,
+    MediaModule,
   ],
 })
 export class AppModule {}
