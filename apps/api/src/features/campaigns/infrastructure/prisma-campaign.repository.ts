@@ -22,6 +22,13 @@ import type {
   CampaignMoneyRow,
   CampaignRepository,
 } from "../application/campaign-repository.js";
+import type {
+  CampaignAnalyticsRollup,
+  CampaignAttributionRollup,
+  OrganizationAnalyticsRollup,
+  PublishedContentCount,
+  AnalyticsMoneyRow,
+} from "../application/campaign-analytics.js";
 import type { EffectiveAttribution } from "../domain/attribution.js";
 
 type Db = Prisma.TransactionClient;
@@ -212,6 +219,103 @@ function isUniqueOrForeign(error: unknown): boolean {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2002" || error.code === "P2003")
   );
+}
+
+type MoneyAggregateRow = Readonly<{
+  currency: string;
+  count: number;
+  total: string;
+}>;
+
+type AttributionCountRow = Readonly<{
+  firstLeadCount: number;
+  firstQualifiedCount: number;
+  firstWinCount: number;
+  lastLeadCount: number;
+  lastQualifiedCount: number;
+  lastWinCount: number;
+}>;
+
+type RevenueRow = Readonly<{
+  model: "FIRST" | "LAST";
+  currency: string;
+  count: number;
+  total: string;
+}>;
+
+function moneyAggregates(
+  rows: readonly MoneyAggregateRow[],
+): readonly AnalyticsMoneyRow[] {
+  return Object.freeze(
+    rows.map((row) =>
+      Object.freeze({
+        currency: row.currency,
+        count: row.count,
+        amountMinor: BigInt(row.total),
+      }),
+    ),
+  );
+}
+
+function emptyAttributionCount(): AttributionCountRow {
+  return {
+    firstLeadCount: 0,
+    firstQualifiedCount: 0,
+    firstWinCount: 0,
+    lastLeadCount: 0,
+    lastQualifiedCount: 0,
+    lastWinCount: 0,
+  };
+}
+
+function attributionCtes(organizationId: string): Prisma.Sql {
+  return Prisma.sql`
+    WITH first_touch AS (
+      SELECT DISTINCT ON (t."leadId") t."organizationId", t."leadId", t."campaignId"
+      FROM "LeadTouch" t
+      WHERE t."organizationId" = ${organizationId}::uuid AND t."campaignId" IS NOT NULL
+      ORDER BY t."leadId", t."occurredAt" ASC, t."id" ASC
+    ), last_touch AS (
+      SELECT DISTINCT ON (t."leadId") t."organizationId", t."leadId", t."campaignId"
+      FROM "LeadTouch" t
+      WHERE t."organizationId" = ${organizationId}::uuid AND t."campaignId" IS NOT NULL
+      ORDER BY t."leadId", t."occurredAt" DESC, t."id" DESC
+    ), latest_correction AS (
+      SELECT DISTINCT ON (k."leadId") k."organizationId", k."leadId",
+        k."id", k."correctedCampaignId"
+      FROM "LeadAttributionCorrection" k
+      WHERE k."organizationId" = ${organizationId}::uuid
+      ORDER BY k."leadId", k."createdAt" DESC, k."id" DESC
+    ), effective AS (
+      SELECT l."organizationId", l."id" AS "leadId", l."stage",
+        CASE WHEN k."id" IS NOT NULL THEN k."correctedCampaignId" ELSE f."campaignId" END AS "firstCampaignId",
+        CASE WHEN k."id" IS NOT NULL THEN k."correctedCampaignId" ELSE z."campaignId" END AS "lastCampaignId"
+      FROM "Lead" l
+      LEFT JOIN first_touch f ON f."organizationId" = l."organizationId" AND f."leadId" = l."id"
+      LEFT JOIN last_touch z ON z."organizationId" = l."organizationId" AND z."leadId" = l."id"
+      LEFT JOIN latest_correction k ON k."organizationId" = l."organizationId" AND k."leadId" = l."id"
+      WHERE l."organizationId" = ${organizationId}::uuid
+    )`;
+}
+
+function mergeAttribution(
+  counts: AttributionCountRow,
+  revenue: readonly RevenueRow[],
+): CampaignAttributionRollup {
+  return Object.freeze({
+    firstTouchLeadCount: counts.firstLeadCount,
+    firstTouchQualifiedLeadCount: counts.firstQualifiedCount,
+    firstTouchWinCount: counts.firstWinCount,
+    firstTouchAttributedRevenue: moneyAggregates(
+      revenue.filter((row) => row.model === "FIRST"),
+    ),
+    lastTouchLeadCount: counts.lastLeadCount,
+    lastTouchQualifiedLeadCount: counts.lastQualifiedCount,
+    lastTouchWinCount: counts.lastWinCount,
+    lastTouchAttributedRevenue: moneyAggregates(
+      revenue.filter((row) => row.model === "LAST"),
+    ),
+  });
 }
 
 export class PrismaCampaignRepository implements CampaignRepository {
@@ -696,5 +800,149 @@ export class PrismaCampaignRepository implements CampaignRepository {
       },
       override,
     );
+  }
+
+  async getCampaignAnalytics(
+    organizationId: string,
+    campaignId: string,
+  ): Promise<CampaignAnalyticsRollup> {
+    const [planned, spend, touches, attribution, published, revenue] =
+      await Promise.all([
+        this.prisma.$queryRaw<MoneyAggregateRow[]>`
+          SELECT "currency", COUNT(*)::int AS "count", SUM("budgetPlannedMinor")::text AS "total"
+          FROM "Campaign"
+          WHERE "organizationId" = ${organizationId}::uuid AND "id" = ${campaignId}::uuid
+          GROUP BY "currency"`,
+        this.prisma.$queryRaw<MoneyAggregateRow[]>`
+          SELECT "currency", COUNT(*)::int AS "count", SUM("amountMinor")::text AS "total"
+          FROM "Expense"
+          WHERE "organizationId" = ${organizationId}::uuid
+            AND "campaignId" = ${campaignId}::uuid AND "status" = 'APPROVED'
+          GROUP BY "currency" ORDER BY "currency"`,
+        this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*) AS "count" FROM "LeadTouch"
+          WHERE "organizationId" = ${organizationId}::uuid AND "campaignId" = ${campaignId}::uuid`,
+        this.attributionRollup(organizationId, campaignId),
+        this.publishedContentCounts(organizationId, campaignId),
+        this.attributedRevenue(organizationId, campaignId),
+      ]);
+    return Object.freeze({
+      campaignId,
+      plannedBudget: moneyAggregates(planned),
+      approvedSpend: moneyAggregates(spend),
+      touchCount: Number(touches[0]?.count ?? 0n),
+      attribution: mergeAttribution(attribution, revenue),
+      publishedContent: published,
+    });
+  }
+
+  async getOrganizationAnalytics(
+    organizationId: string,
+  ): Promise<OrganizationAnalyticsRollup> {
+    const [
+      campaigns,
+      planned,
+      spend,
+      touches,
+      attribution,
+      published,
+      revenue,
+    ] = await Promise.all([
+      this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*) AS "count" FROM "Campaign"
+          WHERE "organizationId" = ${organizationId}::uuid`,
+      this.prisma.$queryRaw<MoneyAggregateRow[]>`
+          SELECT "currency", COUNT(*)::int AS "count", SUM("budgetPlannedMinor")::text AS "total"
+          FROM "Campaign" WHERE "organizationId" = ${organizationId}::uuid
+          GROUP BY "currency" ORDER BY "currency"`,
+      this.prisma.$queryRaw<MoneyAggregateRow[]>`
+          SELECT "currency", COUNT(*)::int AS "count", SUM("amountMinor")::text AS "total"
+          FROM "Expense"
+          WHERE "organizationId" = ${organizationId}::uuid
+            AND "campaignId" IS NOT NULL AND "status" = 'APPROVED'
+          GROUP BY "currency" ORDER BY "currency"`,
+      this.prisma.$queryRaw<{ count: bigint }[]>`
+          SELECT COUNT(*) AS "count" FROM "LeadTouch"
+          WHERE "organizationId" = ${organizationId}::uuid AND "campaignId" IS NOT NULL`,
+      this.attributionRollup(organizationId),
+      this.publishedContentCounts(organizationId),
+      this.attributedRevenue(organizationId),
+    ]);
+    return Object.freeze({
+      campaignCount: Number(campaigns[0]?.count ?? 0n),
+      plannedBudget: moneyAggregates(planned),
+      approvedSpend: moneyAggregates(spend),
+      touchCount: Number(touches[0]?.count ?? 0n),
+      attribution: mergeAttribution(attribution, revenue),
+      publishedContent: published,
+    });
+  }
+
+  private async attributionRollup(
+    organizationId: string,
+    campaignId?: string,
+  ): Promise<AttributionCountRow> {
+    const firstFilter =
+      campaignId === undefined
+        ? Prisma.sql`e."firstCampaignId" IS NOT NULL`
+        : Prisma.sql`e."firstCampaignId" = ${campaignId}::uuid`;
+    const lastFilter =
+      campaignId === undefined
+        ? Prisma.sql`e."lastCampaignId" IS NOT NULL`
+        : Prisma.sql`e."lastCampaignId" = ${campaignId}::uuid`;
+    const rows = await this.prisma.$queryRaw<AttributionCountRow[]>`
+      ${attributionCtes(organizationId)}
+      SELECT
+        COUNT(*) FILTER (WHERE ${firstFilter})::int AS "firstLeadCount",
+        COUNT(*) FILTER (WHERE ${firstFilter} AND e."stage" IN ('QUALIFIED', 'NURTURING', 'CLOSED_WON'))::int AS "firstQualifiedCount",
+        COUNT(*) FILTER (WHERE ${firstFilter} AND e."stage" = 'CLOSED_WON')::int AS "firstWinCount",
+        COUNT(*) FILTER (WHERE ${lastFilter})::int AS "lastLeadCount",
+        COUNT(*) FILTER (WHERE ${lastFilter} AND e."stage" IN ('QUALIFIED', 'NURTURING', 'CLOSED_WON'))::int AS "lastQualifiedCount",
+        COUNT(*) FILTER (WHERE ${lastFilter} AND e."stage" = 'CLOSED_WON')::int AS "lastWinCount"
+      FROM effective e
+      WHERE e."organizationId" = ${organizationId}::uuid`;
+    return rows[0] ?? emptyAttributionCount();
+  }
+
+  private async attributedRevenue(
+    organizationId: string,
+    campaignId?: string,
+  ): Promise<readonly RevenueRow[]> {
+    const campaignFilter =
+      campaignId === undefined
+        ? Prisma.empty
+        : Prisma.sql` AND x."campaignId" = ${campaignId}::uuid`;
+    return this.prisma.$queryRaw<RevenueRow[]>`
+      ${attributionCtes(organizationId)}
+      SELECT x."model", p."currency", COUNT(*)::int AS "count", SUM(p."amountMinor")::text AS "total"
+      FROM (
+        SELECT "organizationId", "leadId", "firstCampaignId" AS "campaignId", 'FIRST' AS "model"
+        FROM effective WHERE "firstCampaignId" IS NOT NULL
+        UNION ALL
+        SELECT "organizationId", "leadId", "lastCampaignId" AS "campaignId", 'LAST' AS "model"
+        FROM effective WHERE "lastCampaignId" IS NOT NULL
+      ) x
+      JOIN "Deal" d ON d."organizationId" = x."organizationId" AND d."leadId" = x."leadId"
+      JOIN "Receivable" r ON r."organizationId" = d."organizationId" AND r."dealId" = d."id"
+      JOIN "PaymentRecord" p ON p."organizationId" = r."organizationId" AND p."receivableId" = r."id"
+      WHERE x."organizationId" = ${organizationId}::uuid ${campaignFilter}
+      GROUP BY x."model", p."currency" ORDER BY x."model", p."currency"`;
+  }
+
+  private async publishedContentCounts(
+    organizationId: string,
+    campaignId?: string,
+  ): Promise<readonly PublishedContentCount[]> {
+    const campaignFilter =
+      campaignId === undefined
+        ? Prisma.sql` AND "campaignId" IS NOT NULL`
+        : Prisma.sql` AND "campaignId" = ${campaignId}::uuid`;
+    const rows = await this.prisma.$queryRaw<PublishedContentCount[]>`
+      SELECT "channel", COUNT(*)::int AS "count"
+      FROM "ContentItem"
+      WHERE "organizationId" = ${organizationId}::uuid
+        AND "status" = 'PUBLISHED' ${campaignFilter}
+      GROUP BY "channel" ORDER BY "channel"`;
+    return Object.freeze(rows.map((row) => Object.freeze(row)));
   }
 }

@@ -25,6 +25,11 @@ import type {
   TouchChannel,
   TouchUtm,
 } from "../domain/attribution.js";
+import {
+  analyticsMetricRows,
+  type CampaignAnalyticsRollup,
+  type OrganizationAnalyticsRollup,
+} from "./campaign-analytics.js";
 import type {
   CampaignCommandResult,
   CampaignCursor,
@@ -123,6 +128,18 @@ export type ListEntriesCommand = CommandBase &
 export type ListTouchesCommand = CommandBase &
   Readonly<{ leadId: string; cursor?: string; limit?: number }>;
 
+export type CampaignAnalyticsResult = Readonly<{
+  asOf: Date;
+  analytics: CampaignAnalyticsRollup;
+  metrics: ReturnType<typeof analyticsMetricRows>;
+}>;
+
+export type OrganizationAnalyticsResult = Readonly<{
+  asOf: Date;
+  analytics: OrganizationAnalyticsRollup;
+  metrics: ReturnType<typeof analyticsMetricRows>;
+}>;
+
 export class CampaignApplication {
   constructor(
     private readonly repository: CampaignRepository,
@@ -187,6 +204,54 @@ export class CampaignApplication {
       transitions: transitions.slice(0, DETAIL_HISTORY_LIMIT),
       budgetCorrections: budgetCorrections.slice(0, DETAIL_HISTORY_LIMIT),
     };
+  }
+
+  async getCampaignAnalytics(
+    input: CommandBase & Readonly<{ campaignId: string }>,
+  ): Promise<
+    | CampaignAnalyticsResult
+    | { kind: "access-denied" }
+    | { kind: "not-found"; resource: "campaign" }
+  > {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return access.result;
+    const campaign = await this.requireCampaign(
+      input.organizationId,
+      input.campaignId,
+    );
+    if (!campaign) return { kind: "not-found", resource: "campaign" };
+    const asOf = new Date();
+    const analytics = await this.repository.getCampaignAnalytics(
+      input.organizationId,
+      input.campaignId,
+    );
+    return Object.freeze({
+      asOf,
+      analytics,
+      metrics: analyticsMetricRows(
+        analytics.approvedSpend,
+        analytics.attribution,
+      ),
+    });
+  }
+
+  async getOrganizationAnalytics(
+    input: CommandBase,
+  ): Promise<OrganizationAnalyticsResult | { kind: "access-denied" }> {
+    const access = await this.authorize(input);
+    if (access.kind !== "authorized") return access.result;
+    const asOf = new Date();
+    const analytics = await this.repository.getOrganizationAnalytics(
+      input.organizationId,
+    );
+    return Object.freeze({
+      asOf,
+      analytics,
+      metrics: analyticsMetricRows(
+        analytics.approvedSpend,
+        analytics.attribution,
+      ),
+    });
   }
 
   async listCampaigns(

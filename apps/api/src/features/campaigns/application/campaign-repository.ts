@@ -11,6 +11,10 @@ import type {
   LeadAttributionCorrectionRecord,
   LeadTouch,
 } from "../domain/attribution.js";
+import type {
+  CampaignAnalyticsRollup,
+  OrganizationAnalyticsRollup,
+} from "./campaign-analytics.js";
 
 export type CampaignMembership = Readonly<{
   organizationId: string;
@@ -149,6 +153,13 @@ export interface CampaignRepository {
     organizationId: string,
     leadId: string,
   ): Promise<EffectiveAttribution>;
+  getCampaignAnalytics(
+    organizationId: string,
+    campaignId: string,
+  ): Promise<CampaignAnalyticsRollup>;
+  getOrganizationAnalytics(
+    organizationId: string,
+  ): Promise<OrganizationAnalyticsRollup>;
 }
 
 export type CampaignCommandResult =

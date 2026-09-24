@@ -325,6 +325,127 @@ export const campaignDetailResponse = {
 
 export const campaignListResponse = paged(campaignListItemSchema);
 
+const analyticsMoneyRowSchema = {
+  type: "object",
+  required: ["currency", "count", "amountMinor"],
+  additionalProperties: false,
+  properties: {
+    currency: currencyProperty,
+    count: { type: "integer", minimum: 0 },
+    amountMinor: signedAmountMinorProperty,
+  },
+};
+const analyticsAttributionSchema = {
+  type: "object",
+  required: [
+    "firstTouchLeadCount",
+    "firstTouchQualifiedLeadCount",
+    "firstTouchWinCount",
+    "firstTouchAttributedRevenue",
+    "lastTouchLeadCount",
+    "lastTouchQualifiedLeadCount",
+    "lastTouchWinCount",
+    "lastTouchAttributedRevenue",
+  ],
+  additionalProperties: false,
+  properties: {
+    firstTouchLeadCount: { type: "integer", minimum: 0 },
+    firstTouchQualifiedLeadCount: { type: "integer", minimum: 0 },
+    firstTouchWinCount: { type: "integer", minimum: 0 },
+    firstTouchAttributedRevenue: {
+      type: "array",
+      items: analyticsMoneyRowSchema,
+    },
+    lastTouchLeadCount: { type: "integer", minimum: 0 },
+    lastTouchQualifiedLeadCount: { type: "integer", minimum: 0 },
+    lastTouchWinCount: { type: "integer", minimum: 0 },
+    lastTouchAttributedRevenue: {
+      type: "array",
+      items: analyticsMoneyRowSchema,
+    },
+  },
+};
+const publishedContentSchema = {
+  type: "object",
+  required: ["channel", "count"],
+  additionalProperties: false,
+  properties: {
+    channel: { type: "string", minLength: 1 },
+    count: { type: "integer", minimum: 0 },
+  },
+};
+const analyticsMetricSchema = {
+  type: "object",
+  required: ["currency", "cpl", "cac", "roi"],
+  additionalProperties: false,
+  properties: {
+    currency: currencyProperty,
+    cpl: { type: "string" },
+    cac: { type: "string" },
+    roi: { type: "string" },
+  },
+};
+const analyticsMetricsSchema = {
+  type: "object",
+  required: ["firstTouch", "lastTouch"],
+  additionalProperties: false,
+  properties: {
+    firstTouch: { type: "array", items: analyticsMetricSchema },
+    lastTouch: { type: "array", items: analyticsMetricSchema },
+  },
+};
+const campaignAnalyticsPayload = {
+  type: "object",
+  required: [
+    "campaignId",
+    "plannedBudget",
+    "approvedSpend",
+    "touchCount",
+    "attribution",
+    "publishedContent",
+  ],
+  additionalProperties: false,
+  properties: {
+    campaignId: uuidParameter,
+    plannedBudget: { type: "array", items: analyticsMoneyRowSchema },
+    approvedSpend: { type: "array", items: analyticsMoneyRowSchema },
+    touchCount: { type: "integer", minimum: 0 },
+    attribution: analyticsAttributionSchema,
+    publishedContent: { type: "array", items: publishedContentSchema },
+  },
+};
+const organizationAnalyticsPayload = {
+  ...campaignAnalyticsPayload,
+  required: [
+    "campaignCount",
+    "plannedBudget",
+    "approvedSpend",
+    "touchCount",
+    "attribution",
+    "publishedContent",
+  ],
+  properties: {
+    ...campaignAnalyticsPayload.properties,
+    campaignCount: { type: "integer", minimum: 0 },
+  },
+};
+const analyticsResponse = (payload: object) => ({
+  type: "object",
+  required: ["asOf", "analytics", "metrics"],
+  additionalProperties: false,
+  properties: {
+    asOf: utcInstantProperty,
+    analytics: payload,
+    metrics: analyticsMetricsSchema,
+  },
+});
+export const campaignAnalyticsResponse = analyticsResponse(
+  campaignAnalyticsPayload,
+);
+export const organizationAnalyticsResponse = analyticsResponse(
+  organizationAnalyticsPayload,
+);
+
 export const campaignTransitionResponse = {
   type: "object",
   required: ["transition"],

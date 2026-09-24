@@ -8,7 +8,20 @@ const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const MONEY = /^[1-9]\d*$/;
+const SIGNED_MONEY = /^-?(0|[1-9]\d*)$/;
 const CURSOR = /^[A-Za-z0-9_-]+$/;
+const CONTENT_CHANNELS = [
+  "INSTAGRAM",
+  "X",
+  "SNAPCHAT",
+  "TIKTOK",
+  "LINKEDIN",
+  "FACEBOOK",
+  "WHATSAPP",
+  "EMAIL",
+  "WEBSITE",
+  "OTHER",
+] as const;
 
 export const CAMPAIGN_STATUSES = [
   "DRAFT",
@@ -73,6 +86,50 @@ export type CampaignSummary = Readonly<{
 export type CampaignListPage = Readonly<{
   items: readonly CampaignSummary[];
   nextCursor?: string;
+}>;
+
+export type AnalyticsMoneyRow = Readonly<{
+  currency: string;
+  count: number;
+  amountMinor: string;
+}>;
+
+export type CampaignAnalytics = Readonly<{
+  campaignId?: string;
+  campaignCount?: number;
+  plannedBudget: readonly AnalyticsMoneyRow[];
+  approvedSpend: readonly AnalyticsMoneyRow[];
+  touchCount: number;
+  attribution: {
+    firstTouchLeadCount: number;
+    firstTouchQualifiedLeadCount: number;
+    firstTouchWinCount: number;
+    firstTouchAttributedRevenue: readonly AnalyticsMoneyRow[];
+    lastTouchLeadCount: number;
+    lastTouchQualifiedLeadCount: number;
+    lastTouchWinCount: number;
+    lastTouchAttributedRevenue: readonly AnalyticsMoneyRow[];
+  };
+  publishedContent: readonly {
+    channel: (typeof CONTENT_CHANNELS)[number];
+    count: number;
+  }[];
+}>;
+
+export type AnalyticsMetric = Readonly<{
+  currency: string;
+  cpl: string;
+  cac: string;
+  roi: string;
+}>;
+
+export type CampaignAnalyticsResponse = Readonly<{
+  asOf: string;
+  analytics: CampaignAnalytics;
+  metrics: {
+    firstTouch: readonly AnalyticsMetric[];
+    lastTouch: readonly AnalyticsMetric[];
+  };
 }>;
 
 export type CampaignMoneyRow = Readonly<{
@@ -308,6 +365,162 @@ function normalizeCampaignSummary(value: unknown): CampaignSummary {
     touchCount: count(row.touchCount, "touchCount"),
     createdAt: utc(row.createdAt, "campaign createdAt"),
   };
+}
+
+function normalizeAnalyticsMoney(value: unknown): AnalyticsMoneyRow {
+  const row = record(value, "analytics money");
+  only(row, ["currency", "count", "amountMinor"]);
+  if (
+    typeof row.amountMinor !== "string" ||
+    !SIGNED_MONEY.test(row.amountMinor)
+  )
+    throw new TypeError("Invalid analytics amountMinor");
+  return {
+    currency: currencyCode(row.currency, "analytics currency"),
+    count: count(row.count, "analytics count"),
+    amountMinor: row.amountMinor,
+  };
+}
+
+function normalizeAnalytics(value: unknown): CampaignAnalytics {
+  const row = record(value, "campaign analytics");
+  only(row, [
+    "campaignId",
+    "campaignCount",
+    "plannedBudget",
+    "approvedSpend",
+    "touchCount",
+    "attribution",
+    "publishedContent",
+  ]);
+  if (row.campaignId !== undefined && row.campaignCount !== undefined)
+    throw new TypeError("Invalid analytics scope");
+  if (!Array.isArray(row.plannedBudget) || !Array.isArray(row.approvedSpend))
+    throw new TypeError("Invalid analytics money rows");
+  const attribution = record(row.attribution, "analytics attribution");
+  only(attribution, [
+    "firstTouchLeadCount",
+    "firstTouchQualifiedLeadCount",
+    "firstTouchWinCount",
+    "firstTouchAttributedRevenue",
+    "lastTouchLeadCount",
+    "lastTouchQualifiedLeadCount",
+    "lastTouchWinCount",
+    "lastTouchAttributedRevenue",
+  ]);
+  if (
+    !Array.isArray(attribution.firstTouchAttributedRevenue) ||
+    !Array.isArray(attribution.lastTouchAttributedRevenue) ||
+    !Array.isArray(row.publishedContent)
+  )
+    throw new TypeError("Invalid analytics arrays");
+  const publishedContent = row.publishedContent.map((entry) => {
+    const item = record(entry, "published content count");
+    only(item, ["channel", "count"]);
+    return {
+      channel: inEnum(item.channel, CONTENT_CHANNELS, "content channel"),
+      count: count(item.count, "published content count"),
+    };
+  });
+  return {
+    ...(row.campaignId === undefined
+      ? {}
+      : { campaignId: uuid(row.campaignId, "campaign id") }),
+    ...(row.campaignCount === undefined
+      ? {}
+      : { campaignCount: count(row.campaignCount, "campaign count") }),
+    plannedBudget: row.plannedBudget.map(normalizeAnalyticsMoney),
+    approvedSpend: row.approvedSpend.map(normalizeAnalyticsMoney),
+    touchCount: count(row.touchCount, "touch count"),
+    attribution: {
+      firstTouchLeadCount: count(
+        attribution.firstTouchLeadCount,
+        "first lead count",
+      ),
+      firstTouchQualifiedLeadCount: count(
+        attribution.firstTouchQualifiedLeadCount,
+        "first qualified count",
+      ),
+      firstTouchWinCount: count(
+        attribution.firstTouchWinCount,
+        "first win count",
+      ),
+      firstTouchAttributedRevenue: attribution.firstTouchAttributedRevenue.map(
+        normalizeAnalyticsMoney,
+      ),
+      lastTouchLeadCount: count(
+        attribution.lastTouchLeadCount,
+        "last lead count",
+      ),
+      lastTouchQualifiedLeadCount: count(
+        attribution.lastTouchQualifiedLeadCount,
+        "last qualified count",
+      ),
+      lastTouchWinCount: count(attribution.lastTouchWinCount, "last win count"),
+      lastTouchAttributedRevenue: attribution.lastTouchAttributedRevenue.map(
+        normalizeAnalyticsMoney,
+      ),
+    },
+    publishedContent,
+  };
+}
+
+function normalizeAnalyticsMetrics(
+  value: unknown,
+): CampaignAnalyticsResponse["metrics"] {
+  const row = record(value, "analytics metrics");
+  only(row, ["firstTouch", "lastTouch"]);
+  const normalize = (entries: unknown): readonly AnalyticsMetric[] => {
+    if (!Array.isArray(entries))
+      throw new TypeError("Invalid analytics metrics");
+    return entries.map((entry) => {
+      const metric = record(entry, "analytics metric");
+      only(metric, ["currency", "cpl", "cac", "roi"]);
+      const cpl = metric.cpl;
+      const cac = metric.cac;
+      const roi = metric.roi;
+      if (
+        typeof cpl !== "string" ||
+        typeof cac !== "string" ||
+        typeof roi !== "string"
+      )
+        throw new TypeError("Invalid analytics metric value");
+      return {
+        currency: currencyCode(metric.currency, "metric currency"),
+        cpl,
+        cac,
+        roi,
+      };
+    });
+  };
+  return {
+    firstTouch: normalize(row.firstTouch),
+    lastTouch: normalize(row.lastTouch),
+  };
+}
+
+export function normalizeCampaignAnalytics(
+  value: unknown,
+): CampaignAnalyticsResponse {
+  const body = record(value, "campaign analytics response");
+  only(body, ["asOf", "analytics", "metrics"]);
+  return {
+    asOf: utc(body.asOf, "analytics asOf"),
+    analytics: normalizeAnalytics(body.analytics),
+    metrics: normalizeAnalyticsMetrics(body.metrics),
+  };
+}
+
+export function normalizeOrganizationCampaignAnalytics(
+  value: unknown,
+): CampaignAnalyticsResponse {
+  const result = normalizeCampaignAnalytics(value);
+  if (
+    result.analytics.campaignCount === undefined ||
+    result.analytics.campaignId !== undefined
+  )
+    throw new TypeError("Invalid organization analytics response");
+  return result;
 }
 
 export function normalizeCampaignList(value: unknown): CampaignListPage {

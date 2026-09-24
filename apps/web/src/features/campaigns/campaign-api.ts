@@ -1,11 +1,14 @@
 import { createApiClient } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import {
+  normalizeCampaignAnalytics,
+  normalizeOrganizationCampaignAnalytics,
   normalizeCampaignDetail,
   normalizeCampaignList,
   normalizeLeadAttribution,
   normalizeLeadTouches,
   normalizePerformanceEntries,
+  type CampaignAnalyticsResponse,
   type CampaignDetailResponse,
   type CampaignListPage,
   type LeadAttributionResponse,
@@ -51,6 +54,28 @@ export function fetchCampaigns(context: {
   return apiClient
     .request(`/organizations/${organizationId}/campaigns${suffix}`)
     .then(normalizeCampaignList);
+}
+
+export function fetchOrganizationCampaignAnalytics(context: {
+  organizationId: string;
+}): Promise<CampaignAnalyticsResponse> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  return apiClient
+    .request(`/organizations/${organizationId}/campaigns/analytics`)
+    .then(normalizeOrganizationCampaignAnalytics);
+}
+
+export function fetchCampaignAnalytics(context: {
+  organizationId: string;
+  campaignId: string;
+}): Promise<CampaignAnalyticsResponse> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  const campaignId = assertUuid("campaign id", context.campaignId);
+  return apiClient
+    .request(
+      `/organizations/${organizationId}/campaigns/${campaignId}/analytics`,
+    )
+    .then(normalizeCampaignAnalytics);
 }
 
 export function fetchCampaignDetail(context: {

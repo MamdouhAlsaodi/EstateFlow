@@ -265,6 +265,73 @@ export type CampaignDetailResponse = {
   }[];
 };
 
+export type CampaignAnalyticsResponse = {
+  asOf: string;
+  analytics: {
+    campaignId: string;
+    plannedBudget: { currency: string; count: number; amountMinor: string }[];
+    approvedSpend: { currency: string; count: number; amountMinor: string }[];
+    touchCount: number;
+    attribution: {
+      firstTouchLeadCount: number;
+      firstTouchQualifiedLeadCount: number;
+      firstTouchWinCount: number;
+      firstTouchAttributedRevenue: {
+        currency: string;
+        count: number;
+        amountMinor: string;
+      }[];
+      lastTouchLeadCount: number;
+      lastTouchQualifiedLeadCount: number;
+      lastTouchWinCount: number;
+      lastTouchAttributedRevenue: {
+        currency: string;
+        count: number;
+        amountMinor: string;
+      }[];
+    };
+    publishedContent: { channel: string; count: number }[];
+  };
+  metrics: {
+    firstTouch: { currency: string; cpl: string; cac: string; roi: string }[];
+    lastTouch: { currency: string; cpl: string; cac: string; roi: string }[];
+  };
+};
+
+export type OrganizationCampaignAnalyticsResponse = {
+  asOf: string;
+  analytics: {
+    campaignId: string;
+    campaignCount: number;
+    plannedBudget: { currency: string; count: number; amountMinor: string }[];
+    approvedSpend: { currency: string; count: number; amountMinor: string }[];
+    touchCount: number;
+    attribution: {
+      firstTouchLeadCount: number;
+      firstTouchQualifiedLeadCount: number;
+      firstTouchWinCount: number;
+      firstTouchAttributedRevenue: {
+        currency: string;
+        count: number;
+        amountMinor: string;
+      }[];
+      lastTouchLeadCount: number;
+      lastTouchQualifiedLeadCount: number;
+      lastTouchWinCount: number;
+      lastTouchAttributedRevenue: {
+        currency: string;
+        count: number;
+        amountMinor: string;
+      }[];
+    };
+    publishedContent: { channel: string; count: number }[];
+  };
+  metrics: {
+    firstTouch: { currency: string; cpl: string; cac: string; roi: string }[];
+    lastTouch: { currency: string; cpl: string; cac: string; roi: string }[];
+  };
+};
+
 export type CampaignPerformanceEntryPage = {
   items: {
     id: string;
@@ -786,6 +853,10 @@ export function createEstateFlowClient({
           body: JSON.stringify(body),
         },
       ),
+    getOrganizationCampaignAnalytics: (params: { organizationId: string }) =>
+      requestJson<OrganizationCampaignAnalyticsResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/analytics`,
+      ),
     createCampaign: (
       params: { organizationId: string },
       body: {
@@ -838,6 +909,13 @@ export function createEstateFlowClient({
           (query.toString() ? `?${query}` : ""),
       );
     },
+    getCampaignAnalytics: (params: {
+      organizationId: string;
+      campaignId: string;
+    }) =>
+      requestJson<CampaignAnalyticsResponse>(
+        `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}/analytics`,
+      ),
     findCampaign: (params: { organizationId: string; campaignId: string }) =>
       requestJson<CampaignDetailResponse>(
         `organizations/${encodeURIComponent(params.organizationId)}/campaigns/${encodeURIComponent(params.campaignId)}`,

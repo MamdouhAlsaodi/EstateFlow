@@ -5618,6 +5618,238 @@
         "tags": ["Campaigns"]
       }
     },
+    "/organizations/{organizationId}/campaigns/analytics": {
+      "get": {
+        "operationId": "CampaignController_organizationAnalytics",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "analytics", "metrics"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "analytics": {
+                      "type": "object",
+                      "required": [
+                        "campaignCount",
+                        "plannedBudget",
+                        "approvedSpend",
+                        "touchCount",
+                        "attribution",
+                        "publishedContent"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "plannedBudget": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "count", "amountMinor"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "count": { "type": "integer", "minimum": 0 },
+                              "amountMinor": {
+                                "type": "string",
+                                "pattern": "^-?(0|[1-9]\\d*)$"
+                              }
+                            }
+                          }
+                        },
+                        "approvedSpend": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "count", "amountMinor"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "count": { "type": "integer", "minimum": 0 },
+                              "amountMinor": {
+                                "type": "string",
+                                "pattern": "^-?(0|[1-9]\\d*)$"
+                              }
+                            }
+                          }
+                        },
+                        "touchCount": { "type": "integer", "minimum": 0 },
+                        "attribution": {
+                          "type": "object",
+                          "required": [
+                            "firstTouchLeadCount",
+                            "firstTouchQualifiedLeadCount",
+                            "firstTouchWinCount",
+                            "firstTouchAttributedRevenue",
+                            "lastTouchLeadCount",
+                            "lastTouchQualifiedLeadCount",
+                            "lastTouchWinCount",
+                            "lastTouchAttributedRevenue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "firstTouchLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchQualifiedLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchWinCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchAttributedRevenue": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "currency",
+                                  "count",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "count": { "type": "integer", "minimum": 0 },
+                                  "amountMinor": {
+                                    "type": "string",
+                                    "pattern": "^-?(0|[1-9]\\d*)$"
+                                  }
+                                }
+                              }
+                            },
+                            "lastTouchLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchQualifiedLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchWinCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchAttributedRevenue": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "currency",
+                                  "count",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "count": { "type": "integer", "minimum": 0 },
+                                  "amountMinor": {
+                                    "type": "string",
+                                    "pattern": "^-?(0|[1-9]\\d*)$"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "publishedContent": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["channel", "count"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": { "type": "string", "minLength": 1 },
+                              "count": { "type": "integer", "minimum": 0 }
+                            }
+                          }
+                        },
+                        "campaignCount": { "type": "integer", "minimum": 0 }
+                      }
+                    },
+                    "metrics": {
+                      "type": "object",
+                      "required": ["firstTouch", "lastTouch"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "firstTouch": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "cpl", "cac", "roi"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "cpl": { "type": "string" },
+                              "cac": { "type": "string" },
+                              "roi": { "type": "string" }
+                            }
+                          }
+                        },
+                        "lastTouch": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "cpl", "cac", "roi"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "cpl": { "type": "string" },
+                              "cac": { "type": "string" },
+                              "roi": { "type": "string" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
     "/organizations/{organizationId}/campaigns/{campaignId}": {
       "get": {
         "operationId": "CampaignController_find",
@@ -5889,6 +6121,244 @@
                             "type": "string",
                             "format": "date-time",
                             "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Campaigns"]
+      }
+    },
+    "/organizations/{organizationId}/campaigns/{campaignId}/analytics": {
+      "get": {
+        "operationId": "CampaignController_campaignAnalytics",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "campaignId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["asOf", "analytics", "metrics"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                    },
+                    "analytics": {
+                      "type": "object",
+                      "required": [
+                        "campaignId",
+                        "plannedBudget",
+                        "approvedSpend",
+                        "touchCount",
+                        "attribution",
+                        "publishedContent"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "campaignId": { "type": "string", "format": "uuid" },
+                        "plannedBudget": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "count", "amountMinor"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "count": { "type": "integer", "minimum": 0 },
+                              "amountMinor": {
+                                "type": "string",
+                                "pattern": "^-?(0|[1-9]\\d*)$"
+                              }
+                            }
+                          }
+                        },
+                        "approvedSpend": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "count", "amountMinor"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "count": { "type": "integer", "minimum": 0 },
+                              "amountMinor": {
+                                "type": "string",
+                                "pattern": "^-?(0|[1-9]\\d*)$"
+                              }
+                            }
+                          }
+                        },
+                        "touchCount": { "type": "integer", "minimum": 0 },
+                        "attribution": {
+                          "type": "object",
+                          "required": [
+                            "firstTouchLeadCount",
+                            "firstTouchQualifiedLeadCount",
+                            "firstTouchWinCount",
+                            "firstTouchAttributedRevenue",
+                            "lastTouchLeadCount",
+                            "lastTouchQualifiedLeadCount",
+                            "lastTouchWinCount",
+                            "lastTouchAttributedRevenue"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "firstTouchLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchQualifiedLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchWinCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "firstTouchAttributedRevenue": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "currency",
+                                  "count",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "count": { "type": "integer", "minimum": 0 },
+                                  "amountMinor": {
+                                    "type": "string",
+                                    "pattern": "^-?(0|[1-9]\\d*)$"
+                                  }
+                                }
+                              }
+                            },
+                            "lastTouchLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchQualifiedLeadCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchWinCount": {
+                              "type": "integer",
+                              "minimum": 0
+                            },
+                            "lastTouchAttributedRevenue": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "required": [
+                                  "currency",
+                                  "count",
+                                  "amountMinor"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "currency": {
+                                    "type": "string",
+                                    "pattern": "^[A-Z]{3}$"
+                                  },
+                                  "count": { "type": "integer", "minimum": 0 },
+                                  "amountMinor": {
+                                    "type": "string",
+                                    "pattern": "^-?(0|[1-9]\\d*)$"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "publishedContent": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["channel", "count"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "channel": { "type": "string", "minLength": 1 },
+                              "count": { "type": "integer", "minimum": 0 }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "metrics": {
+                      "type": "object",
+                      "required": ["firstTouch", "lastTouch"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "firstTouch": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "cpl", "cac", "roi"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "cpl": { "type": "string" },
+                              "cac": { "type": "string" },
+                              "roi": { "type": "string" }
+                            }
+                          }
+                        },
+                        "lastTouch": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": ["currency", "cpl", "cac", "roi"],
+                            "additionalProperties": false,
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "pattern": "^[A-Z]{3}$"
+                              },
+                              "cpl": { "type": "string" },
+                              "cac": { "type": "string" },
+                              "roi": { "type": "string" }
+                            }
                           }
                         }
                       }

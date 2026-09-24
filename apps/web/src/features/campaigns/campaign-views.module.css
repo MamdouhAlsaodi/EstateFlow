@@ -88,6 +88,37 @@
   vertical-align: top;
 }
 
+.analyticsGrid {
+  display: grid;
+  gap: var(--ef-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+}
+
+.analyticsGrid p {
+  font-size: 1.35rem;
+  margin: var(--ef-space-1) 0 0;
+}
+
+.analyticsChannels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ef-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.analyticsChannels li {
+  background: var(--ef-line);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+}
+
+.muted {
+  color: var(--ef-ink-muted);
+  font-size: 0.86rem;
+}
+
 .formGrid {
   display: grid;
   gap: var(--ef-space-3);
