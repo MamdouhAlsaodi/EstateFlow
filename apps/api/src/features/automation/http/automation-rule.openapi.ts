@@ -35,6 +35,9 @@ export const automationTriggerEventTypes = [
   "receivable.due_soon",
   "receivable.overdue",
   "commission.due",
+  "viewing.reminder_24h",
+  "viewing.reminder_1h",
+  "viewing.outcome_requested",
 ] as const;
 
 export const automationConditionOperators = [
@@ -50,6 +53,7 @@ export const automationActionTypes = [
   "CREATE_LEAD_TASK",
   "CREATE_INTERNAL_NOTIFICATION",
   "ADD_LEAD_TIMELINE_NOTE",
+  "CREATE_VIEWING_FOLLOW_UP",
 ] as const;
 
 export const automationDefinitionSchema = {

@@ -22,6 +22,16 @@ export type ViewingPage = Readonly<{
   items: readonly Viewing[];
   nextCursor: string | null;
 }>;
+export type ViewingReminder = Readonly<{
+  kind: "REMINDER_24H" | "REMINDER_1H" | "OUTCOME_REQUEST";
+  scheduledFor: string;
+  occurrenceKey: string;
+}>;
+export type ViewingDetail = Readonly<{
+  viewing: Viewing;
+  transitions: readonly Record<string, unknown>[];
+  upcomingReminders: readonly ViewingReminder[];
+}>;
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new TypeError("Invalid viewing response");
@@ -42,6 +52,45 @@ function utc(value: unknown): string {
     throw new TypeError("Invalid viewing instant");
   return value;
 }
+export function normalizeViewingDetail(value: unknown): ViewingDetail {
+  const body = record(value);
+  if (
+    !body.viewing ||
+    !Array.isArray(body.transitions) ||
+    !Array.isArray(body.upcomingReminders)
+  )
+    throw new TypeError("Invalid viewing detail");
+  const viewingPage = normalizeViewingPage({
+    items: [body.viewing],
+    nextCursor: null,
+  });
+  const reminders = body.upcomingReminders.map((entry) => {
+    const reminder = record(entry);
+    const keys = ["kind", "scheduledFor", "occurrenceKey"];
+    if (Object.keys(reminder).some((key) => !keys.includes(key)))
+      throw new TypeError("Invalid viewing reminder fields");
+    if (
+      !["REMINDER_24H", "REMINDER_1H", "OUTCOME_REQUEST"].includes(
+        reminder.kind as string,
+      ) ||
+      typeof reminder.scheduledFor !== "string" ||
+      !UTC.test(reminder.scheduledFor) ||
+      typeof reminder.occurrenceKey !== "string"
+    )
+      throw new TypeError("Invalid viewing reminder");
+    return {
+      kind: reminder.kind as ViewingReminder["kind"],
+      scheduledFor: reminder.scheduledFor,
+      occurrenceKey: reminder.occurrenceKey,
+    };
+  });
+  return {
+    viewing: viewingPage.items[0],
+    transitions: body.transitions.map((entry) => record(entry)),
+    upcomingReminders: reminders,
+  };
+}
+
 export function normalizeViewingPage(value: unknown): ViewingPage {
   const body = record(value);
   if (

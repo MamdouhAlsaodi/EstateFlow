@@ -28,6 +28,9 @@ const eventLabels: Record<string, string> = {
   "receivable.due_soon": "استحقاق ذمة قريب",
   "receivable.overdue": "ذمة متأخرة",
   "commission.due": "عمولة مستحقة",
+  "viewing.reminder_24h": "تذكير معاينة قبل 24 ساعة",
+  "viewing.reminder_1h": "تذكير معاينة قبل ساعة",
+  "viewing.outcome_requested": "طلب نتيجة المعاينة والمتابعة",
 };
 
 export function AutomationVisibility() {

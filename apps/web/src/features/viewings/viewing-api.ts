@@ -1,6 +1,11 @@
 import { createApiClient } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
-import { normalizeViewingPage, type ViewingPage } from "./viewing-contract";
+import {
+  normalizeViewingDetail,
+  normalizeViewingPage,
+  type ViewingDetail,
+  type ViewingPage,
+} from "./viewing-contract";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -30,6 +35,17 @@ export function fetchViewings(input: {
     .request(`/organizations/${organizationId}/viewings${suffix}`)
     .then(normalizeViewingPage);
 }
+export function fetchViewingDetail(input: {
+  organizationId: string;
+  viewingId: string;
+}): Promise<ViewingDetail> {
+  const organizationId = id("organization id", input.organizationId);
+  const viewingId = id("viewing id", input.viewingId);
+  return api
+    .request(`/organizations/${organizationId}/viewings/${viewingId}`)
+    .then(normalizeViewingDetail);
+}
+
 export function requestViewing(input: {
   organizationId: string;
   leadId: string;

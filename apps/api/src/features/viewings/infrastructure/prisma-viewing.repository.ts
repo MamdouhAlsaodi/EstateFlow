@@ -14,10 +14,16 @@ import type {
   Availability,
   AvailabilityException,
   AvailabilityRule,
+  UpcomingViewingReminder,
   ViewingDetail,
   ViewingPage,
   ViewingRepository,
 } from "../application/viewing-repository.js";
+import {
+  viewingAutomationOccurrenceId,
+  viewingReminderDueAt,
+  ViewingAutomationKind,
+} from "../../automation/domain/viewing-automation.js";
 
 type Db = Prisma.TransactionClient;
 type ViewingRow = {
@@ -33,6 +39,11 @@ type ViewingRow = {
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
+};
+type UpcomingReminderRow = {
+  kind: UpcomingViewingReminder["kind"];
+  scheduledFor: Date;
+  occurrenceKey: string;
 };
 type TransitionRow = {
   id: string;
@@ -264,6 +275,13 @@ export class PrismaViewingRepository implements ViewingRepository {
               input.at,
               "CONFIRMED",
             );
+            await this.scheduleReminderOccurrences(
+              tx,
+              input.organizationId,
+              input.viewingId,
+              row.startAt,
+              input.at,
+            );
             return (
               (await this.detailInTransaction(
                 tx,
@@ -322,6 +340,12 @@ export class PrismaViewingRepository implements ViewingRepository {
               throw new ViewingValidationError(
                 "Viewing is outside broker availability",
               );
+            await this.voidPendingOccurrences(
+              tx,
+              input.organizationId,
+              input.viewingId,
+              input.at,
+            );
             const updated = await tx.viewing.updateMany({
               where: {
                 organizationId: input.organizationId,
@@ -348,6 +372,14 @@ export class PrismaViewingRepository implements ViewingRepository {
               input.at,
               row.status,
             );
+            if (row.status === "CONFIRMED")
+              await this.scheduleReminderOccurrences(
+                tx,
+                input.organizationId,
+                input.viewingId,
+                input.startAt,
+                input.at,
+              );
             return (
               (await this.detailInTransaction(
                 tx,
@@ -400,6 +432,19 @@ export class PrismaViewingRepository implements ViewingRepository {
           row.status,
           input.reason,
         );
+        await this.voidPendingOccurrences(
+          tx,
+          input.organizationId,
+          input.viewingId,
+          input.at,
+        );
+        if (input.action === "COMPLETED")
+          await this.scheduleOutcomeOccurrence(
+            tx,
+            input.organizationId,
+            input.viewingId,
+            input.at,
+          );
         return (
           (await this.detailInTransaction(
             tx,
@@ -530,13 +575,28 @@ export class PrismaViewingRepository implements ViewingRepository {
       where: { organizationId, id: viewingId },
     });
     if (!row) return null;
-    const transitions = await db.viewingTransition.findMany({
-      where: { organizationId, viewingId },
-      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
-    });
+    const [transitions, reminders] = await Promise.all([
+      db.viewingTransition.findMany({
+        where: { organizationId, viewingId },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      }),
+      db.$queryRaw<UpcomingReminderRow[]>`
+        SELECT "kind", "scheduledFor", "occurrenceKey"
+        FROM "ViewingAutomationOccurrence"
+        WHERE "organizationId" = ${organizationId}::uuid
+          AND "viewingId" = ${viewingId}::uuid
+          AND "status" = 'PENDING'
+          AND "scheduledFor" > NOW()
+        ORDER BY "scheduledFor" ASC, "kind" ASC`,
+    ]);
     return {
       viewing: mapViewing(row as ViewingRow),
       transitions: (transitions as TransitionRow[]).map(mapTransition),
+      upcomingReminders: reminders.map((reminder) => ({
+        kind: reminder.kind,
+        scheduledFor: reminder.scheduledFor,
+        occurrenceKey: reminder.occurrenceKey,
+      })),
     };
   }
 
@@ -590,6 +650,70 @@ export class PrismaViewingRepository implements ViewingRepository {
         },
       },
     });
+  }
+
+  private async voidPendingOccurrences(
+    db: Db,
+    organizationId: string,
+    viewingId: string,
+    at: Date,
+  ): Promise<void> {
+    await db.$executeRaw`
+      UPDATE "ViewingAutomationOccurrence"
+      SET "status" = 'VOIDED', "voidedAt" = ${at}
+      WHERE "organizationId" = ${organizationId}::uuid
+        AND "viewingId" = ${viewingId}::uuid
+        AND "status" = 'PENDING'`;
+  }
+
+  private async scheduleReminderOccurrences(
+    db: Db,
+    organizationId: string,
+    viewingId: string,
+    startAt: Date,
+    at: Date,
+  ): Promise<void> {
+    for (const kind of [
+      ViewingAutomationKind.REMINDER_24H,
+      ViewingAutomationKind.REMINDER_1H,
+    ] as const) {
+      const occurrenceKey = startAt.toISOString();
+      const id = viewingAutomationOccurrenceId({
+        organizationId,
+        viewingId,
+        kind,
+        occurrence: occurrenceKey,
+      });
+      await db.$executeRaw`
+        INSERT INTO "ViewingAutomationOccurrence"
+          ("id", "organizationId", "viewingId", "kind", "occurrenceKey", "scheduledFor", "status", "createdAt")
+        VALUES
+          (${id}::uuid, ${organizationId}::uuid, ${viewingId}::uuid, ${kind}, ${occurrenceKey}, ${viewingReminderDueAt(startAt, kind)}, 'PENDING', ${at})
+        ON CONFLICT ("organizationId", "viewingId", "kind", "occurrenceKey")
+        DO UPDATE SET "status" = 'PENDING', "voidedAt" = NULL, "scheduledFor" = EXCLUDED."scheduledFor"`;
+    }
+  }
+
+  private async scheduleOutcomeOccurrence(
+    db: Db,
+    organizationId: string,
+    viewingId: string,
+    at: Date,
+  ): Promise<void> {
+    const kind = ViewingAutomationKind.OUTCOME_REQUEST;
+    const occurrenceKey = `completed:${at.toISOString()}`;
+    const id = viewingAutomationOccurrenceId({
+      organizationId,
+      viewingId,
+      kind,
+      occurrence: occurrenceKey,
+    });
+    await db.$executeRaw`
+      INSERT INTO "ViewingAutomationOccurrence"
+        ("id", "organizationId", "viewingId", "kind", "occurrenceKey", "scheduledFor", "status", "suggestedLeadStage", "createdAt")
+      VALUES
+        (${id}::uuid, ${organizationId}::uuid, ${viewingId}::uuid, ${kind}, ${occurrenceKey}, ${at}, 'PENDING', 'QUALIFIED', ${at})
+      ON CONFLICT ("organizationId", "viewingId", "kind", "occurrenceKey") DO NOTHING`;
   }
 
   private async isAvailable(
