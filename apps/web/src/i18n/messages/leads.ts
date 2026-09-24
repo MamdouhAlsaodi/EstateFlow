@@ -129,8 +129,7 @@ const en: Record<keyof typeof ar, string> = {
   "leads.board.retry": "Retry",
   "leads.board.orgEyebrow": "Organization workspace",
   "leads.board.title": "Lead board",
-  "leads.board.subtitle":
-    "Read-only view for following leads by stage.",
+  "leads.board.subtitle": "Read-only view for following leads by stage.",
   "leads.board.totalAria": "Total leads: {count}",
   "leads.board.totalCount": "{count} leads",
   "leads.board.emptyTitle": "No leads yet",

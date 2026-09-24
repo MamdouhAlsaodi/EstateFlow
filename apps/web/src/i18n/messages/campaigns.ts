@@ -106,7 +106,8 @@ const ar = {
   "campaigns.detail.complete": "إكمال",
   "campaigns.detail.cancelRequiresReason": "الإلغاء يتطلب سببًا مكتوبًا أعلاه",
   "campaigns.detail.cancel": "إلغاء (بسبب إلزامي)",
-  "campaigns.detail.correctionsTitle": "تصحيحات الميزانية (سجل غير قابل للتغيير)",
+  "campaigns.detail.correctionsTitle":
+    "تصحيحات الميزانية (سجل غير قابل للتغيير)",
   "campaigns.detail.entriesTitle": "أداء القناة (إدخال يدوي)",
   "campaigns.detail.entriesEmpty": "لا توجد إدخالات أداء بعد.",
   "campaigns.detail.entriesCaption":
@@ -199,8 +200,7 @@ const en: Record<keyof typeof ar, string> = {
   "campaigns.analytics.lastUpdatePrefix": "Last update:",
   "campaigns.analytics.publishedByChannel": "Published {channel}:",
 
-  "campaigns.detail.loadFailed":
-    "Could not load the campaign from the server.",
+  "campaigns.detail.loadFailed": "Could not load the campaign from the server.",
   "campaigns.detail.actionFailed":
     "Could not run the command. Check the permissions and data, then try again.",
   "campaigns.detail.attributionLookupFailed":
@@ -211,8 +211,7 @@ const en: Record<keyof typeof ar, string> = {
   "campaigns.detail.refresh": "Refresh",
   "campaigns.detail.pressRefresh": "Press “Refresh” to view the campaign.",
   "campaigns.detail.budgetTitle": "Budget",
-  "campaigns.detail.spendByCurrencyCaption":
-    "Approved expenses by currency",
+  "campaigns.detail.spendByCurrencyCaption": "Approved expenses by currency",
   "campaigns.detail.thCurrency": "Currency",
   "campaigns.detail.thExpenseCount": "Expenses",
   "campaigns.detail.thTotal": "Total",
@@ -234,8 +233,7 @@ const en: Record<keyof typeof ar, string> = {
   "campaigns.detail.cancelRequiresReason":
     "Cancelling requires a written reason above",
   "campaigns.detail.cancel": "Cancel (reason mandatory)",
-  "campaigns.detail.correctionsTitle":
-    "Budget corrections (immutable log)",
+  "campaigns.detail.correctionsTitle": "Budget corrections (immutable log)",
   "campaigns.detail.entriesTitle": "Channel performance (manual entry)",
   "campaigns.detail.entriesEmpty": "No performance entries yet.",
   "campaigns.detail.entriesCaption":

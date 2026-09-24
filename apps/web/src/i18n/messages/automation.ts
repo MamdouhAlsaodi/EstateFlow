@@ -158,7 +158,8 @@ const en: Record<keyof typeof ar, string> = {
   "automation.jobStatus.FAILED": "Failed",
   "automation.jobStatus.CANCELLED": "Cancelled",
 
-  "automation.errorKind.action-executor-not-configured": "Executor not configured",
+  "automation.errorKind.action-executor-not-configured":
+    "Executor not configured",
   "automation.errorKind.action-permanent-failure": "Permanent failure",
   "automation.errorKind.action-transient-failure": "Transient failure",
   "automation.errorKind.unexpected-executor-error": "Unexpected error",

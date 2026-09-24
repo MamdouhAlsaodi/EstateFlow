@@ -6,11 +6,7 @@
  * `useT()` is the single translation hook.
  */
 
-import {
-  createContext,
-  useContext,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { translate, type MessageKey, type TranslationVars } from "./catalog";
 import { DEFAULT_LOCALE, type Locale } from "./config";
 

@@ -123,7 +123,8 @@ const en: Record<keyof typeof ar, string> = {
   "shell.navFinance": "Deals & finance",
   "shell.navTasks": "Tasks & follow-up",
   "shell.sidebarNoteTitle": "Foundation UI",
-  "shell.sidebarNoteBody": "Illustrative data only, not connected to live operations.",
+  "shell.sidebarNoteBody":
+    "Illustrative data only, not connected to live operations.",
 
   "notFound.title": "Page not found",
   "notFound.description":

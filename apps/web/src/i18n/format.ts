@@ -136,7 +136,8 @@ export function formatFileSize(
 ): string {
   if (!Number.isSafeInteger(byteSize) || byteSize < 0)
     throw new TypeError(`invalid byte size: ${String(byteSize)}`);
-  if (byteSize < 1024) return `${formatNumber(byteSize, locale)} ${units.bytes}`;
+  if (byteSize < 1024)
+    return `${formatNumber(byteSize, locale)} ${units.bytes}`;
   if (byteSize < 1024 * 1024)
     return `${formatNumber(byteSize / 1024, locale, {
       maximumFractionDigits: 1,

@@ -111,8 +111,7 @@ const en: Record<keyof typeof ar, string> = {
   "properties.media.workspace.stepsAria": "Upload steps",
   "properties.media.workspace.step.intent": "Request a signed upload URL",
   "properties.media.workspace.step.uploading": "Direct upload to storage",
-  "properties.media.workspace.step.confirming":
-    "Confirm and verify the bytes",
+  "properties.media.workspace.step.confirming": "Confirm and verify the bytes",
   "properties.media.workspace.step.done": "Added to the grid",
   "properties.media.workspace.empty": "No media yet.",
   "properties.media.card.cover": "Cover",

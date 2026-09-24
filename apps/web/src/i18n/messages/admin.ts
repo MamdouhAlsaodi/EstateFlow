@@ -186,7 +186,8 @@ const en: Record<keyof typeof ar, string> = {
   "admin.common.pending": "Working…",
   "admin.common.continue": "Continue",
   "admin.common.reasonLabel": "Reason (mandatory)",
-  "admin.common.reasonInvalid": "A reason is required and must not exceed 500 characters.",
+  "admin.common.reasonInvalid":
+    "A reason is required and must not exceed 500 characters.",
   "admin.common.eyebrow": "Admin console",
   "admin.common.stepUpAria": "Re-confirm password",
   "admin.common.stepUpTitle": "Identity re-confirmation",
