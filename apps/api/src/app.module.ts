@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "./database/database.module.js";
+import { AdminModule } from "./features/admin/admin.module.js";
 import { AuthModule } from "./features/auth/auth.module.js";
 import { HealthModule } from "./features/health/health.module.js";
 import { OrganizationModule } from "./features/organizations/organization.module.js";
@@ -18,6 +19,7 @@ import { ContractsModule } from "./features/contracts/contracts.module.js";
     DatabaseModule,
     HealthModule,
     AuthModule,
+    AdminModule,
     OrganizationModule,
     LeadsModule,
     PropertiesModule,

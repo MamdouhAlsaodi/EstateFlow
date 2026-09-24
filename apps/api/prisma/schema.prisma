@@ -79,6 +79,35 @@ enum ImageMediaType {
   WEBP
 }
 
+// EF-620 — Admin & moderation. Every PUBLISHED listing carries a moderation
+// state; the platform moderation queue is status=PUBLISHED + PENDING.
+enum ListingModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  TAKEN_DOWN
+}
+
+enum ListingModerationAction {
+  APPROVED
+  REJECTED
+  TAKEN_DOWN
+}
+
+enum AdminAuditAction {
+  BROKER_APPROVED
+  BROKER_SUSPENDED
+  BROKER_REINSTATED
+  LISTING_MODERATION_APPROVED
+  LISTING_MODERATION_REJECTED
+  LISTING_MODERATION_TAKEN_DOWN
+}
+
+enum AdminStepUpOutcome {
+  SUCCEEDED
+  DENIED
+}
+
 // EF-601 — Media pipeline.
 
 enum MediaKind {
@@ -176,6 +205,8 @@ model User {
   approvedMemberships Membership[]        @relation("MembershipApprover")
   ownedLeads          Lead[]              @relation("LeadOwner")
   cancelledInvoices   Invoice[]           @relation("InvoiceCancelledBy")
+  moderatedListings   Listing[]           @relation("ListingModerator")
+  adminStepUpEvents   AdminStepUpEvent[]
 }
 
 model Organization {
@@ -222,6 +253,8 @@ model Organization {
   contracts                        Contract[]
   contractSignatures               ContractSignature[]
   contractAuditEvents              ContractAuditEvent[]
+  listingModerationEvents          ListingModerationEvent[]
+  adminAuditEvents                 AdminAuditEvent[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -559,18 +592,83 @@ model Property {
 // the sweep may remove. The sweep never deletes CONFIRMED/PROCESSING media.
 
 model Listing {
-  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String          @db.Uuid
-  propertyId     String          @db.Uuid
-  status         ListingStatus   @default(DRAFT)
-  version        Int             @default(1)
-  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
-  updatedAt      DateTime        @updatedAt @db.Timestamptz(6)
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  property       Property        @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
-  images         ImageMetadata[]
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String                  @db.Uuid
+  propertyId       String                  @db.Uuid
+  status           ListingStatus           @default(DRAFT)
+  moderationStatus ListingModerationStatus @default(PENDING)
+  moderationReason String?                 @db.VarChar(500)
+  moderatedBy      String?                 @db.Uuid
+  moderatedAt      DateTime?               @db.Timestamptz(6)
+  version          Int                     @default(1)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @db.Timestamptz(6)
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property         Property                @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  moderator        User?                   @relation("ListingModerator", fields: [moderatedBy], references: [id], onDelete: Restrict)
+  images           ImageMetadata[]
+  moderationEvents ListingModerationEvent[]
 
+  @@unique([organizationId, id])
   @@index([organizationId, propertyId, status])
+  @@index([status, moderationStatus, createdAt, id])
+}
+
+// EF-620 — append-only moderation trail; immutability is database-enforced.
+model ListingModerationEvent {
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId       String                  @db.Uuid
+  listingId            String                  @db.Uuid
+  action               ListingModerationAction
+  fromModerationStatus ListingModerationStatus
+  toModerationStatus   ListingModerationStatus
+  listingStatusBefore  ListingStatus
+  listingStatusAfter   ListingStatus
+  reason               String?                 @db.VarChar(500)
+  actorId              String                  @db.Uuid
+  createdAt            DateTime                @default(now()) @db.Timestamptz(6)
+  organization         Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  listing              Listing                 @relation(fields: [organizationId, listingId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, listingId, createdAt])
+}
+
+// EF-620 — append-only, bounded, searchable platform-admin audit trail.
+// Rows store action/target identity and the mandatory decision reason only:
+// never raw payloads, provider bodies, or secrets.
+model AdminAuditEvent {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  action         AdminAuditAction
+  organizationId String          @db.Uuid
+  targetType     String          @db.VarChar(40)
+  targetId       String          @db.VarChar(200)
+  actorId        String          @db.Uuid
+  reason         String?         @db.VarChar(500)
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt, id])
+  @@index([action, createdAt, id])
+  @@index([organizationId, createdAt, id])
+  @@index([actorId, createdAt, id])
+}
+
+// EF-620 — append-only step-up re-authentication proofs. A SUCCEEDED proof is
+// bound to (userId, accessSessionId) and expires after the policy window; a
+// DENIED row is a bounded-rate audit marker. No password material is stored.
+model AdminStepUpEvent {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String             @db.Uuid
+  familyId        String             @db.Uuid
+  accessSessionId String             @db.Uuid
+  outcome         AdminStepUpOutcome
+  expiresAt       DateTime?          @db.Timestamptz(6)
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([accessSessionId, outcome, expiresAt])
 }
 
 model Lead {
