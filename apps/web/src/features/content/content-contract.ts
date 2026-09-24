@@ -165,6 +165,42 @@ export type CalendarResponse = Readonly<{
   items: readonly CalendarItem[];
 }>;
 
+export type ScheduledDelivery = Readonly<{
+  contentItemId: string;
+  publishJobId: string;
+  title: string;
+  channel: ContentChannel;
+  variantNumber: number;
+  approvedVersion: number;
+  scheduledFor: string;
+  jobStatus: "QUEUED" | "RETRYING";
+  attemptCount: number;
+  maxAttempts: number;
+  nextAttemptAt: string;
+  lastErrorKind?: ContentFailureKind;
+  lastErrorMessage?: string;
+}>;
+
+export type ScheduledDeliveriesResponse = Readonly<{
+  items: readonly ScheduledDelivery[];
+}>;
+
+export type PublishResult = Readonly<{
+  contentItemId: string;
+  title: string;
+  channel: ContentChannel;
+  approvedVersion: number;
+  outcome: "DELIVERED" | "FAILED" | "CANCELLED";
+  failureKind?: ContentFailureKind;
+  reason?: string;
+  providerMessageId?: string;
+  completedAt: string;
+}>;
+
+export type PublishResultsResponse = Readonly<{
+  items: readonly PublishResult[];
+}>;
+
 function record(value: unknown, what: string): Record<string, unknown> {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new TypeError(`Invalid ${what}`);
@@ -196,6 +232,12 @@ function text(value: unknown, what: string): string {
 
 function positiveCount(value: unknown, what: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 1)
+    throw new TypeError(`Invalid ${what}`);
+  return value;
+}
+
+function nonNegativeCount(value: unknown, what: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0)
     throw new TypeError(`Invalid ${what}`);
   return value;
 }
@@ -457,6 +499,103 @@ export function normalizeCalendar(value: unknown): CalendarResponse {
         status: inEnum(row.status, CONTENT_STATUSES, "content status"),
         variantNumber: positiveCount(row.variantNumber, "variantNumber"),
         scheduledFor: utc(row.scheduledFor, "scheduledFor"),
+      };
+    }),
+  };
+}
+
+function optionalFailureKind(
+  value: unknown,
+  what: string,
+): { [key: string]: ContentFailureKind } {
+  if (value === undefined) return {};
+  return { [what]: inEnum(value, CONTENT_FAILURE_KINDS, what) };
+}
+
+function optionalText(value: unknown, what: string): { [key: string]: string } {
+  if (value === undefined) return {};
+  return { [what]: text(value, what) };
+}
+
+export function normalizeScheduledDeliveries(
+  value: unknown,
+): ScheduledDeliveriesResponse {
+  const body = record(value, "scheduled deliveries");
+  only(body, ["items"]);
+  if (!Array.isArray(body.items))
+    throw new TypeError("Invalid scheduled deliveries");
+  return {
+    items: body.items.map((entry) => {
+      const row = record(entry, "scheduled delivery");
+      only(row, [
+        "contentItemId",
+        "publishJobId",
+        "title",
+        "channel",
+        "variantNumber",
+        "approvedVersion",
+        "scheduledFor",
+        "jobStatus",
+        "attemptCount",
+        "maxAttempts",
+        "nextAttemptAt",
+        "lastErrorKind",
+        "lastErrorMessage",
+      ]);
+      return {
+        contentItemId: uuid(row.contentItemId, "content item id"),
+        publishJobId: uuid(row.publishJobId, "publish job id"),
+        title: text(row.title, "scheduled title"),
+        channel: inEnum(row.channel, CONTENT_CHANNELS, "content channel"),
+        variantNumber: positiveCount(row.variantNumber, "variantNumber"),
+        approvedVersion: positiveCount(row.approvedVersion, "approvedVersion"),
+        scheduledFor: utc(row.scheduledFor, "scheduledFor"),
+        jobStatus: inEnum(row.jobStatus, ["QUEUED", "RETRYING"], "jobStatus"),
+        attemptCount: nonNegativeCount(row.attemptCount, "attemptCount"),
+        maxAttempts: positiveCount(row.maxAttempts, "maxAttempts"),
+        nextAttemptAt: utc(row.nextAttemptAt, "nextAttemptAt"),
+        ...optionalFailureKind(row.lastErrorKind, "lastErrorKind"),
+        ...optionalText(row.lastErrorMessage, "lastErrorMessage"),
+      };
+    }),
+  };
+}
+
+export function normalizePublishResults(
+  value: unknown,
+): PublishResultsResponse {
+  const body = record(value, "publish results");
+  only(body, ["items"]);
+  if (!Array.isArray(body.items))
+    throw new TypeError("Invalid publish results");
+  return {
+    items: body.items.map((entry) => {
+      const row = record(entry, "publish result");
+      only(row, [
+        "contentItemId",
+        "title",
+        "channel",
+        "approvedVersion",
+        "outcome",
+        "failureKind",
+        "reason",
+        "providerMessageId",
+        "completedAt",
+      ]);
+      return {
+        contentItemId: uuid(row.contentItemId, "content item id"),
+        title: text(row.title, "publish result title"),
+        channel: inEnum(row.channel, CONTENT_CHANNELS, "content channel"),
+        approvedVersion: positiveCount(row.approvedVersion, "approvedVersion"),
+        outcome: inEnum(
+          row.outcome,
+          ["DELIVERED", "FAILED", "CANCELLED"],
+          "publish outcome",
+        ),
+        ...optionalFailureKind(row.failureKind, "failureKind"),
+        ...optionalText(row.reason, "reason"),
+        ...optionalText(row.providerMessageId, "providerMessageId"),
+        completedAt: utc(row.completedAt, "completedAt"),
       };
     }),
   };

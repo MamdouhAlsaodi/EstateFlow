@@ -177,6 +177,8 @@ model Organization {
   leadAttributionCorrections       LeadAttributionCorrection[]
   contentItems                     ContentItem[]
   contentTransitions               ContentTransition[]
+  contentPublishJobs               ContentPublishJob[]
+  contentDeliveries                ContentDelivery[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -991,6 +993,8 @@ model ContentItem {
   parentVariant   ContentItem?        @relation("ContentVariantParent", fields: [variantOfId, organizationId], references: [id, organizationId], onDelete: Restrict)
   childVariants   ContentItem[]       @relation("ContentVariantParent")
   transitions     ContentTransition[]
+  publishJobs     ContentPublishJob[]
+  deliveries      ContentDelivery[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status, updatedAt])
@@ -1018,4 +1022,71 @@ model ContentTransition {
 
   @@unique([organizationId, id])
   @@index([organizationId, contentItemId, createdAt])
+}
+
+// EF-404 — Publishing adapters: durable publish occurrences plus append-only
+// delivered payload snapshots. Delivery is at-most-once per (content item
+// version, channel, scheduled occurrence): the unique (organizationId,
+// executionKey) index deduplicates occurrence insertion and the unique
+// (organizationId, contentItemId, approvedVersion, channel) delivery index
+// makes a double publish impossible even across worker restarts.
+
+enum ContentPublishJobStatus {
+  QUEUED
+  RUNNING
+  RETRYING
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+model ContentPublishJob {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId   String                  @db.Uuid
+  contentItemId    String                  @db.Uuid
+  approvedVersion  Int
+  channel          ContentChannel
+  scheduledFor     DateTime                @db.Timestamptz(6)
+  contentHash      String                  @db.Char(64)
+  executionKey     String                  @db.Char(64)
+  status           ContentPublishJobStatus @default(QUEUED)
+  attemptCount     Int                     @default(0)
+  maxAttempts      Int                     @default(5)
+  nextAttemptAt    DateTime                @db.Timestamptz(6)
+  lastErrorKind    ContentFailureKind?
+  lastErrorMessage String?                 @db.VarChar(500)
+  startedAt        DateTime?               @db.Timestamptz(6)
+  completedAt      DateTime?               @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime                @updatedAt @db.Timestamptz(6)
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contentItem      ContentItem             @relation(fields: [contentItemId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  delivery         ContentDelivery?
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, executionKey])
+  @@index([status, nextAttemptAt])
+  @@index([organizationId, status, scheduledFor])
+  @@index([organizationId, contentItemId])
+}
+
+model ContentDelivery {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String         @db.Uuid
+  contentItemId     String         @db.Uuid
+  publishJobId      String         @db.Uuid
+  approvedVersion   Int
+  channel           ContentChannel
+  contentHash       String         @db.Char(64)
+  payload           Json
+  providerMessageId String         @db.VarChar(200)
+  deliveredAt       DateTime       @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @db.Timestamptz(6)
+  organization      Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contentItem       ContentItem    @relation(fields: [contentItemId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  publishJob        ContentPublishJob @relation(fields: [publishJobId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, contentItemId, approvedVersion, channel])
+  @@unique([publishJobId, organizationId])
+  @@index([organizationId, deliveredAt])
 }

@@ -6,6 +6,7 @@ import type {
   ContentStatus,
   ContentTransitionRecord,
 } from "../domain/content.js";
+import type { ContentPublishJob } from "../domain/publishing.js";
 import type {
   CalendarEntry,
   ContentListQuery,
@@ -429,6 +430,7 @@ export class PrismaContentRepository implements ContentRepository {
     item: ContentItem;
     transition: ContentTransitionRecord;
     scheduledFor?: Date;
+    publishJob?: ContentPublishJob;
   }): Promise<ContentTransitionRecord | null> {
     return this.prisma.$transaction(async (tx: Db) => {
       const isApproval = input.transition.toStatus === "APPROVED";
@@ -467,6 +469,30 @@ export class PrismaContentRepository implements ContentRepository {
           createdAt: input.transition.createdAt,
         },
       });
+      // EF-404: the durable publish occurrence commits with the SCHEDULED
+      // transition. A duplicate occurrence key (impossible through the
+      // guarded transition, defensive against replays) rolls the whole
+      // transition back as a conflict.
+      if (input.publishJob !== undefined) {
+        const inserted = await tx.$executeRaw`
+          INSERT INTO "ContentPublishJob"
+            ("id", "organizationId", "contentItemId", "approvedVersion",
+             "channel", "scheduledFor", "contentHash", "executionKey",
+             "status", "attemptCount", "maxAttempts", "nextAttemptAt",
+             "createdAt", "updatedAt")
+          VALUES
+            (${input.publishJob.id}::uuid, ${input.publishJob.organizationId}::uuid,
+             ${input.publishJob.contentItemId}::uuid, ${input.publishJob.approvedVersion},
+             ${input.publishJob.channel}::text::"ContentChannel",
+             ${input.publishJob.scheduledFor}, ${input.publishJob.contentHash},
+             ${input.publishJob.executionKey},
+             ${input.publishJob.status}::text::"ContentPublishJobStatus",
+             ${input.publishJob.attemptCount}, ${input.publishJob.maxAttempts},
+             ${input.publishJob.nextAttemptAt},
+             ${input.publishJob.createdAt}, ${input.publishJob.updatedAt})
+          ON CONFLICT ("organizationId", "executionKey") DO NOTHING`;
+        if (inserted !== 1) return null;
+      }
       return mapTransition(row);
     });
   }

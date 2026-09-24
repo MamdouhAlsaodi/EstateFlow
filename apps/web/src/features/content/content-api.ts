@@ -6,13 +6,17 @@ import {
   normalizeContentList,
   normalizeGeneratedDraft,
   normalizeGenerationTemplates,
+  normalizePublishResults,
+  normalizeScheduledDeliveries,
   normalizeReviewQueue,
   type CalendarResponse,
   type ContentDetailResponse,
   type ContentListPage,
   type GeneratedDraft,
   type GenerationTemplatesResponse,
+  type PublishResultsResponse,
   type ReviewQueueResponse,
+  type ScheduledDeliveriesResponse,
 } from "./content-contract";
 
 /**
@@ -207,6 +211,42 @@ export type ContentGenerateInput = Readonly<{
   channel: string;
   templateVersion?: number;
 }>;
+
+export function fetchScheduledDeliveries(context: {
+  organizationId: string;
+}): Promise<ScheduledDeliveriesResponse> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  return apiClient
+    .request(`/organizations/${organizationId}/content/publishing/scheduled`)
+    .then(normalizeScheduledDeliveries);
+}
+
+export function fetchPublishResults(context: {
+  organizationId: string;
+}): Promise<PublishResultsResponse> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  return apiClient
+    .request(`/organizations/${organizationId}/content/publishing/results`)
+    .then(normalizePublishResults);
+}
+
+export function cancelScheduledPublishing(context: {
+  organizationId: string;
+  contentItemId: string;
+  reason: string;
+}): Promise<unknown> {
+  const organizationId = assertUuid("organization id", context.organizationId);
+  const contentItemId = assertUuid("content item id", context.contentItemId);
+  const reason = context.reason.trim();
+  if (reason.length === 0 || reason.length > 500)
+    throw new TypeError("Invalid cancellation reason");
+  return csrfToken().then((token) =>
+    apiClient.request(
+      `/organizations/${organizationId}/content/${contentItemId}/publishing/cancel`,
+      { method: "POST", csrfToken: token, body: { reason } },
+    ),
+  );
+}
 
 export function generateContentDraft(
   context: { organizationId: string },

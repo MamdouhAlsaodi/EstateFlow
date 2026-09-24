@@ -7577,6 +7577,236 @@
         "tags": ["Content"]
       }
     },
+    "/organizations/{organizationId}/content/publishing/scheduled": {
+      "get": {
+        "operationId": "ContentController_publishingScheduled",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "contentItemId",
+                          "publishJobId",
+                          "title",
+                          "channel",
+                          "variantNumber",
+                          "approvedVersion",
+                          "scheduledFor",
+                          "jobStatus",
+                          "attemptCount",
+                          "maxAttempts",
+                          "nextAttemptAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "contentItemId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "publishJobId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "variantNumber": { "type": "integer", "minimum": 1 },
+                          "approvedVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "scheduledFor": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "jobStatus": {
+                            "type": "string",
+                            "enum": ["QUEUED", "RETRYING"]
+                          },
+                          "attemptCount": { "type": "integer", "minimum": 0 },
+                          "maxAttempts": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 10
+                          },
+                          "nextAttemptAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          },
+                          "lastErrorKind": {
+                            "type": "string",
+                            "enum": [
+                              "CHANNEL_REJECTED",
+                              "CHANNEL_TIMEOUT",
+                              "CONTENT_POLICY_VIOLATION",
+                              "SCHEDULE_MISSED",
+                              "OTHER"
+                            ]
+                          },
+                          "lastErrorMessage": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/publishing/results": {
+      "get": {
+        "operationId": "ContentController_publishingResults",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "contentItemId",
+                          "title",
+                          "channel",
+                          "approvedVersion",
+                          "outcome",
+                          "completedAt"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "contentItemId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "channel": {
+                            "type": "string",
+                            "enum": [
+                              "INSTAGRAM",
+                              "X",
+                              "SNAPCHAT",
+                              "TIKTOK",
+                              "LINKEDIN",
+                              "FACEBOOK",
+                              "WHATSAPP",
+                              "EMAIL",
+                              "WEBSITE",
+                              "OTHER"
+                            ]
+                          },
+                          "approvedVersion": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "outcome": {
+                            "type": "string",
+                            "enum": ["DELIVERED", "FAILED", "CANCELLED"]
+                          },
+                          "failureKind": {
+                            "type": "string",
+                            "enum": [
+                              "CHANNEL_REJECTED",
+                              "CHANNEL_TIMEOUT",
+                              "CONTENT_POLICY_VIOLATION",
+                              "SCHEDULE_MISSED",
+                              "OTHER"
+                            ]
+                          },
+                          "reason": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 500
+                          },
+                          "providerMessageId": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 200
+                          },
+                          "completedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": { "description": "" },
+          "403": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
     "/organizations/{organizationId}/content/{contentItemId}": {
       "get": {
         "operationId": "ContentController_find",
@@ -8502,6 +8732,257 @@
             },
             "description": ""
           },
+          "401": { "description": "" },
+          "403": { "description": "" },
+          "404": { "description": "" },
+          "409": { "description": "" }
+        },
+        "summary": "",
+        "tags": ["Content"]
+      }
+    },
+    "/organizations/{organizationId}/content/{contentItemId}/publishing/cancel": {
+      "post": {
+        "operationId": "ContentController_cancelPublishing",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "contentItemId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "additionalProperties": false,
+                "description": "Cancels the open publish occurrence and marks the scheduled item failed (SCHEDULE_MISSED) so it can re-enter review. After delivery the published item is immutable and the cancel is typed-rejected.",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500,
+                    "pattern": "\\S"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["job", "transition"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "job": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "contentItemId",
+                        "approvedVersion",
+                        "channel",
+                        "scheduledFor",
+                        "contentHash",
+                        "executionKey",
+                        "status",
+                        "attemptCount",
+                        "maxAttempts",
+                        "nextAttemptAt",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "contentItemId": { "type": "string", "format": "uuid" },
+                        "approvedVersion": { "type": "integer", "minimum": 1 },
+                        "channel": {
+                          "type": "string",
+                          "enum": [
+                            "INSTAGRAM",
+                            "X",
+                            "SNAPCHAT",
+                            "TIKTOK",
+                            "LINKEDIN",
+                            "FACEBOOK",
+                            "WHATSAPP",
+                            "EMAIL",
+                            "WEBSITE",
+                            "OTHER"
+                          ]
+                        },
+                        "scheduledFor": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "executionKey": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "QUEUED",
+                            "RUNNING",
+                            "RETRYING",
+                            "DELIVERED",
+                            "FAILED",
+                            "CANCELLED"
+                          ]
+                        },
+                        "attemptCount": { "type": "integer", "minimum": 0 },
+                        "maxAttempts": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 10
+                        },
+                        "nextAttemptAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "lastErrorKind": {
+                          "type": "string",
+                          "enum": [
+                            "CHANNEL_REJECTED",
+                            "CHANNEL_TIMEOUT",
+                            "CONTENT_POLICY_VIOLATION",
+                            "SCHEDULE_MISSED",
+                            "OTHER"
+                          ]
+                        },
+                        "lastErrorMessage": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "startedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "completedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    },
+                    "transition": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "organizationId",
+                        "contentItemId",
+                        "fromStatus",
+                        "toStatus",
+                        "actorId",
+                        "createdAt"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "organizationId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "contentItemId": { "type": "string", "format": "uuid" },
+                        "fromStatus": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "toStatus": {
+                          "type": "string",
+                          "enum": [
+                            "IDEA",
+                            "DRAFT",
+                            "REVIEW",
+                            "APPROVED",
+                            "SCHEDULED",
+                            "PUBLISHED",
+                            "FAILED"
+                          ]
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 500
+                        },
+                        "failureKind": {
+                          "type": "string",
+                          "enum": [
+                            "CHANNEL_REJECTED",
+                            "CHANNEL_TIMEOUT",
+                            "CONTENT_POLICY_VIOLATION",
+                            "SCHEDULE_MISSED",
+                            "OTHER"
+                          ]
+                        },
+                        "version": { "type": "integer", "minimum": 1 },
+                        "contentHash": {
+                          "type": "string",
+                          "minLength": 64,
+                          "maxLength": 64
+                        },
+                        "actorId": { "type": "string", "format": "uuid" },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": { "description": "" },
           "401": { "description": "" },
           "403": { "description": "" },
           "404": { "description": "" },

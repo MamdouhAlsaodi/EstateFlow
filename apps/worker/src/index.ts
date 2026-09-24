@@ -8,8 +8,10 @@ import {
   type AutomationWorkerLoop,
 } from "../../../scripts/automation-worker-loop.mjs";
 
-type AutomationSchedulerTick = Readonly<{
-  tick(input: { now: Date; limit: number }): Promise<unknown>;
+type SchedulerTickResult = Record<string, unknown>;
+
+type ComposedSchedulerTick = Readonly<{
+  tick(input: { now: Date; limit: number }): Promise<SchedulerTickResult>;
 }>;
 
 type WorkerLoopOptions = Readonly<{
@@ -24,7 +26,7 @@ export const DEFAULT_AUTOMATION_JOB_BATCH_SIZE = 100;
 
 export type AutomationWorkerOptions = WorkerLoopOptions &
   Readonly<{
-    scheduler: AutomationSchedulerTick;
+    scheduler: ComposedSchedulerTick;
     jobBatchSize?: number;
   }>;
 
@@ -53,26 +55,74 @@ export function createAutomationWorker(
   });
 }
 
+/**
+ * Composed EF-303/EF-404 worker runtime. The automation scheduler tick and
+ * the content publishing tick both belong to the API process; this package
+ * only supplies time, batching, lifecycle, and the single-loop composition:
+ * one loop, one cadence — delivery rides the existing worker tick, there is
+ * no second scheduler.
+ */
+export async function createComposedSchedulerRuntime(): Promise<
+  Readonly<{
+    scheduler: ComposedSchedulerTick;
+    close: () => Promise<void>;
+  }>
+> {
+  const apiAutomationModulePath =
+    "../../api/dist/features/automation/application/automation-worker-tick.js";
+  const apiPublishingModulePath =
+    "../../api/dist/features/content/application/publishing-worker-tick.js";
+  // Runtime workspace boundaries: their builds emit these modules before the
+  // worker starts; dynamic imports keep this package free of API/Nest
+  // dependencies and executor knowledge.
+  const automationModule = (await import(
+    apiAutomationModulePath
+  )) as unknown as Readonly<{
+    createAutomationSchedulerTick(): Promise<
+      ComposedSchedulerTick & Readonly<{ close(): Promise<void> }>
+    >;
+  }>;
+  const publishingModule = (await import(
+    apiPublishingModulePath
+  )) as unknown as Readonly<{
+    createContentPublishingTick(): Promise<
+      ComposedSchedulerTick & Readonly<{ close(): Promise<void> }>
+    >;
+  }>;
+  const automation = await automationModule.createAutomationSchedulerTick();
+  const publishing = await publishingModule.createContentPublishingTick();
+  let closed = false;
+  return {
+    scheduler: {
+      tick: async (input) => {
+        // Automation first (unchanged EF-303 semantics), then the EF-404
+        // delivery half of the same tick.
+        const jobs = (await automation.tick(input)) as SchedulerTickResult;
+        const deliveries = (await publishing.tick(
+          input,
+        )) as SchedulerTickResult;
+        return { ...jobs, deliveries };
+      },
+    },
+    close: async () => {
+      if (closed) return;
+      closed = true;
+      await Promise.all([automation.close(), publishing.close()]);
+    },
+  };
+}
+
 /** Start the real long-lived worker against the API-owned scheduler context. */
 export async function startAutomationWorker(
   options: WorkerLoopOptions = {},
 ): Promise<
   Readonly<{ loop: AutomationWorkerLoop; stop: () => Promise<void> }>
 > {
-  // The API is a runtime workspace boundary. Its build emits this module
-  // before the worker is started; keeping the import dynamic keeps the worker
-  // package free of API/Nest dependencies and action-executor knowledge.
-  const apiTickModulePath =
-    "../../api/dist/features/automation/application/automation-worker-tick.js";
-  const apiTickModule = (await import(
-    apiTickModulePath
-  )) as unknown as Readonly<{
-    createAutomationSchedulerTick(): Promise<
-      AutomationSchedulerTick & Readonly<{ close(): Promise<void> }>
-    >;
-  }>;
-  const runtime = await apiTickModule.createAutomationSchedulerTick();
-  const loop = createAutomationWorker({ scheduler: runtime, ...options });
+  const runtime = await createComposedSchedulerRuntime();
+  const loop = createAutomationWorker({
+    scheduler: runtime.scheduler,
+    ...options,
+  });
   loop.start();
   let stopped = false;
   const stop = async (): Promise<void> => {

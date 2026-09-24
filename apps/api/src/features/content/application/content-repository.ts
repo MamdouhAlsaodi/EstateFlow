@@ -5,6 +5,7 @@ import type {
   ContentStatus,
   ContentTransitionRecord,
 } from "../domain/content.js";
+import type { ContentPublishJob } from "../domain/publishing.js";
 
 export type ContentMembership = Readonly<{
   organizationId: string;
@@ -134,12 +135,15 @@ export interface ContentRepository {
   }): Promise<ContentItem | null>;
   /**
    * Guarded atomic transition: status must still equal fromStatus (and the
-   * approval counter its predecessor) or the caller gets a conflict.
+   * approval counter its predecessor) or the caller gets a conflict. When
+   * `publishJob` is provided (EF-404 APPROVED → SCHEDULED), the durable
+   * publish occurrence is inserted in the same transaction.
    */
   recordContentTransition(input: {
     item: ContentItem;
     transition: ContentTransitionRecord;
     scheduledFor?: Date;
+    publishJob?: ContentPublishJob;
   }): Promise<ContentTransitionRecord | null>;
   /**
    * Revision creation inside one transaction: inserts the new DRAFT variant

@@ -33,6 +33,7 @@ import type {
   ContentActor,
   TransitionContentCommand,
 } from "../application/content-application.js";
+import { ContentPublishingApplication } from "../application/publishing-application.js";
 import { GenerationApplication } from "../application/generation-application.js";
 import {
   ContentStateError,
@@ -51,6 +52,7 @@ import {
   ContentCalendarQueryDto,
   ContentListQueryDto,
   ContentTransitionDto,
+  CancelPublishingDto,
   CreateContentDto,
   EditContentDto,
   GenerateContentDto,
@@ -68,13 +70,17 @@ import {
   contentTransitionBody,
   contentTransitionedResponse,
   contentGeneratedResponse,
+  cancelPublishingBody,
+  cancelPublishingResponse,
   createContentBody,
   cursorParameter,
   editContentBody,
   generateContentBody,
   generationTemplatesResponse,
   limitParameter,
+  publishResultsResponse,
   reviewQueueResponse,
+  scheduledDeliveriesResponse,
   statusParameter,
   uuidParameter,
 } from "./content.openapi.js";
@@ -101,6 +107,7 @@ export class ContentController {
   constructor(
     private readonly content: ContentApplication,
     private readonly generation: GenerationApplication,
+    private readonly publishing: ContentPublishingApplication,
   ) {}
 
   @Post("organizations/:organizationId/content")
@@ -292,6 +299,56 @@ export class ContentController {
     );
   }
 
+  @Get("organizations/:organizationId/content/publishing/scheduled")
+  @ApiOperation({ operationId: "ContentController_publishingScheduled" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: scheduledDeliveriesResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async publishingScheduled(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const entries = await this.publishing.listUpcomingDeliveries({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+      });
+      return Array.isArray(entries) ? { items: entries } : entries;
+    });
+  }
+
+  @Get("organizations/:organizationId/content/publishing/results")
+  @ApiOperation({ operationId: "ContentController_publishingResults" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: publishResultsResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async publishingResults(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const entries = await this.publishing.listPublishResults({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+      });
+      return Array.isArray(entries) ? { items: entries } : entries;
+    });
+  }
+
   @Get("organizations/:organizationId/content/:contentItemId")
   @ApiOperation({ operationId: "ContentController_find" })
   @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
@@ -429,6 +486,47 @@ export class ContentController {
         createdAt: new Date(),
       }),
     );
+  }
+
+  @Post(
+    "organizations/:organizationId/content/:contentItemId/publishing/cancel",
+  )
+  @ApiOperation({ operationId: "ContentController_cancelPublishing" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "contentItemId", required: true, schema: uuidParameter })
+  @ApiBody({ schema: cancelPublishingBody })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: cancelPublishingResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.BAD_REQUEST })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @ApiResponse({ status: HttpStatus.CONFLICT })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(...unsafeMutationGuards)
+  async cancelPublishing(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("contentItemId", new ParseUUIDPipe()) contentItemId: string,
+    @Body() input: CancelPublishingDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(async () => {
+      const result = await this.publishing.cancelScheduledPublishing({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+        contentItemId,
+        reason: input.reason,
+        at: new Date(),
+      });
+      if (result.kind === "cancelled")
+        return { job: result.job, transition: result.transition };
+      if (result.kind === "already-delivered" || result.kind === "not-open")
+        return { kind: "conflict", reason: result.kind };
+      return result;
+    });
   }
 
   private actor(request: AuthenticatedRequest): ContentActor {

@@ -208,6 +208,15 @@ export class GenerateContentDto {
   templateVersion?: number;
 }
 
+/** EF-404 — Owner/Manager cancel/unschedule before delivery. */
+export class CancelPublishingDto {
+  @IsDefined()
+  @IsString()
+  @IsNotEmpty()
+  @Transform(({ value }) => trimText(value))
+  reason!: string;
+}
+
 /** Bigint-safe (future-proof), UTC-safe JSON rendering for content responses. */
 export function contentResponse(value: unknown): unknown {
   if (typeof value === "bigint") return value.toString(10);

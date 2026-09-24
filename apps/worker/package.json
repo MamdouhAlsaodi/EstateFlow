@@ -7,7 +7,7 @@
     "lint": "pnpm exec eslint src --max-warnings=0",
     "typecheck": "pnpm exec tsc --project tsconfig.json --noEmit",
     "test": "pnpm run build && node --test test/automation-worker-loop.test.mjs",
-    "test:integration": "node ../../scripts/assert-test-database.mjs && pnpm --dir ../api run db:generate && pnpm --dir ../api run db:migrate:test && pnpm --dir ../api run build && pnpm run build && node --test test/worker.integration.test.mjs",
+    "test:integration": "node ../../scripts/assert-test-database.mjs && pnpm --dir ../api run db:generate && pnpm --dir ../api run db:migrate:test && pnpm --dir ../api run build && pnpm run build && node --test test/worker.integration.test.mjs && node --test test/publishing-worker.integration.test.mjs",
     "build": "pnpm exec tsc --project tsconfig.json"
   },
   "dependencies": {
