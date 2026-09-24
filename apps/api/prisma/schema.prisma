@@ -79,6 +79,34 @@ enum ImageMediaType {
   WEBP
 }
 
+// EF-601 — Media pipeline.
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+enum MediaStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  ORPHAN
+}
+
+enum MediaFormat {
+  JPEG
+  PNG
+  WEBP
+  MP4
+  WEBM
+  MOV
+}
+
+enum MediaVariantKind {
+  THUMB
+  PREVIEW
+}
+
 enum LeadStage {
   NEW
   CONTACTED
@@ -189,6 +217,7 @@ model Organization {
   brokerAvailabilityExceptions    BrokerAvailabilityException[]
   viewings                         Viewing[]
   viewingTransitions               ViewingTransition[]
+  mediaAssets                      MediaAsset[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -510,10 +539,20 @@ model Property {
   expenses           Expense[]
   sourceContentItems ContentItem[]  @relation("ContentSourceProperty")
   viewings          Viewing[]
+  mediaAssets        MediaAsset[]
+  coverMedia         MediaAsset?    @relation("PropertyCoverMedia", fields: [organizationId, coverMediaId], references: [organizationId, id], onDelete: Restrict)
+  coverMediaId       String?        @db.Uuid
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
 }
+
+// EF-601 — Media pipeline. Storage keys are opaque adapter tokens; no server
+// filesystem path is ever persisted or exposed. Uploads follow a signed-intent
+// flow: PENDING until confirm validates magic bytes, sizes, and dimensions.
+// CONFIRMED media is referenced content; PROCESSING is the video placeholder
+// state (async transcode is out of scope); ORPHAN marks expired intents that
+// the sweep may remove. The sweep never deletes CONFIRMED/PROCESSING media.
 
 model Listing {
   id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -1050,6 +1089,56 @@ model ViewingTransition {
 
   @@unique([organizationId, id])
   @@index([organizationId, viewingId, createdAt])
+}
+
+model MediaAsset {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String        @db.Uuid
+  propertyId          String        @db.Uuid
+  kind                MediaKind
+  status              MediaStatus   @default(PENDING)
+  declaredContentType String        @db.VarChar(100)
+  declaredFileName    String        @db.VarChar(255)
+  declaredByteSize    Int
+  storageKey          String        @unique @db.VarChar(120)
+  format              MediaFormat?
+  byteSize            Int?
+  sha256              String?       @db.Char(64)
+  width               Int?
+  height              Int?
+  processingNote      String?       @db.VarChar(200)
+  uploadedBy          String        @db.Uuid
+  intentExpiresAt     DateTime      @db.Timestamptz(6)
+  confirmedAt         DateTime?     @db.Timestamptz(6)
+  orphanMarkedAt      DateTime?     @db.Timestamptz(6)
+  createdAt           DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime      @updatedAt @db.Timestamptz(6)
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  property            Property      @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  coverOfProperties   Property[]    @relation("PropertyCoverMedia")
+  variants            MediaVariant[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, propertyId, status])
+  @@index([status, orphanMarkedAt])
+  @@index([createdAt])
+}
+
+model MediaVariant {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String           @db.Uuid
+  mediaAssetId   String           @db.Uuid
+  variant        MediaVariantKind
+  storageKey     String           @unique @db.VarChar(120)
+  width          Int
+  height         Int
+  byteSize       Int
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  media          MediaAsset       @relation(fields: [organizationId, mediaAssetId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, mediaAssetId, variant])
+  @@index([organizationId, mediaAssetId])
 }
 
 // EF-402 — Content workflow.

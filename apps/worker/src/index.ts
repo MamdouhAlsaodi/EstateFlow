@@ -72,6 +72,8 @@ export async function createComposedSchedulerRuntime(): Promise<
     "../../api/dist/features/automation/application/automation-worker-tick.js";
   const apiPublishingModulePath =
     "../../api/dist/features/content/application/publishing-worker-tick.js";
+  const apiMediaOrphanModulePath =
+    "../../api/dist/features/media/application/media-orphan-tick.js";
   // Runtime workspace boundaries: their builds emit these modules before the
   // worker starts; dynamic imports keep this package free of API/Nest
   // dependencies and executor knowledge.
@@ -89,25 +91,38 @@ export async function createComposedSchedulerRuntime(): Promise<
       ComposedSchedulerTick & Readonly<{ close(): Promise<void> }>
     >;
   }>;
+  const mediaOrphanModule = (await import(
+    apiMediaOrphanModulePath
+  )) as unknown as Readonly<{
+    createMediaOrphanTick(): Promise<
+      ComposedSchedulerTick & Readonly<{ close(): Promise<void> }>
+    >;
+  }>;
   const automation = await automationModule.createAutomationSchedulerTick();
   const publishing = await publishingModule.createContentPublishingTick();
+  const mediaOrphan = await mediaOrphanModule.createMediaOrphanTick();
   let closed = false;
   return {
     scheduler: {
       tick: async (input) => {
         // Automation first (unchanged EF-303 semantics), then the EF-404
-        // delivery half of the same tick.
+        // delivery half and the EF-601 orphan-sweep half of the same tick.
         const jobs = (await automation.tick(input)) as SchedulerTickResult;
         const deliveries = (await publishing.tick(
           input,
         )) as SchedulerTickResult;
-        return { ...jobs, deliveries };
+        const media = (await mediaOrphan.tick(input)) as SchedulerTickResult;
+        return { ...jobs, deliveries, media };
       },
     },
     close: async () => {
       if (closed) return;
       closed = true;
-      await Promise.all([automation.close(), publishing.close()]);
+      await Promise.all([
+        automation.close(),
+        publishing.close(),
+        mediaOrphan.close(),
+      ]);
     },
   };
 }
