@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "../../i18n";
 import { confirmStepUp } from "./admin-api";
 import styles from "./admin.module.css";
 
@@ -17,6 +18,7 @@ export function StepUpForm({
   onConfirmed: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export function StepUpForm({
     event.preventDefault();
     setError(null);
     if (password.length === 0) {
-      setError("أدخل كلمة المرور لإعادة التأكيد.");
+      setError(t("admin.stepUp.required"));
       return;
     }
     setBusy(true);
@@ -35,10 +37,10 @@ export function StepUpForm({
         setPassword("");
         onConfirmed();
       } else {
-        setError("كلمة المرور غير صحيحة. أعد المحاولة.");
+        setError(t("admin.stepUp.wrongPassword"));
       }
     } catch {
-      setError("تعذر إعادة التأكيد الآن. حاول مرة أخرى.");
+      setError(t("admin.stepUp.genericError"));
     } finally {
       setBusy(false);
     }
@@ -49,12 +51,9 @@ export function StepUpForm({
       className={styles.commandForm}
       onSubmit={(event) => void submit(event)}
     >
-      <p className={styles.hint}>
-        هذا إجراء حسّاس: أعد تأكيد كلمة المرور قبل المتابعة. التأكيد صالح لدقائق
-        معدودة على هذه الجلسة فقط.
-      </p>
+      <p className={styles.hint}>{t("admin.stepUp.description")}</p>
       <label>
-        كلمة المرور
+        {t("admin.stepUp.passwordLabel")}
         <input
           type="password"
           autoComplete="current-password"
@@ -70,7 +69,7 @@ export function StepUpForm({
       )}
       <div className="button-row">
         <button className="button button-primary" type="submit" disabled={busy}>
-          {busy ? "جارٍ التأكيد…" : "تأكيد"}
+          {busy ? t("admin.stepUp.confirming") : t("admin.stepUp.confirm")}
         </button>
         <button
           className="button button-secondary"
@@ -78,7 +77,7 @@ export function StepUpForm({
           onClick={onCancel}
           disabled={busy}
         >
-          إلغاء
+          {t("admin.common.cancel")}
         </button>
       </div>
     </form>

@@ -1,3 +1,5 @@
+import type { MessageKey } from "../../i18n";
+
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -134,31 +136,32 @@ export type OwnerCampaignPerformance = Readonly<{
   campaigns: readonly OwnerPerformanceRow[];
 }>;
 
-export const AGING_BUCKET_LABELS: Readonly<Record<AgingBucket, string>> =
+/** EF-630 — labels are catalog keys; text lives in the finance catalog. */
+export const AGING_BUCKET_LABELS: Readonly<Record<AgingBucket, MessageKey>> =
   Object.freeze({
-    CURRENT: "غير مستحق بعد",
-    DAYS_1_30: "متأخر ١–٣٠ يومًا",
-    DAYS_31_60: "متأخر ٣١–٦٠ يومًا",
-    DAYS_61_90: "متأخر ٦١–٩٠ يومًا",
-    DAYS_91_PLUS: "متأخر أكثر من ٩٠ يومًا",
+    CURRENT: "finance.ownerBucket.CURRENT",
+    DAYS_1_30: "finance.ownerBucket.DAYS_1_30",
+    DAYS_31_60: "finance.ownerBucket.DAYS_31_60",
+    DAYS_61_90: "finance.ownerBucket.DAYS_61_90",
+    DAYS_91_PLUS: "finance.ownerBucket.DAYS_91_PLUS",
   });
 
 export const COMMISSION_STATUS_LABELS: Readonly<
-  Record<CommissionItemStatus, string>
+  Record<CommissionItemStatus, MessageKey>
 > = Object.freeze({
-  EXPECTED: "متوقعة",
-  CONFIRMED: "مؤكدة",
-  DUE: "مستحقة",
-  PAID: "مدفوعة",
-  CANCELLED: "ملغاة",
+  EXPECTED: "finance.commissionStatus.EXPECTED",
+  CONFIRMED: "finance.commissionStatus.CONFIRMED",
+  DUE: "finance.commissionStatus.DUE",
+  PAID: "finance.commissionStatus.PAID",
+  CANCELLED: "finance.commissionStatus.CANCELLED",
 });
 
-/** EF-401 — Arabic labels for the campaign attribution models. */
+/** EF-401 — campaign attribution labels share the campaigns catalog text. */
 export const attributionModelLabelsAr: Readonly<
-  Record<CampaignAttributionModel, string>
+  Record<CampaignAttributionModel, MessageKey>
 > = Object.freeze({
-  FIRST_TOUCH: "أول لمسة",
-  LAST_TOUCH: "آخر لمسة",
+  FIRST_TOUCH: "campaigns.attribution.FIRST_TOUCH",
+  LAST_TOUCH: "campaigns.attribution.LAST_TOUCH",
 });
 
 export function normalizeOwnerCashFlow(value: unknown): OwnerCashFlow {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
 import type { AutomationJobRecord } from "./automation-contract";
 import {
   canCancelAutomationJob,
@@ -35,6 +36,7 @@ export function AutomationJobList({
   onChanged: () => Promise<void> | void;
   onActionError: (message: string | null) => void;
 }) {
+  const t = useT();
   const [busyJobId, setBusyJobId] = useState<string | null>(null);
 
   async function act(job: AutomationJobRecord, action: "retry" | "cancel") {
@@ -48,13 +50,13 @@ export function AutomationJobList({
       }
       await onChanged();
     } catch (error) {
-      onActionError(getAutomationActionError(error).message);
+      onActionError(t(getAutomationActionError(error).messageKey));
     } finally {
       setBusyJobId(null);
     }
   }
 
-  if (jobs.length === 0) return <p>لا توجد وظائف تنفيذ مسجلة بعد.</p>;
+  if (jobs.length === 0) return <p>{t("automation.jobs.empty")}</p>;
 
   return (
     <ul className={styles.list}>
@@ -62,17 +64,24 @@ export function AutomationJobList({
         <li key={job.id}>
           <div>
             <strong>
-              {jobActionLabels[job.actionType] ?? job.actionType} ·{" "}
-              {jobTargetLabels[job.targetType] ?? job.targetType}
+              {labelFromKey(jobActionLabels, t, job.actionType, job.actionType)}{" "}
+              ·{" "}
+              {labelFromKey(jobTargetLabels, t, job.targetType, job.targetType)}
             </strong>
             <span>
-              {jobTriggerKindLabels[job.triggerKind] ?? job.triggerKind}
-              {job.eventType ? ` · ${job.eventType}` : ""} · الإصدار{" "}
-              {job.ruleVersion}
+              {labelFromKey(
+                jobTriggerKindLabels,
+                t,
+                job.triggerKind,
+                job.triggerKind,
+              )}
+              {job.eventType ? ` · ${job.eventType}` : ""} ·{" "}
+              {t("automation.common.versionPrefix")} {job.ruleVersion}
             </span>
             <span>
-              المجدول: {formatDate(job.scheduledFor)} · آخر تحديث:{" "}
-              {formatDate(job.updatedAt)}
+              {t("automation.common.scheduledPrefix")}{" "}
+              {formatDate(job.scheduledFor)} ·{" "}
+              {t("automation.common.updatedPrefix")} {formatDate(job.updatedAt)}
             </span>
             <span
               className={
@@ -83,14 +92,20 @@ export function AutomationJobList({
                     : styles.disabled
               }
             >
-              {jobStatusLabels[job.status] ?? job.status} · المحاولة{" "}
-              {job.attemptCount}/{job.maxAttempts}
+              {labelFromKey(jobStatusLabels, t, job.status, job.status)} ·{" "}
+              {t("automation.common.attemptPrefix")} {job.attemptCount}/
+              {job.maxAttempts}
             </span>
             {job.lastError && (
               <span className={styles.failed}>
-                سبب الفشل:{" "}
-                {jobErrorKindLabels[job.lastError.kind] ?? job.lastError.kind} ·{" "}
-                {job.lastError.message}
+                {t("automation.common.failureReasonPrefix")}{" "}
+                {labelFromKey(
+                  jobErrorKindLabels,
+                  t,
+                  job.lastError.kind,
+                  job.lastError.kind,
+                )}{" "}
+                · {job.lastError.message}
               </span>
             )}
           </div>
@@ -102,7 +117,7 @@ export function AutomationJobList({
                 disabled={busyJobId === job.id}
                 onClick={() => void act(job, "retry")}
               >
-                إعادة المحاولة
+                {t("automation.common.retry")}
               </button>
             )}
             {canCancelAutomationJob(job.status) && (
@@ -112,14 +127,14 @@ export function AutomationJobList({
                 disabled={busyJobId === job.id}
                 onClick={() => void act(job, "cancel")}
               >
-                إلغاء
+                {t("automation.common.cancel")}
               </button>
             )}
             <Link
               className={styles.ruleLink}
               href={`/ar/organizations/${organizationId}/automation/rules/${job.ruleId}`}
             >
-              القاعدة
+              {t("automation.common.rule")}
             </Link>
           </div>
         </li>
@@ -129,11 +144,5 @@ export function AutomationJobList({
 }
 
 function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+  return formatDateTime(value);
 }

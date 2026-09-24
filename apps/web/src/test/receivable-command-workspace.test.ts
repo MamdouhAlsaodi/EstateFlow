@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 
 const root = new URL("../", import.meta.url);
 async function source(path: string): Promise<string> {
@@ -30,9 +31,15 @@ test("workspace exposes exactly the accepted Arabic financial command sequence",
   assert.match(workspace, /createInvoiceDraft/);
   assert.match(workspace, /issueInvoice/);
   assert.match(workspace, /recordReceivablePayment/);
-  assert.match(workspace, /إنشاء مسودة فاتورة/);
-  assert.match(workspace, /إصدار الفاتورة/);
-  assert.match(workspace, /تسجيل دفعة/);
+  assert.match(workspace, /finance\.receivable\.draftTitle/);
+  assert.match(workspace, /finance\.receivable\.issueTitle/);
+  assert.match(workspace, /finance\.receivable\.paymentTitle/);
+  assert.equal(
+    arMessages["finance.receivable.draftTitle"],
+    "إنشاء مسودة فاتورة",
+  );
+  assert.equal(arMessages["finance.receivable.issueTitle"], "إصدار الفاتورة");
+  assert.equal(arMessages["finance.receivable.paymentTitle"], "تسجيل دفعة");
   assert.match(workspace, /createSessionCsrfProvider/);
   assert.match(workspace, /paymentKey/);
   assert.match(workspace, /crypto\.randomUUID\(\)/);
@@ -56,7 +63,11 @@ test("workspace keeps payment retry identity until success and validates before 
   assert.match(workspace, /isUuid/);
   assert.match(workspace, /sessionCsrfProvider\.getToken\(\)/);
   assert.match(workspace, /sessionCsrfProvider\.clear\(\)/);
-  assert.match(workspace, /إعادة التحقق من الجلسة/);
+  assert.match(workspace, /finance\.command\.reauthButton/);
+  assert.equal(
+    arMessages["finance.command.reauthButton"],
+    "إعادة التحقق من الجلسة",
+  );
 });
 
 test("workspace styles encode a responsive three-step financial rail", async () => {

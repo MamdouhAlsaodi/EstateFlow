@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchFailedJobs } from "./admin-api";
 import type { AdminFailedJob, AdminFailedJobsPage } from "./admin-contract";
-import { FAILURE_KIND_LABELS, labelFrom } from "./admin-labels";
+import { formatDateTime, labelFromKey, useT } from "../../i18n";
+import { FAILURE_KIND_LABELS } from "./admin-labels";
 import styles from "./admin.module.css";
 
 /**
@@ -13,6 +14,7 @@ import styles from "./admin.module.css";
  * filter and keyset «تحميل الأحدث» pagination keep every query bounded.
  */
 export function FailedJobsView() {
+  const t = useT();
   const [page, setPage] = useState<AdminFailedJobsPage | null>(null);
   const [items, setItems] = useState<readonly AdminFailedJob[]>([]);
   const [organizationId, setOrganizationId] = useState("");
@@ -51,30 +53,27 @@ export function FailedJobsView() {
     <div className="page-stack">
       <header className="page-heading">
         <div>
-          <p className="eyebrow">لوحة الإدارة</p>
-          <h1>الوظائف الفاشلة والأتمتة</h1>
-          <p>
-            وظائف الأتمتة الفاشلة عبر كل المؤسسات مع أسباب الفشل المكتوبة وعدد
-            المحاولات؛ بدون أي حمولات خام أو مفاتيح تنفيذ.
-          </p>
+          <p className="eyebrow">{t("admin.common.eyebrow")}</p>
+          <h1>{t("admin.jobs.title")}</h1>
+          <p>{t("admin.jobs.subtitle")}</p>
         </div>
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void load(null, false)}
         >
-          تحديث
+          {t("admin.common.refresh")}
         </button>
       </header>
       <section className="panel" aria-labelledby="jobs-filters-title">
-        <h2 id="jobs-filters-title">تصفية</h2>
+        <h2 id="jobs-filters-title">{t("admin.common.filters")}</h2>
         <div className={styles.filters}>
           <label>
-            معرّف المؤسسة (اختياري)
+            {t("admin.common.organizationIdLabel")}
             <input
               type="text"
               value={organizationId}
-              placeholder="اتركه فارغاً لكل المؤسسات"
+              placeholder={t("admin.common.organizationIdPlaceholder")}
               onChange={(event) => setOrganizationId(event.target.value)}
             />
           </label>
@@ -84,25 +83,27 @@ export function FailedJobsView() {
             disabled={loading}
             onClick={() => void load(null, false)}
           >
-            تطبيق التصفية
+            {t("admin.common.applyFilters")}
           </button>
         </div>
       </section>
-      {loading && <p role="status">جارٍ تحميل الوظائف…</p>}
+      {loading && <p role="status">{t("admin.jobs.loading")}</p>}
       {error && (
         <div className="state-card" role="alert">
-          <strong>تعذر تحميل الوظائف الفاشلة</strong>
-          <p>تحقق من قيم التصفية ثم حاول مرة أخرى.</p>
+          <strong>{t("admin.jobs.loadFailed")}</strong>
+          <p>{t("admin.jobs.loadFailedHint")}</p>
         </div>
       )}
       {!loading && !error && (
         <section aria-labelledby="failed-jobs-title" className="panel">
           <div className={styles.sectionHeading}>
-            <h2 id="failed-jobs-title">وظائف فاشلة</h2>
-            <span className="table-count">{items.length} وظيفة</span>
+            <h2 id="failed-jobs-title">{t("admin.jobs.listTitle")}</h2>
+            <span className="table-count">
+              {t("admin.jobs.jobCount", { count: items.length })}
+            </span>
           </div>
           {items.length === 0 ? (
-            <p>لا توجد وظائف فاشلة مطابقة.</p>
+            <p>{t("admin.jobs.empty")}</p>
           ) : (
             <ul className={styles.list}>
               {items.map((job) => (
@@ -110,18 +111,30 @@ export function FailedJobsView() {
                   <div>
                     <strong>{job.actionType}</strong>
                     <span>
-                      النوع: {job.targetType} · المؤسسة:{" "}
-                      {shortId(job.organizationId)}
+                      {t("admin.jobs.typePrefix")} {job.targetType} ·{" "}
+                      {t("admin.jobs.orgPrefix")} {shortId(job.organizationId)}
                     </span>
                     <span className={styles.stateBad}>
-                      المحاولة {job.attemptCount}/{job.maxAttempts} ·{" "}
-                      {formatDate(job.completedAt ?? job.updatedAt)}
+                      {t("admin.jobs.attempt", {
+                        attempt: job.attemptCount,
+                        max: job.maxAttempts,
+                      })}{" "}
+                      ·{" "}
+                      {formatDate(
+                        job.completedAt ?? job.updatedAt,
+                        t("admin.common.timeUnavailable"),
+                      )}
                     </span>
                     {job.lastError && (
                       <span className={styles.stateBad}>
-                        سبب الفشل:{" "}
-                        {labelFrom(FAILURE_KIND_LABELS, job.lastError.kind)} ·{" "}
-                        {job.lastError.message}
+                        {t("admin.jobs.failureReasonPrefix")}{" "}
+                        {labelFromKey(
+                          FAILURE_KIND_LABELS,
+                          t,
+                          job.lastError.kind,
+                          job.lastError.kind,
+                        )}{" "}
+                        · {job.lastError.message}
                       </span>
                     )}
                   </div>
@@ -138,7 +151,7 @@ export function FailedJobsView() {
                   void load(page.nextCursor, true);
                 }}
               >
-                تحميل الأحدث
+                {t("admin.common.loadNewer")}
               </button>
             </div>
           )}
@@ -152,12 +165,10 @@ function shortId(value: string): string {
   return value.length > 12 ? `…${value.slice(-8)}` : value;
 }
 
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "وقت غير متاح"
-    : new Intl.DateTimeFormat("ar", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }).format(date);
+function formatDate(value: string, fallback: string): string {
+  try {
+    return formatDateTime(value);
+  } catch {
+    return fallback;
+  }
 }

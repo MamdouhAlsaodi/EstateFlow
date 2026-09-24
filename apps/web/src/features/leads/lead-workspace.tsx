@@ -8,6 +8,7 @@ import type {
   TimelineEventType,
 } from "../../lib/api-client/leads";
 import type { SessionCsrfProvider } from "../../lib/api-client/session";
+import { formatDate, formatDateTime, useT } from "../../i18n";
 import {
   getLeadBoardErrorState,
   isLeadMutationSessionRejection,
@@ -38,29 +39,14 @@ function isUuid(value: string): boolean {
   return UUID_PATTERN.test(value.trim());
 }
 
-const timelineLabels: Readonly<Record<TimelineEventType, string>> = {
-  LEAD_CREATED: "إنشاء العميل",
-  LEAD_ASSIGNED: "إسناد العميل",
-  LEAD_STAGE_CHANGED: "تغيير المرحلة",
-  LEAD_NEXT_ACTION_CHANGED: "تغيير الإجراء التالي",
-  LEAD_NOTE_ADDED: "إضافة ملاحظة",
-  LEAD_TASK_CREATED: "إنشاء مهمة",
-  LEAD_TASK_COMPLETED: "إكمال مهمة",
-  LEAD_TASK_RESCHEDULED: "إعادة جدولة مهمة",
-  LEAD_CLOSED_WON: "إغلاق ناجح",
-  LEAD_CLOSED_LOST: "إغلاق غير ناجح",
-};
-
-const dateFormatter = new Intl.DateTimeFormat("ar", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-function formatDate(value: string): string {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "تاريخ غير متاح"
-    : dateFormatter.format(date);
+/**
+ * EF-630 — timeline labels come from the catalog; the ad-hoc `Intl`
+ * formatter was replaced by the shared locale-aware formatters.
+ */
+function timelineLabelKey(type: TimelineEventType) {
+  return `leads.timeline.${type}` as const;
 }
+
 function toUtcIso(value: string): string | null {
   const date = new Date(value);
   return value && !Number.isNaN(date.getTime()) ? date.toISOString() : null;
@@ -74,6 +60,7 @@ export function LeadWorkspace({
   sessionCsrfProvider,
   onClose,
 }: Props) {
+  const t = useT();
   const [workspace, setWorkspace] = useState<LeadWorkspaceResponse | null>(
     null,
   );
@@ -161,20 +148,20 @@ export function LeadWorkspace({
   if (loading)
     return (
       <WorkspaceShell onClose={close} onKeyDown={handleKeyDown}>
-        <p role="status">جارٍ تحميل ملف العميل…</p>
+        <p role="status">{t("leads.workspace.loading")}</p>
       </WorkspaceShell>
     );
   if (errorState)
     return (
       <WorkspaceShell onClose={close} onKeyDown={handleKeyDown}>
-        <p role="alert">{errorState.title}</p>
-        <p>{errorState.description}</p>
+        <p role="alert">{t(errorState.titleKey)}</p>
+        <p>{t(errorState.descriptionKey)}</p>
         <button
           className="button button-secondary"
           onClick={() => setRetryKey((key) => key + 1)}
           type="button"
         >
-          إعادة المحاولة
+          {t("leads.board.retry")}
         </button>
       </WorkspaceShell>
     );
@@ -187,58 +174,58 @@ export function LeadWorkspace({
     <WorkspaceShell onClose={close} onKeyDown={handleKeyDown}>
       <header className={styles.workspaceHeader}>
         <div>
-          <p className="eyebrow">ملف العميل</p>
-          <h2>مساحة متابعة العميل</h2>
+          <p className="eyebrow">{t("leads.workspace.eyebrow")}</p>
+          <h2>{t("leads.workspace.title")}</h2>
           <p>{lead.nextAction}</p>
         </div>
         <button
-          aria-label="إغلاق ملف العميل"
+          aria-label={t("leads.workspace.closeAria")}
           className="button button-secondary"
           onClick={close}
           type="button"
         >
-          إغلاق
+          {t("leads.workspace.close")}
         </button>
       </header>
       <dl className={styles.workspaceSummary}>
         <div>
-          <dt>المرحلة</dt>
+          <dt>{t("leads.workspace.dtStage")}</dt>
           <dd>{lead.stage}</dd>
         </div>
         <div>
-          <dt>المصدر</dt>
+          <dt>{t("leads.workspace.dtSource")}</dt>
           <dd>{lead.source}</dd>
         </div>
         <div>
-          <dt>الإجراء التالي</dt>
+          <dt>{t("leads.workspace.dtNextAction")}</dt>
           <dd>{lead.nextAction}</dd>
         </div>
       </dl>
       <section aria-labelledby="workspace-timeline">
-        <h3 id="workspace-timeline">الخط الزمني</h3>
+        <h3 id="workspace-timeline">{t("leads.workspace.timeline")}</h3>
         <ol className={styles.workspaceList}>
           {timeline.items.map((event) => (
             <li key={event.id}>
-              <strong>{timelineLabels[event.type]}</strong>
+              <strong>{t(timelineLabelKey(event.type))}</strong>
               <time dateTime={event.occurredAt}>
-                {formatDate(event.occurredAt)}
+                {formatDateTime(event.occurredAt)}
               </time>
             </li>
           ))}
         </ol>
-        {timeline.items.length === 0 && <p>لا توجد أحداث بعد.</p>}
+        {timeline.items.length === 0 && (
+          <p>{t("leads.workspace.timelineEmpty")}</p>
+        )}
       </section>
       {isCloseable && (
         <section aria-labelledby="workspace-close">
-          <h3 id="workspace-close">إغلاق متابعة العميل</h3>
+          <h3 id="workspace-close">{t("leads.workspace.closeSection")}</h3>
           <div className={styles.closeSection}>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!isUuid(propertyId) || !isUuid(brokerId)) {
-                  setValidationError(
-                    "يرجى إدخال معرّفي العقار والوسيط بصيغة UUID صحيحة.",
-                  );
+                  setValidationError(t("leads.workspace.uuidError"));
                   return;
                 }
                 void runCommand(
@@ -259,8 +246,10 @@ export function LeadWorkspace({
                 );
               }}
             >
-              <h4>إغلاق ناجح</h4>
-              <label htmlFor="lead-close-property">معرّف العقار</label>
+              <h4>{t("leads.workspace.closeWon")}</h4>
+              <label htmlFor="lead-close-property">
+                {t("leads.workspace.propertyIdLabel")}
+              </label>
               <input
                 id="lead-close-property"
                 required
@@ -268,7 +257,9 @@ export function LeadWorkspace({
                 value={propertyId}
                 onChange={(event) => setPropertyId(event.target.value)}
               />
-              <label htmlFor="lead-close-broker">معرّف الوسيط</label>
+              <label htmlFor="lead-close-broker">
+                {t("leads.workspace.brokerIdLabel")}
+              </label>
               <input
                 id="lead-close-broker"
                 required
@@ -281,14 +272,16 @@ export function LeadWorkspace({
                 disabled={pending === "close-won"}
                 type="submit"
               >
-                {pending === "close-won" ? "جارٍ الإغلاق…" : "إغلاق ناجح"}
+                {pending === "close-won"
+                  ? t("leads.workspace.closeWonPending")
+                  : t("leads.workspace.closeWon")}
               </button>
             </form>
             <form
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!lostReason.trim()) {
-                  setValidationError("يرجى إدخال سبب الإغلاق غير الناجح.");
+                  setValidationError(t("leads.workspace.lostReasonError"));
                   return;
                 }
                 void runCommand(
@@ -305,8 +298,10 @@ export function LeadWorkspace({
                 );
               }}
             >
-              <h4>إغلاق غير ناجح</h4>
-              <label htmlFor="lead-close-reason">سبب الإغلاق غير الناجح</label>
+              <h4>{t("leads.workspace.closeLost")}</h4>
+              <label htmlFor="lead-close-reason">
+                {t("leads.workspace.closeLostReasonLabel")}
+              </label>
               <textarea
                 id="lead-close-reason"
                 required
@@ -318,7 +313,9 @@ export function LeadWorkspace({
                 disabled={pending === "close-lost"}
                 type="submit"
               >
-                {pending === "close-lost" ? "جارٍ الإغلاق…" : "إغلاق غير ناجح"}
+                {pending === "close-lost"
+                  ? t("leads.workspace.closeWonPending")
+                  : t("leads.workspace.closeLost")}
               </button>
             </form>
           </div>
@@ -326,18 +323,18 @@ export function LeadWorkspace({
       )}
       {!isTerminalStage && (
         <section aria-labelledby="workspace-notes">
-          <h3 id="workspace-notes">الملاحظات</h3>
+          <h3 id="workspace-notes">{t("leads.workspace.notes")}</h3>
           <ul className={styles.workspaceList}>
             {notes.map((note) => (
               <li key={note.id}>
                 <p>{note.body}</p>
                 <time dateTime={note.createdAt}>
-                  {formatDate(note.createdAt)}
+                  {formatDateTime(note.createdAt)}
                 </time>
               </li>
             ))}
           </ul>
-          {notes.length === 0 && <p>لا توجد ملاحظات بعد.</p>}
+          {notes.length === 0 && <p>{t("leads.workspace.notesEmpty")}</p>}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -354,7 +351,9 @@ export function LeadWorkspace({
               );
             }}
           >
-            <label htmlFor="lead-note-body">نص الملاحظة</label>
+            <label htmlFor="lead-note-body">
+              {t("leads.workspace.noteBodyLabel")}
+            </label>
             <textarea
               id="lead-note-body"
               required
@@ -366,14 +365,16 @@ export function LeadWorkspace({
               disabled={pending === "note"}
               type="submit"
             >
-              {pending === "note" ? "جارٍ الحفظ…" : "إضافة ملاحظة"}
+              {pending === "note"
+                ? t("leads.board.saving")
+                : t("leads.workspace.addNote")}
             </button>
           </form>
         </section>
       )}
       {!isTerminalStage && (
         <section aria-labelledby="workspace-tasks">
-          <h3 id="workspace-tasks">المهام</h3>
+          <h3 id="workspace-tasks">{t("leads.workspace.tasks")}</h3>
           <ul className={styles.workspaceList}>
             {tasks.map((task) => (
               <TaskItem
@@ -417,18 +418,18 @@ export function LeadWorkspace({
                   )
                 }
                 onInvalidDueAt={() =>
-                  setValidationError("يرجى إدخال موعد استحقاق صالح.")
+                  setValidationError(t("leads.workspace.dueAtInvalid"))
                 }
               />
             ))}
           </ul>
-          {tasks.length === 0 && <p>لا توجد مهام بعد.</p>}
+          {tasks.length === 0 && <p>{t("leads.workspace.tasksEmpty")}</p>}
           <form
             onSubmit={(event) => {
               event.preventDefault();
               const dueAt = toUtcIso(taskDueAt);
               if (!dueAt) {
-                setValidationError("يرجى إدخال موعد استحقاق صالح.");
+                setValidationError(t("leads.workspace.dueAtInvalid"));
                 return;
               }
               void runCommand(
@@ -448,14 +449,18 @@ export function LeadWorkspace({
               );
             }}
           >
-            <label htmlFor="lead-task-title">عنوان المهمة</label>
+            <label htmlFor="lead-task-title">
+              {t("leads.workspace.taskTitleLabel")}
+            </label>
             <input
               id="lead-task-title"
               required
               value={taskTitle}
               onChange={(event) => setTaskTitle(event.target.value)}
             />
-            <label htmlFor="lead-task-due">موعد استحقاق المهمة</label>
+            <label htmlFor="lead-task-due">
+              {t("leads.workspace.taskDueLabel")}
+            </label>
             <input
               id="lead-task-due"
               required
@@ -468,7 +473,9 @@ export function LeadWorkspace({
               disabled={pending === "task"}
               type="submit"
             >
-              {pending === "task" ? "جارٍ الحفظ…" : "إضافة مهمة"}
+              {pending === "task"
+                ? t("leads.board.saving")
+                : t("leads.workspace.addTask")}
             </button>
           </form>
         </section>
@@ -476,8 +483,8 @@ export function LeadWorkspace({
       {validationError && <p role="alert">{validationError}</p>}
       {commandState && (
         <div role="alert">
-          <p>{commandState.title}</p>
-          <p>{commandState.description}</p>
+          <p>{t(commandState.titleKey)}</p>
+          <p>{t(commandState.descriptionKey)}</p>
           {commandState.kind === "stale" && (
             <button
               className="button button-secondary"
@@ -487,7 +494,7 @@ export function LeadWorkspace({
               }}
               type="button"
             >
-              إعادة تحميل
+              {t("leads.board.reload")}
             </button>
           )}
           {commandState.kind === "csrf" && (
@@ -499,7 +506,7 @@ export function LeadWorkspace({
               }}
               type="button"
             >
-              إعادة التحقق من الجلسة
+              {t("leads.board.reacquireSession")}
             </button>
           )}
         </div>
@@ -525,12 +532,15 @@ function TaskItem({
   onReschedule: (dueAt: string) => void;
   onInvalidDueAt: () => void;
 }>) {
+  const t = useT();
   return (
     <li>
       <strong>{task.title}</strong>
       <span>
         {formatDate(task.dueAt)} ·{" "}
-        {task.status === "OPEN" ? "مفتوحة" : "مكتملة"}
+        {task.status === "OPEN"
+          ? t("leads.workspace.taskOpen")
+          : t("leads.workspace.taskCompleted")}
       </span>
       {task.status === "OPEN" && (
         <div className={styles.taskActions}>
@@ -540,7 +550,9 @@ function TaskItem({
             onClick={onComplete}
             type="button"
           >
-            {pending === `complete:${task.id}` ? "جارٍ الحفظ…" : "إكمال المهمة"}
+            {pending === `complete:${task.id}`
+              ? t("leads.board.saving")
+              : t("leads.workspace.completeTask")}
           </button>
           <form
             onSubmit={(event) => {
@@ -553,7 +565,9 @@ function TaskItem({
               onReschedule(nextDueAt);
             }}
           >
-            <label htmlFor={`reschedule-${task.id}`}>الموعد الجديد</label>
+            <label htmlFor={`reschedule-${task.id}`}>
+              {t("leads.workspace.newDueLabel")}
+            </label>
             <input
               id={`reschedule-${task.id}`}
               required
@@ -567,8 +581,8 @@ function TaskItem({
               type="submit"
             >
               {pending === `reschedule:${task.id}`
-                ? "جارٍ الحفظ…"
-                : "إعادة الجدولة"}
+                ? t("leads.board.saving")
+                : t("leads.workspace.reschedule")}
             </button>
           </form>
         </div>
@@ -586,6 +600,7 @@ function WorkspaceShell({
   onClose: () => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
 }>) {
+  const t = useT();
   return (
     <section
       aria-labelledby="workspace-title"
@@ -594,14 +609,14 @@ function WorkspaceShell({
       tabIndex={-1}
     >
       <div className={styles.workspaceTop}>
-        <h2 id="workspace-title">ملف العميل المحدد</h2>
+        <h2 id="workspace-title">{t("leads.workspace.selectedTitle")}</h2>
         <button
-          aria-label="إغلاق ملف العميل"
+          aria-label={t("leads.workspace.closeAria")}
           className="button button-secondary"
           onClick={onClose}
           type="button"
         >
-          إغلاق
+          {t("leads.workspace.close")}
         </button>
       </div>
       {children}

@@ -1,3 +1,4 @@
+import { arMessages, type MessageKey } from "../../i18n";
 import type { ApiError } from "../../lib/api-client/index";
 
 export type ReceivableCommand = "draft" | "issue" | "payment";
@@ -33,10 +34,13 @@ export const EMPTY_RECEIVABLE_FORM: ReceivableFormState = {
   recordedAt: "",
 };
 
-export function receivableSuccessMessage(command: ReceivableCommand): string {
-  if (command === "draft") return "أُنشئت مسودة الفاتورة.";
-  if (command === "issue") return "أُصدرت الفاتورة وأُنشئ المستحق.";
-  return "سُجلت الدفعة دون تجاوز المستحق.";
+/** EF-630 — success feedback is a catalog key resolved by the caller. */
+export function receivableSuccessMessage(
+  command: ReceivableCommand,
+): MessageKey {
+  if (command === "draft") return "finance.receivable.createdDraft";
+  if (command === "issue") return "finance.receivable.issued";
+  return "finance.receivable.paymentRecorded";
 }
 export function isReceivableReplay(response: unknown): boolean {
   return (
@@ -72,5 +76,7 @@ export function isSessionError(value: unknown): boolean {
 }
 
 export function isSessionErrorMessage(message: string): boolean {
-  return message.includes("انتهت الجلسة");
+  // The session-expired wording lives in the catalog; match the same visible
+  // message without hardcoding Arabic text in feature code.
+  return message.includes(arMessages["finance.receivable.sessionExpired"]);
 }

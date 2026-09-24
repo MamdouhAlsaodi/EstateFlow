@@ -12,6 +12,7 @@ import {
   normalizeUploadIntent,
   storageObjectUrl,
 } from "../features/properties/media-contract";
+import { arMessages } from "../i18n/catalog";
 
 const orgId = "11111111-1111-4111-8111-111111111111";
 const propertyId = "22222222-2222-4222-8222-222222222222";
@@ -192,10 +193,17 @@ test("EF-601 Arabic labels cover every media state and format helper is bounded"
     "THUMB",
   ]);
   for (const label of Object.values(MEDIA_STATUS_LABELS))
-    assert.match(label, /[\u0600-\u06FF]/);
+    assert.match(arMessages[label], /[\u0600-\u06FF]/);
+  const sizeUnits = {
+    bytes: arMessages["properties.media.unit.bytes"],
+    kb: arMessages["properties.media.unit.kb"],
+    mb: arMessages["properties.media.unit.mb"],
+  };
   assert.equal(formatBytes(null), "—");
   assert.equal(formatBytes(-5), "—");
-  assert.equal(formatBytes(512), "512 بايت");
-  assert.equal(formatBytes(2048), "2.0 ك.ب");
-  assert.equal(formatBytes(3 * 1024 * 1024), "3.0 م.ب");
+  // `ar` on this runtime renders Latin digits (ICU default); the units are
+  // localized from the catalog and the number formatting is locale-aware.
+  assert.equal(formatBytes(512, sizeUnits), "512 بايت");
+  assert.equal(formatBytes(2048, sizeUnits), "2 ك.ب");
+  assert.equal(formatBytes(3 * 1024 * 1024, sizeUnits), "3 م.ب");
 });

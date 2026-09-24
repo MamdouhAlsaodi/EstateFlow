@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "../../i18n";
 import { createApiClient } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import { useOrganizationContext } from "../organization-context/organization-context";
@@ -41,6 +42,7 @@ function postExpense(
 }
 
 export function ExpenseCommandWorkspace() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [form, setForm] = useState<ExpenseFormState>(EMPTY_EXPENSE_FORM);
   const [pending, setPending] = useState<ExpenseCommand | null>(null);
@@ -65,16 +67,16 @@ export function ExpenseCommandWorkspace() {
       setMessage({
         kind: "success",
         text: isExpenseReplay(result)
-          ? "الأمر مطابق لعملية سابقة؛ لم يتغير أي سجل مالي."
-          : expenseSuccessMessage(command),
+          ? t("finance.expense.replayNotice")
+          : t(expenseSuccessMessage(command)),
       });
     } catch (error) {
       if (isSessionError(error)) sessionCsrfProvider.clear();
       setMessage({
         kind: "error",
         text: isSessionError(error)
-          ? "انتهت الجلسة. أعد التحقق ثم نفّذ الأمر مرة أخرى."
-          : "تعذر تنفيذ الأمر. بقيت البيانات كما هي لتراجعها وتحاول مجددًا.",
+          ? t("finance.expense.sessionExpired")
+          : t("finance.command.actionFailed"),
       });
     } finally {
       setPending(null);
@@ -91,7 +93,7 @@ export function ExpenseCommandWorkspace() {
       (form.propertyId !== "" && !isUuid(form.propertyId)) ||
       (form.dealId !== "" && !isUuid(form.dealId))
     ) {
-      validation("تحقق من التصنيف والمرجع والمبلغ والعملة والأبعاد.");
+      validation(t("finance.expense.draftValidation"));
       return;
     }
     void run(
@@ -130,7 +132,7 @@ export function ExpenseCommandWorkspace() {
       (form.note !== "" && !isText(form.note, 500)) ||
       !isUtc(form.attachedAt)
     ) {
-      validation("تحقق من معرّفات المصروف والمستند وحجمه ووقت الإرفاق.");
+      validation(t("finance.expense.evidenceValidation"));
       return;
     }
     void run(
@@ -156,7 +158,7 @@ export function ExpenseCommandWorkspace() {
   function submitForApproval(event: React.FormEvent<HTMLFormElement>): void {
     event.preventDefault();
     if (!isUuid(form.expenseId)) {
-      validation("أدخل معرّف مصروف صحيحًا للإرسال.");
+      validation(t("finance.expense.submitValidation"));
       return;
     }
     void run(
@@ -176,7 +178,7 @@ export function ExpenseCommandWorkspace() {
       (form.decision !== "APPROVED" && form.decision !== "REJECTED") ||
       (form.decision === "REJECTED" && !isText(form.decisionReason, 500))
     ) {
-      validation("اختر القرار الصحيح؛ الرفض يتطلب سببًا مكتوبًا.");
+      validation(t("finance.expense.decisionValidation"));
       return;
     }
     void run(
@@ -201,9 +203,7 @@ export function ExpenseCommandWorkspace() {
       (form.thresholdMinor !== "" && !isAmount(form.thresholdMinor)) ||
       !isCurrency(form.policyCurrency)
     ) {
-      validation(
-        "تحقق من قيمة الحد والعملة؛ الحد الفارغ يعني اعتمادًا مستقلًا دائمًا.",
-      );
+      validation(t("finance.expense.policyValidation"));
       return;
     }
     void run(
@@ -229,27 +229,23 @@ export function ExpenseCommandWorkspace() {
   return (
     <section className={styles.workspace} aria-labelledby="expense-title">
       <header className={styles.heading}>
-        <p className="eyebrow">المصروفات والمستندات</p>
-        <h1 id="expense-title">مسار المصروف</h1>
-        <p>
-          خمسة أوامر مالية محصورة: مسودة بأبعاد الحملة والعقار والصفقة، إرفاق
-          بيانات المستند المؤيد، إرسال للاعتماد وفق حد المؤسسة، قرار نهائي
-          بموافقة مستقلة، وسياسة الحد التي يملكها المالك وحده.
-        </p>
+        <p className="eyebrow">{t("finance.expense.eyebrow")}</p>
+        <h1 id="expense-title">{t("finance.expense.title")}</h1>
+        <p>{t("finance.expense.subtitle")}</p>
       </header>
 
-      <div className={styles.rail} aria-label="مراحل المصروف الخمس">
+      <div className={styles.rail} aria-label={t("finance.expense.railAria")}>
         <FinanceCommandForm
-          index="١"
-          title="إنشاء مسودة مصروف"
-          note="حدد التصنيف والمرجع والأبعاد؛ المبلغ يبقى قابلًا للتعديل قبل الإرسال."
+          index={t("finance.stepIndex.1")}
+          title={t("finance.expense.draftTitle")}
+          note={t("finance.expense.draftNote")}
           pending={pending === "draft"}
           disabled={pending !== null}
-          action="إنشاء المسودة"
+          action={t("finance.expense.draftAction")}
           onSubmit={submitDraft}
         >
           <label>
-            <span>التصنيف</span>
+            <span>{t("finance.field.category")}</span>
             <select
               value={form.category}
               onChange={(event) => update("category", event.target.value)}
@@ -261,59 +257,59 @@ export function ExpenseCommandWorkspace() {
             </select>
           </label>
           <TechnicalField
-            label="مرجع المورّد / المستفيد"
+            label={t("finance.expense.vendorLabel")}
             value={form.vendorReference}
             onChange={(value) => update("vendorReference", value)}
           />
           <TechnicalField
-            label="المبلغ بوحدة صغرى"
+            label={t("finance.field.amountMinor")}
             value={form.amountMinor}
             inputMode="numeric"
             onChange={(value) => update("amountMinor", value)}
           />
           <TechnicalField
-            label="العملة"
+            label={t("finance.field.currency")}
             value={form.currency}
             onChange={(value) => update("currency", value.toUpperCase())}
           />
           <TechnicalField
-            label="مرجع الحملة (اختياري)"
+            label={t("finance.expense.campaignRefLabel")}
             value={form.campaignReference}
             onChange={(value) => update("campaignReference", value)}
           />
           <TechnicalField
-            label="معرّف العقار (اختياري)"
+            label={t("finance.expense.propertyIdLabel")}
             value={form.propertyId}
             onChange={(value) => update("propertyId", value)}
           />
           <TechnicalField
-            label="معرّف الصفقة (اختياري)"
+            label={t("finance.expense.dealIdLabel")}
             value={form.dealId}
             onChange={(value) => update("dealId", value)}
           />
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٢"
-          title="إرفاق بيانات المستند"
-          note="بيانات وصفية فقط: النوع والحجم والوقت؛ لا تُرفع ملفات فعلية."
+          index={t("finance.stepIndex.2")}
+          title={t("finance.expense.evidenceTitle")}
+          note={t("finance.expense.evidenceNote")}
           pending={pending === "evidence"}
           disabled={pending !== null}
-          action="إرفاق المستند"
+          action={t("finance.expense.evidenceAction")}
           onSubmit={submitEvidence}
         >
           <TechnicalField
-            label="معرّف المصروف"
+            label={t("finance.field.expenseId")}
             value={form.expenseId}
             onChange={(value) => update("expenseId", value)}
           />
           <TechnicalField
-            label="معرّف المستند"
+            label={t("finance.expense.evidenceIdLabel")}
             value={form.evidenceId}
             onChange={(value) => update("evidenceId", value)}
           />
           <label>
-            <span>نوع المستند</span>
+            <span>{t("finance.expense.mediaTypeLabel")}</span>
             <select
               value={form.mediaType}
               onChange={(event) => update("mediaType", event.target.value)}
@@ -325,18 +321,18 @@ export function ExpenseCommandWorkspace() {
             </select>
           </label>
           <TechnicalField
-            label="الحجم بالبايت"
+            label={t("finance.expense.byteSizeLabel")}
             value={form.byteSize}
             inputMode="numeric"
             onChange={(value) => update("byteSize", value)}
           />
           <TechnicalField
-            label="ملاحظة (اختياري)"
+            label={t("finance.expense.noteLabel")}
             value={form.note}
             onChange={(value) => update("note", value)}
           />
           <TechnicalField
-            label="وقت الإرفاق UTC"
+            label={t("finance.expense.attachedAtLabel")}
             placeholder="2026-09-21T10:00:00.000Z"
             value={form.attachedAt}
             onChange={(value) => update("attachedAt", value)}
@@ -344,69 +340,73 @@ export function ExpenseCommandWorkspace() {
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٣"
-          title="الإرسال للاعتماد"
-          note="ما دون حد المؤسسة يُعتمد تلقائيًا؛ وما فوقه ينتظر معتمدًا مستقلًا."
+          index={t("finance.stepIndex.3")}
+          title={t("finance.expense.submitTitle")}
+          note={t("finance.expense.submitNote")}
           pending={pending === "submit"}
           disabled={pending !== null}
-          action="إرسال المصروف"
+          action={t("finance.expense.submitAction")}
           onSubmit={submitForApproval}
         >
           <TechnicalField
-            label="معرّف المصروف"
+            label={t("finance.field.expenseId")}
             value={form.expenseId}
             onChange={(value) => update("expenseId", value)}
           />
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٤"
-          title="قرار الاعتماد"
-          note="المصروف المرسل يحتاج معتمدًا مختلفًا عن مُرسله؛ الرفض يتطلب سببًا."
+          index={t("finance.stepIndex.4")}
+          title={t("finance.expense.decisionTitle")}
+          note={t("finance.expense.decisionNote")}
           pending={pending === "decision"}
           disabled={pending !== null}
-          action="تسجيل القرار"
+          action={t("finance.expense.decisionAction")}
           onSubmit={submitDecision}
         >
           <TechnicalField
-            label="معرّف المصروف"
+            label={t("finance.field.expenseId")}
             value={form.expenseId}
             onChange={(value) => update("expenseId", value)}
           />
           <label>
-            <span>القرار</span>
+            <span>{t("finance.expense.decisionLabel")}</span>
             <select
               value={form.decision}
               onChange={(event) => update("decision", event.target.value)}
             >
-              <option value="APPROVED">اعتماد</option>
-              <option value="REJECTED">رفض</option>
+              <option value="APPROVED">
+                {t("finance.expense.decisionApprove")}
+              </option>
+              <option value="REJECTED">
+                {t("finance.expense.decisionReject")}
+              </option>
             </select>
           </label>
           <TechnicalField
-            label="سبب القرار (إلزامي عند الرفض)"
+            label={t("finance.expense.decisionReasonLabel")}
             value={form.decisionReason}
             onChange={(value) => update("decisionReason", value)}
           />
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٥"
-          title="سياسة حد الاعتماد"
-          note="أمر للمالك فقط: حد بالوحدة الصغرى فوقه يلزم اعتماد مستقل؛ فراغه يعني اعتمادًا مستقلًا لكل مصروف."
+          index={t("finance.stepIndex.5")}
+          title={t("finance.expense.policyTitle")}
+          note={t("finance.expense.policyNote")}
           pending={pending === "policy"}
           disabled={pending !== null}
-          action="حفظ السياسة"
+          action={t("finance.expense.policyAction")}
           onSubmit={submitPolicy}
         >
           <TechnicalField
-            label="حد الاعتماد بوحدة صغرى"
+            label={t("finance.expense.thresholdLabel")}
             value={form.thresholdMinor}
             inputMode="numeric"
             onChange={(value) => update("thresholdMinor", value)}
           />
           <TechnicalField
-            label="عملة الحد"
+            label={t("finance.expense.policyCurrencyLabel")}
             value={form.policyCurrency}
             onChange={(value) => update("policyCurrency", value.toUpperCase())}
           />
@@ -428,7 +428,7 @@ export function ExpenseCommandWorkspace() {
                 void sessionCsrfProvider.getToken();
               }}
             >
-              إعادة التحقق من الجلسة
+              {t("finance.command.reauthButton")}
             </button>
           )}
         </div>

@@ -2,21 +2,26 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { labelFromKey, useT, type MessageKey } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import { fetchViewingDetail } from "./viewing-api";
 import type { ViewingDetail } from "./viewing-contract";
+import { VIEWING_STATUS_LABELS } from "./viewings-list-view";
 import styles from "./viewing-views.module.css";
 
-const reminderLabels: Record<
-  ViewingDetail["upcomingReminders"][number]["kind"],
-  string
+/**
+ * EF-630 — reminder labels come from the translation catalog.
+ */
+const REMINDER_LABELS: Readonly<
+  Record<ViewingDetail["upcomingReminders"][number]["kind"], MessageKey>
 > = {
-  REMINDER_24H: "تذكير قبل 24 ساعة",
-  REMINDER_1H: "تذكير قبل ساعة",
-  OUTCOME_REQUEST: "طلب تسجيل النتيجة",
+  REMINDER_24H: "viewings.reminder.REMINDER_24H",
+  REMINDER_1H: "viewings.reminder.REMINDER_1H",
+  OUTCOME_REQUEST: "viewings.reminder.OUTCOME_REQUEST",
 };
 
 export function ViewingDetailView({ viewingId }: { viewingId: string }) {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [detail, setDetail] = useState<ViewingDetail | null>(null);
   const [error, setError] = useState(false);
@@ -32,30 +37,44 @@ export function ViewingDetailView({ viewingId }: { viewingId: string }) {
     void load();
   }, [load]);
 
-  if (error) return <p role="alert">تعذر تحميل تفاصيل المعاينة.</p>;
-  if (!detail) return <p role="status">جارٍ تحميل التفاصيل…</p>;
+  if (error) return <p role="alert">{t("viewings.detail.loadFailed")}</p>;
+  if (!detail) return <p role="status">{t("viewings.detail.loading")}</p>;
   return (
     <main className={styles.grid}>
       <section aria-labelledby="viewing-detail-title">
-        <p className="eyebrow">EF-502 — أتمتة المعاينة</p>
-        <h1 id="viewing-detail-title">تفاصيل المعاينة والتذكيرات</h1>
+        <p className="eyebrow">{t("viewings.detail.eyebrow")}</p>
+        <h1 id="viewing-detail-title">{t("viewings.detail.title")}</h1>
         <p dir="ltr">
           {detail.viewing.startAt} — {detail.viewing.endAt}
         </p>
-        <p>الحالة: {detail.viewing.status}</p>
-        <p>الوسيط: {detail.viewing.brokerId}</p>
-        <p>العميل: {detail.viewing.leadId}</p>
+        <p>
+          {t("viewings.detail.statusPrefix")}{" "}
+          {labelFromKey(
+            VIEWING_STATUS_LABELS,
+            t,
+            detail.viewing.status,
+            detail.viewing.status,
+          )}
+        </p>
+        <p>
+          {t("viewings.detail.brokerPrefix")} {detail.viewing.brokerId}
+        </p>
+        <p>
+          {t("viewings.detail.leadPrefix")} {detail.viewing.leadId}
+        </p>
         <Link
           className="button button-secondary"
           href={`/ar/organizations/${organizationId}/viewings`}
         >
-          العودة إلى جدول المعاينات
+          {t("viewings.detail.backToList")}
         </Link>
       </section>
       <section aria-labelledby="upcoming-reminders-title">
-        <h2 id="upcoming-reminders-title">التذكيرات القادمة</h2>
+        <h2 id="upcoming-reminders-title">
+          {t("viewings.detail.remindersTitle")}
+        </h2>
         {detail.upcomingReminders.length === 0 ? (
-          <p>لا توجد تذكيرات معلقة. قد تكون المعاينة ملغاة أو اكتملت.</p>
+          <p>{t("viewings.detail.remindersEmpty")}</p>
         ) : (
           <ul className={styles.cards}>
             {detail.upcomingReminders.map((reminder) => (
@@ -63,7 +82,7 @@ export function ViewingDetailView({ viewingId }: { viewingId: string }) {
                 className={styles.card}
                 key={`${reminder.kind}:${reminder.occurrenceKey}`}
               >
-                <strong>{reminderLabels[reminder.kind]}</strong>
+                <strong>{t(REMINDER_LABELS[reminder.kind])}</strong>
                 <time
                   className={styles.meta}
                   dateTime={reminder.scheduledFor}

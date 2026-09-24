@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { labelFromKey, useT, type MessageKey } from "../../i18n";
 import {
   createUploadIntent,
   confirmUpload,
@@ -34,18 +35,19 @@ const MAX_VIDEO_BYTES = 100 * 1024 * 1024;
 type UploadStep =
   "idle" | "intent" | "uploading" | "confirming" | "done" | "failed";
 
-const STEP_LABELS: Readonly<Record<Exclude<UploadStep, "idle">, string>> = {
-  intent: "طلب رابط رفع موقّع",
-  uploading: "رفع مباشر إلى التخزين",
-  confirming: "تأكيد والتحقق من البايتات",
-  done: "تمت الإضافة إلى الشبكة",
-  failed: "فشل الرفع",
+const STEP_LABELS: Readonly<Record<Exclude<UploadStep, "idle">, MessageKey>> = {
+  intent: "properties.media.workspace.step.intent",
+  uploading: "properties.media.workspace.step.uploading",
+  confirming: "properties.media.workspace.step.confirming",
+  done: "properties.media.workspace.step.done",
+  failed: "properties.media.upload.failed",
 };
 
 export function MediaWorkspace({
   organizationId,
   propertyId,
 }: Readonly<{ organizationId: string; propertyId: string }>) {
+  const t = useT();
   const [media, setMedia] = useState<readonly MediaItem[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function MediaWorkspace({
       setMedia(list.items);
       setError(null);
     } catch {
-      setError("تعذر تحميل وسائط العقار");
+      setError(t("properties.media.upload.loadFailed"));
     }
   }, [organizationId, propertyId]);
 
@@ -69,20 +71,18 @@ export function MediaWorkspace({
   const handleUpload = useCallback(async () => {
     const file = fileInput.current?.files?.[0];
     if (!file) {
-      setError("اختر ملفًا أولًا.");
+      setError(t("properties.media.upload.chooseFile"));
       return;
     }
     const isImage = IMAGE_CONTENT_TYPES.has(file.type);
     const isVideo = VIDEO_CONTENT_TYPES.has(file.type);
     if (!isImage && !isVideo) {
-      setError(
-        "الصيغ المدعومة: JPEG أو PNG أو WEBP للصور، و MP4/WEBM/MOV للفيديو.",
-      );
+      setError(t("properties.media.upload.unsupportedType"));
       return;
     }
     const limit = isImage ? MAX_IMAGE_BYTES : MAX_VIDEO_BYTES;
     if (file.size > limit || file.size < 1) {
-      setError("حجم الملف يتجاوز الحد المسموح لنوعه.");
+      setError(t("properties.media.upload.tooLarge"));
       return;
     }
     const baseName = file.name.split("/").pop() ?? file.name;
@@ -90,7 +90,7 @@ export function MediaWorkspace({
       !/^[A-Za-z0-9._-]{1,120}$/.test(baseName) ||
       baseName.split(".").length !== 2
     ) {
-      setError("اسم الملف يجب أن يكون لاتينيًا بامتداد واحد فقط.");
+      setError(t("properties.media.upload.badFileName"));
       return;
     }
     setBusy(true);
@@ -125,9 +125,7 @@ export function MediaWorkspace({
       await refresh();
     } catch {
       setStep("failed");
-      setError(
-        "تعذر إكمال رفع الوسائط — تحقق من الصيغة والحجم ثم أعد المحاولة.",
-      );
+      setError(t("properties.media.upload.genericError"));
     } finally {
       setBusy(false);
     }
@@ -141,7 +139,7 @@ export function MediaWorkspace({
         await setMediaCover({ organizationId, propertyId, mediaId });
         await refresh();
       } catch {
-        setError("تعذر تعيين الغلاف — يجب أن تكون الصورة مؤكدة.");
+        setError(t("properties.media.cover.failed"));
       } finally {
         setBusy(false);
       }
@@ -157,7 +155,7 @@ export function MediaWorkspace({
         await removeMedia({ organizationId, propertyId, mediaId });
         await refresh();
       } catch {
-        setError("تعذر حذف الوسيط.");
+        setError(t("properties.media.delete.failed"));
       } finally {
         setBusy(false);
       }
@@ -174,15 +172,11 @@ export function MediaWorkspace({
 
   return (
     <section className="grid" aria-labelledby="media-heading">
-      <h2 id="media-heading">وسائط العقار</h2>
-      <p className="meta">
-        الرفع يتم عبر نية موقّعة قصيرة العمر وتحميل مباشر إلى التخزين، ثم تأكيد
-        يفحص البايتات الفعلية (التوقيع الرقمي للصورة، الأبعاد، الحجم) قبل
-        الظهور.
-      </p>
+      <h2 id="media-heading">{t("properties.media.workspace.title")}</h2>
+      <p className="meta">{t("properties.media.workspace.description")}</p>
       <div className="toolbar">
         <label className="fileLabel">
-          <span>اختر صورة أو فيديو</span>
+          <span>{t("properties.media.workspace.chooseFile")}</span>
           <input
             ref={fileInput}
             type="file"
@@ -191,18 +185,23 @@ export function MediaWorkspace({
           />
         </label>
         <button type="button" onClick={handleUpload} disabled={busy}>
-          {busy ? "جارٍ التنفيذ…" : "رفع وتأكيد"}
+          {busy
+            ? t("properties.media.workspace.pending")
+            : t("properties.media.workspace.upload")}
         </button>
       </div>
       {step !== "idle" ? (
-        <ol className="steps" aria-label="خطوات الرفع">
+        <ol
+          className="steps"
+          aria-label={t("properties.media.workspace.stepsAria")}
+        >
           {stepOrder.map((name) => (
             <li
               key={name}
               className={`${"step"} ${step === name ? "stepActive" : ""}`}
               aria-current={step === name ? "step" : undefined}
             >
-              {STEP_LABELS[name]}
+              {t(STEP_LABELS[name])}
             </li>
           ))}
         </ol>
@@ -213,7 +212,7 @@ export function MediaWorkspace({
         </p>
       ) : null}
       {media.length === 0 ? (
-        <p className="meta">لا توجد وسائط بعد.</p>
+        <p className="meta">{t("properties.media.workspace.empty")}</p>
       ) : (
         <ul className="thumbnails">
           {media.map((item) => (
@@ -248,6 +247,7 @@ function MediaCard({
   onCover: (mediaId: string) => void;
   onDelete: (mediaId: string) => void;
 }>) {
+  const t = useT();
   const showImage =
     item.kind === "IMAGE" &&
     (item.status === "CONFIRMED" || item.status === "PROCESSING");
@@ -275,28 +275,36 @@ function MediaCard({
           </span>
         )}
       </div>
-      {item.isCover ? <span className="coverBadge">الغلاف</span> : null}
+      {item.isCover ? (
+        <span className="coverBadge">{t("properties.media.card.cover")}</span>
+      ) : null}
       <strong>{item.fileName}</strong>
       <span
         className={`meta ${item.status === "PENDING" ? "statusPending" : ""}`}
       >
-        {MEDIA_KIND_LABELS[item.kind]} · {MEDIA_STATUS_LABELS[item.status]} ·{" "}
-        {dimensions} · {formatBytes(item.byteSize)}
+        {labelFromKey(MEDIA_KIND_LABELS, t, item.kind, item.kind)} ·{" "}
+        {labelFromKey(MEDIA_STATUS_LABELS, t, item.status, item.status)} ·{" "}
+        {dimensions} ·{" "}
+        {formatBytes(item.byteSize, {
+          bytes: t("properties.media.unit.bytes"),
+          kb: t("properties.media.unit.kb"),
+          mb: t("properties.media.unit.mb"),
+        })}
       </span>
       {item.variants.length > 0 ? (
         <span className="meta">
-          مشتقات:{" "}
+          {t("properties.media.card.variants")}{" "}
           {item.variants
             .map(
               (variant) =>
-                `${MEDIA_VARIANT_LABELS[variant.variant]} ${variant.width}×${variant.height}`,
+                `${t(MEDIA_VARIANT_LABELS[variant.variant])} ${variant.width}×${variant.height}`,
             )
             .join(" · ")}
         </span>
       ) : null}
       {item.processingNote ? (
         <span className="meta statusProcessing">
-          معالجة الفيديو غير مفعّلة في هذه المرحلة.
+          {t("properties.media.card.processingNote")}
         </span>
       ) : null}
       <div className="actions">
@@ -308,18 +316,20 @@ function MediaCard({
             disabled={busy}
             onClick={() => onCover(item.mediaId)}
           >
-            تعيين كغلاف
+            {t("properties.media.card.setCover")}
           </button>
         ) : null}
         {item.status !== "PENDING" ? null : (
-          <span className="meta">أكمل التأكيد لإظهارها.</span>
+          <span className="meta">
+            {t("properties.media.card.completeConfirmFirst")}
+          </span>
         )}
         <button
           type="button"
           disabled={busy}
           onClick={() => onDelete(item.mediaId)}
         >
-          حذف
+          {t("properties.media.card.delete")}
         </button>
       </div>
     </li>

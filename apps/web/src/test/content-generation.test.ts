@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { arMessages, createTranslator } from "../i18n/catalog";
 import {
   normalizeGeneratedDraft,
   normalizeGenerationTemplates,
   splitPlaceholderSegments,
 } from "../features/content/content-contract";
 import {
-  generationPanelIntro,
+  generationPanelIntroKey,
   generationProvenanceLabel,
   generationSlotLabels,
 } from "../features/content/content-labels";
@@ -153,12 +154,13 @@ test("EF-403 placeholder splitting marks every visible [SLOT] for highlighting",
 });
 
 test("EF-403 Arabic labels and provenance wording are exact", () => {
-  assert.equal(generationSlotLabels.PRICE, "السعر");
-  assert.equal(generationSlotLabels.AREA, "المساحة");
-  assert.match(generationPanelIntro, /\[PRICE\]/);
-  assert.match(generationPanelIntro, /لا تُخترع/);
+  const t = createTranslator("ar");
+  assert.equal(arMessages[generationSlotLabels.PRICE], "السعر");
+  assert.equal(arMessages[generationSlotLabels.AREA], "المساحة");
+  assert.match(arMessages[generationPanelIntroKey], /\[PRICE\]/);
+  assert.match(arMessages[generationPanelIntroKey], /لا تُخترع/);
   assert.equal(
-    generationProvenanceLabel("PROPERTY_LISTING_X_V1", 1, 3),
+    generationProvenanceLabel(t, "PROPERTY_LISTING_X_V1", 1, 3),
     "مولّد من القالب PROPERTY_LISTING_X_V1 (إصدار 1) من إصدار العقار 3",
   );
 });

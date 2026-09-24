@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 import {
   normalizeCalendar,
   normalizeContentDetail,
@@ -187,7 +188,7 @@ test("EF-402 review queue and calendar normalizers accept typed payloads", () =>
   assert.throws(() => normalizeCalendar({ items: "nope" }));
 });
 
-test("EF-402 Arabic labels cover every lifecycle state, channel, and failure kind", () => {
+test("EF-402 catalog labels cover every lifecycle state, channel, and failure kind", () => {
   for (const status of [
     "IDEA",
     "DRAFT",
@@ -197,12 +198,12 @@ test("EF-402 Arabic labels cover every lifecycle state, channel, and failure kin
     "PUBLISHED",
     "FAILED",
   ] as const) {
-    assert.ok(contentStatusLabels[status].length > 0);
+    assert.match(arMessages[contentStatusLabels[status]], /[\u0600-\u06FF]/);
   }
   for (const label of Object.values(contentChannelLabels)) {
-    assert.ok(label.length > 0);
+    assert.match(arMessages[label], /[\u0600-\u06FF]/);
   }
   for (const label of Object.values(contentFailureKindLabels)) {
-    assert.ok(label.length > 0);
+    assert.match(arMessages[label], /[\u0600-\u06FF]/);
   }
 });

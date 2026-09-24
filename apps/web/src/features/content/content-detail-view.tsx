@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   CONTENT_CHANNELS,
@@ -32,13 +33,14 @@ const EDIT_FORM = {
 };
 
 /**
- * EF-402 — Arabic item detail: lifecycle state, approval version/hash
+ * EF-402 — item detail: lifecycle state, approval version/hash
  * timeline, revision-variant lineage, and guarded lifecycle actions. The
  * approval lock and published immutability are enforced by the server.
  */
 export function ContentDetailView({
   contentItemId,
 }: Readonly<{ contentItemId: string }>) {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [detail, setDetail] = useState<ContentDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export function ContentDetailView({
     try {
       setDetail(await fetchContentDetail({ organizationId, contentItemId }));
     } catch {
-      setError("تعذر تحميل تفاصيل المحتوى. تحقق من الرابط وحاول مجددًا.");
+      setError(t("content.detail.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -75,7 +77,7 @@ export function ContentDetailView({
       setNotice(message);
       await refresh();
     } catch {
-      setError("تعذر تنفيذ الأمر. تحقق من صلاحياتك وحالة المحتوى.");
+      setError(t("content.detail.actionFailed"));
     } finally {
       setPending(false);
     }
@@ -89,7 +91,7 @@ export function ContentDetailView({
         form.channel as (typeof CONTENT_CHANNELS)[number],
       )
     ) {
-      setError("تحقق من حقول التعديل: العنوان، النص، والقناة.");
+      setError(t("content.detail.editValidation"));
       return;
     }
     void run(
@@ -105,7 +107,7 @@ export function ContentDetailView({
               : { campaignId: form.campaignId.trim() }),
           },
         ).then(() => setForm(EDIT_FORM)),
-      "تم تعديل المحتوى.",
+      t("content.detail.editedNotice"),
     );
   }
 
@@ -116,7 +118,7 @@ export function ContentDetailView({
       failureKind?: string;
       scheduledFor?: string;
     } = {},
-    message = "تم تحديث حالة المحتوى.",
+    message: string = t("content.detail.statusUpdatedNotice"),
   ): void {
     void run(
       () =>
@@ -137,21 +139,25 @@ export function ContentDetailView({
         ? `${scheduledFor.trim()}:00.000Z`
         : scheduledFor.trim();
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(iso)) {
-      setError("أدخل موعد نشر UTC بالصيغة 2026-10-01T09:00.");
+      setError(t("content.detail.scheduleValidation"));
       return;
     }
-    transition("SCHEDULED", { scheduledFor: iso }, "تم جدولة المحتوى.");
+    transition(
+      "SCHEDULED",
+      { scheduledFor: iso },
+      t("content.detail.scheduledNotice"),
+    );
   }
 
   function submitFailure(): void {
     if (failureReason.trim().length === 0) {
-      setError("ذكر سبب الفشل إلزامي.");
+      setError(t("content.detail.failureReasonRequired"));
       return;
     }
     transition(
       "FAILED",
       { failureKind, reason: failureReason },
-      "تم توثيق فشل النشر.",
+      t("content.detail.failureNotice"),
     );
   }
 
@@ -165,13 +171,17 @@ export function ContentDetailView({
       <section aria-labelledby="content-item-title">
         <p className="eyebrow">
           <Link href={`/ar/organizations/${organizationId}/content`}>
-            المحتوى
+            {t("content.detail.contentLink")}
           </Link>{" "}
-          — تفاصيل العنصر
+          {t("content.detail.eyebrowRest")}
         </p>
         <h1 id="content-item-title">{item?.title ?? "…"}</h1>
         {item === undefined ? (
-          <p>{loading ? "جارٍ التحميل…" : "اضغط «تحميل العنصر» للعرض."}</p>
+          <p>
+            {loading
+              ? t("content.common.loading")
+              : t("content.detail.pressLoad")}
+          </p>
         ) : (
           <>
             <div
@@ -183,20 +193,24 @@ export function ContentDetailView({
               }}
             >
               <StatusBadge status={item.status} />
-              <span>{contentChannelLabels[item.channel]}</span>
+              <span>{t(contentChannelLabels[item.channel])}</span>
               {item.variantNumber > 1 && (
                 <span style={{ color: "var(--ef-ink-muted)" }}>
-                  نسخة منقحة #{item.variantNumber}
+                  {t("content.common.variantOf", {
+                    number: item.variantNumber,
+                  })}
                 </span>
               )}
               {item.approvedVersion !== undefined && (
                 <span style={{ color: "var(--ef-ink-muted)" }}>
-                  النسخة المعتمدة v{item.approvedVersion}
+                  {t("content.common.approvedVersion", {
+                    version: item.approvedVersion,
+                  })}
                 </span>
               )}
             </div>
             <p style={{ color: "var(--ef-ink-muted)" }}>
-              {contentStatusHints[item.status]}
+              {t(contentStatusHints[item.status])}
             </p>
           </>
         )}
@@ -207,7 +221,7 @@ export function ContentDetailView({
             onClick={() => void refresh()}
             disabled={loading || pending}
           >
-            تحميل العنصر
+            {t("content.detail.load")}
           </button>
           {item !== undefined &&
             item.status !== "IDEA" &&
@@ -220,11 +234,11 @@ export function ContentDetailView({
                   void run(
                     () =>
                       createContentRevision({ organizationId, contentItemId }),
-                    "تم إنشاء نسخة منقحة جديدة (مسودة).",
+                    t("content.detail.revisionNotice"),
                   )
                 }
               >
-                إنشاء نسخة منقحة
+                {t("content.detail.createRevision")}
               </button>
             )}
         </div>
@@ -246,13 +260,14 @@ export function ContentDetailView({
       {item !== undefined && (
         <>
           <section aria-labelledby="content-body-title">
-            <h2 id="content-body-title">نص المحتوى</h2>
+            <h2 id="content-body-title">{t("content.detail.bodyTitle")}</h2>
             <div className={styles.panel}>
               <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{item.body}</p>
               {item.scheduledFor !== undefined && (
                 <span style={{ color: "var(--ef-ink-muted)" }}>
-                  موعد النشر: {item.scheduledFor.slice(0, 16).replace("T", " ")}{" "}
-                  UTC
+                  {t("content.detail.scheduledFor", {
+                    value: item.scheduledFor.slice(0, 16).replace("T", " "),
+                  })}
                 </span>
               )}
               {item.contentHash !== undefined && (
@@ -300,17 +315,19 @@ export function ContentDetailView({
           />
 
           <section aria-labelledby="content-versions-title">
-            <h2 id="content-versions-title">الخط الزمني للنسخ والاعتماد</h2>
+            <h2 id="content-versions-title">
+              {t("content.detail.timelineTitle")}
+            </h2>
             {approvals.length === 0 ? (
-              <p>لم يُعتمد هذا العنصر بعد.</p>
+              <p>{t("content.detail.notApprovedYet")}</p>
             ) : (
               <div className={styles.tableWrap}>
                 <table>
                   <thead>
                     <tr>
-                      <th scope="col">النسخة</th>
-                      <th scope="col">بصمة المحتوى (hash)</th>
-                      <th scope="col">وقت الاعتماد</th>
+                      <th scope="col">{t("content.detail.thVersion")}</th>
+                      <th scope="col">{t("content.detail.thHash")}</th>
+                      <th scope="col">{t("content.detail.thApprovedAt")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -334,25 +351,27 @@ export function ContentDetailView({
           </section>
 
           <section aria-labelledby="content-transitions-title">
-            <h2 id="content-transitions-title">سجل الحالة (غير قابل للحذف)</h2>
+            <h2 id="content-transitions-title">
+              {t("content.detail.transitionsTitle")}
+            </h2>
             <div className={styles.tableWrap}>
               <table>
                 <thead>
                   <tr>
-                    <th scope="col">من</th>
-                    <th scope="col">إلى</th>
-                    <th scope="col">التفاصيل</th>
-                    <th scope="col">الوقت</th>
+                    <th scope="col">{t("content.detail.thFrom")}</th>
+                    <th scope="col">{t("content.detail.thTo")}</th>
+                    <th scope="col">{t("content.detail.thDetails")}</th>
+                    <th scope="col">{t("content.detail.thTime")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(detail?.transitions ?? []).map((entry) => (
                     <tr key={entry.id}>
-                      <td>{contentStatusLabels[entry.fromStatus]}</td>
-                      <td>{contentStatusLabels[entry.toStatus]}</td>
+                      <td>{t(contentStatusLabels[entry.fromStatus])}</td>
+                      <td>{t(contentStatusLabels[entry.toStatus])}</td>
                       <td>
                         {entry.failureKind !== undefined
-                          ? contentFailureKindLabels[entry.failureKind]
+                          ? t(contentFailureKindLabels[entry.failureKind])
                           : (entry.reason ?? "—")}
                         {entry.version !== undefined
                           ? ` — v${entry.version}`
@@ -369,7 +388,9 @@ export function ContentDetailView({
           </section>
 
           <section aria-labelledby="content-variants-title">
-            <h2 id="content-variants-title">نسخ التنقيح</h2>
+            <h2 id="content-variants-title">
+              {t("content.detail.variantsTitle")}
+            </h2>
             <ul
               style={{
                 listStyle: "none",
@@ -383,14 +404,15 @@ export function ContentDetailView({
                   {variant.id === item.id ? (
                     <strong>
                       #{variant.variantNumber} —{" "}
-                      {contentStatusLabels[variant.status]} (هذه)
+                      {t(contentStatusLabels[variant.status])}{" "}
+                      {t("content.detail.thisVariantTag")}
                     </strong>
                   ) : (
                     <Link
                       href={`/ar/organizations/${organizationId}/content/${variant.id}`}
                     >
                       #{variant.variantNumber} — {variant.title} (
-                      {contentStatusLabels[variant.status]})
+                      {t(contentStatusLabels[variant.status])})
                     </Link>
                   )}
                 </li>
@@ -440,17 +462,18 @@ function LifecycleActions({
   onSubmitSchedule,
   onSubmitFailure,
 }: LifecycleActionsProps) {
+  const t = useT();
   const editable = status === "IDEA" || status === "DRAFT";
   return (
     <section aria-labelledby="content-actions-title">
-      <h2 id="content-actions-title">الأوامر المتاحة</h2>
+      <h2 id="content-actions-title">{t("content.actions.title")}</h2>
       <div className={styles.panel}>
         {editable && (
           <>
-            <h3>تعديل المحتوى</h3>
+            <h3>{t("content.actions.editTitle")}</h3>
             <div className={styles.formGrid}>
               <label>
-                العنوان
+                {t("content.list.titleLabel")}
                 <input
                   value={form.title}
                   onChange={(event) =>
@@ -459,7 +482,7 @@ function LifecycleActions({
                 />
               </label>
               <label>
-                النص
+                {t("content.list.bodyLabel")}
                 <textarea
                   rows={3}
                   value={form.body}
@@ -469,7 +492,7 @@ function LifecycleActions({
                 />
               </label>
               <label>
-                القناة
+                {t("content.actions.channelLabel")}
                 <select
                   value={form.channel}
                   onChange={(event) =>
@@ -478,7 +501,7 @@ function LifecycleActions({
                 >
                   {CONTENT_CHANNELS.map((channel) => (
                     <option key={channel} value={channel}>
-                      {contentChannelLabels[channel]}
+                      {t(contentChannelLabels[channel])}
                     </option>
                   ))}
                 </select>
@@ -491,7 +514,7 @@ function LifecycleActions({
                 disabled={pending}
                 onClick={onSubmitEdit}
               >
-                حفظ التعديل
+                {t("content.actions.saveEdit")}
               </button>
               {status === "IDEA" && (
                 <button
@@ -502,11 +525,11 @@ function LifecycleActions({
                     onTransition(
                       "DRAFT",
                       undefined,
-                      "تم تحويل الفكرة إلى مسودة.",
+                      t("content.actions.toDraftNotice"),
                     )
                   }
                 >
-                  تحويل إلى مسودة
+                  {t("content.actions.toDraft")}
                 </button>
               )}
             </div>
@@ -521,11 +544,11 @@ function LifecycleActions({
               onTransition(
                 "REVIEW",
                 undefined,
-                "أُرسل المحتوى إلى قائمة المراجعة.",
+                t("content.actions.toReviewNotice"),
               )
             }
           >
-            إرسال للمراجعة
+            {t("content.actions.toReview")}
           </button>
         )}
         {status === "REVIEW" && (
@@ -538,30 +561,34 @@ function LifecycleActions({
                 onTransition(
                   "APPROVED",
                   undefined,
-                  "تم اعتماد المحتوى وقفل نسخته وبصمته.",
+                  t("content.actions.approveNotice"),
                 )
               }
             >
-              اعتماد (يقفل النسخة والبصمة)
+              {t("content.actions.approve")}
             </button>
             <button
               className="button button-secondary"
               type="button"
               disabled={pending}
               onClick={() =>
-                onTransition("DRAFT", undefined, "أُعيد المحتوى إلى المسودة.")
+                onTransition(
+                  "DRAFT",
+                  undefined,
+                  t("content.actions.backToDraftNotice"),
+                )
               }
             >
-              إعادة إلى المسودة
+              {t("content.actions.backToDraft")}
             </button>
           </div>
         )}
         {status === "APPROVED" && (
           <>
-            <h3>جدولة النشر</h3>
+            <h3>{t("content.actions.scheduleHeading")}</h3>
             <div className={styles.formGrid}>
               <label>
-                موعد النشر (UTC)
+                {t("content.actions.scheduleLabel")}
                 <input
                   type="datetime-local"
                   value={scheduledFor}
@@ -575,15 +602,15 @@ function LifecycleActions({
               disabled={pending}
               onClick={onSubmitSchedule}
             >
-              جدولة النشر
+              {t("content.actions.scheduleButton")}
             </button>
           </>
         )}
         {status === "SCHEDULED" && (
           <>
-            <h3>تنفيذ النشر (حالة سير العمل)</h3>
+            <h3>{t("content.actions.publishExecTitle")}</h3>
             <p style={{ color: "var(--ef-ink-muted)", margin: 0 }}>
-              التسليم الفعلي على القناة يتم عبر EF-404؛ هنا يُوثَّق ناتج النشر.
+              {t("content.actions.publishExecNote")}
             </p>
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
               <button
@@ -591,29 +618,33 @@ function LifecycleActions({
                 type="button"
                 disabled={pending}
                 onClick={() =>
-                  onTransition("PUBLISHED", undefined, "تم توثيق النشر.")
+                  onTransition(
+                    "PUBLISHED",
+                    undefined,
+                    t("content.actions.publishNotice"),
+                  )
                 }
               >
-                توثيق النشر
+                {t("content.actions.publishButton")}
               </button>
             </div>
-            <h3>توثيق فشل النشر</h3>
+            <h3>{t("content.actions.failureTitle")}</h3>
             <div className={styles.formGrid}>
               <label>
-                نوع الفشل
+                {t("content.actions.failureKindLabel")}
                 <select
                   value={failureKind}
                   onChange={(event) => setFailureKind(event.target.value)}
                 >
                   {CONTENT_FAILURE_KINDS.map((kind) => (
                     <option key={kind} value={kind}>
-                      {contentFailureKindLabels[kind]}
+                      {t(contentFailureKindLabels[kind])}
                     </option>
                   ))}
                 </select>
               </label>
               <label>
-                سبب الفشل (إلزامي)
+                {t("content.actions.failureReasonLabel")}
                 <input
                   value={failureReason}
                   onChange={(event) => setFailureReason(event.target.value)}
@@ -626,7 +657,7 @@ function LifecycleActions({
               disabled={pending}
               onClick={onSubmitFailure}
             >
-              توثيق الفشل
+              {t("content.actions.failureButton")}
             </button>
           </>
         )}
@@ -639,11 +670,11 @@ function LifecycleActions({
               onTransition(
                 "REVIEW",
                 undefined,
-                "أُعيد المحتوى إلى قائمة المراجعة.",
+                t("content.actions.backToReviewNotice"),
               )
             }
           >
-            إعادة إلى المراجعة
+            {t("content.actions.backToReview")}
           </button>
         )}
         {!editable &&
@@ -652,7 +683,7 @@ function LifecycleActions({
           status !== "SCHEDULED" &&
           status !== "FAILED" && (
             <p style={{ color: "var(--ef-ink-muted)", margin: 0 }}>
-              المحتوى المنشور غير قابل للتغيير — استخدم «إنشاء نسخة منقحة».
+              {t("content.actions.publishedImmutable")}
             </p>
           )}
       </div>

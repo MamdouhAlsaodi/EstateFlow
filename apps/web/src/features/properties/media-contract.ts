@@ -5,6 +5,8 @@
  * payloads that carry unexpected shapes.
  */
 
+import { formatFileSize, type MessageKey } from "../../i18n";
+
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
@@ -257,27 +259,47 @@ export function mediaBytesUrl(
   );
 }
 
-export const MEDIA_STATUS_LABELS: Readonly<Record<MediaStatusView, string>> = {
-  PENDING: "بانتظار التأكيد",
-  CONFIRMED: "مؤكدة",
-  PROCESSING: "قيد المعالجة",
+/**
+ * EF-630 — label maps hold translation-catalog keys; the rendered Arabic/
+ * English text lives in `src/i18n/messages/properties.ts`, and sizes are
+ * formatted by the shared locale-aware `formatFileSize`.
+ */
+export const MEDIA_STATUS_LABELS: Readonly<
+  Record<MediaStatusView, MessageKey>
+> = {
+  PENDING: "properties.media.status.PENDING",
+  CONFIRMED: "properties.media.status.CONFIRMED",
+  PROCESSING: "properties.media.status.PROCESSING",
 };
 
-export const MEDIA_KIND_LABELS: Readonly<Record<MediaKind, string>> = {
-  IMAGE: "صورة",
-  VIDEO: "فيديو",
+export const MEDIA_KIND_LABELS: Readonly<Record<MediaKind, MessageKey>> = {
+  IMAGE: "properties.media.kind.IMAGE",
+  VIDEO: "properties.media.kind.VIDEO",
 };
 
-export const MEDIA_VARIANT_LABELS: Readonly<Record<MediaVariantName, string>> =
-  {
-    THUMB: "مصغّرة",
-    PREVIEW: "معاينة",
-  };
+export const MEDIA_VARIANT_LABELS: Readonly<
+  Record<MediaVariantName, MessageKey>
+> = {
+  THUMB: "properties.media.variant.THUMB",
+  PREVIEW: "properties.media.variant.PREVIEW",
+};
 
-export function formatBytes(byteSize: number | null): string {
+export const MEDIA_SIZE_UNITS = {
+  bytes: "properties.media.unit.bytes",
+  kb: "properties.media.unit.kb",
+  mb: "properties.media.unit.mb",
+} as const;
+
+/** Locale-aware size; units come from the caller (resolved via `t`). */
+export function formatBytes(
+  byteSize: number | null,
+  units: Readonly<{ bytes: string; kb: string; mb: string }> = {
+    bytes: "B",
+    kb: "KB",
+    mb: "MB",
+  },
+): string {
   if (byteSize === null || !Number.isSafeInteger(byteSize) || byteSize < 0)
     return "—";
-  if (byteSize < 1024) return `${byteSize} بايت`;
-  if (byteSize < 1024 * 1024) return `${(byteSize / 1024).toFixed(1)} ك.ب`;
-  return `${(byteSize / (1024 * 1024)).toFixed(1)} م.ب`;
+  return formatFileSize(byteSize, units);
 }

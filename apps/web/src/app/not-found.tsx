@@ -1,13 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useT } from "../i18n";
 
 export default function NotFound() {
+  const t = useT();
   return (
     <main className="not-found">
       <p className="eyebrow">404 · EstateFlow</p>
-      <h1>هذه الصفحة غير موجودة</h1>
-      <p>قد يكون الرابط غير صحيح أو أن هذه القدرة لم تُبنَ بعد.</p>
+      <h1>{t("notFound.title")}</h1>
+      <p>{t("notFound.description")}</p>
       <Link className="button button-primary" href="/ar">
-        العودة إلى نموذج الواجهة
+        {t("notFound.backHome")}
       </Link>
     </main>
   );

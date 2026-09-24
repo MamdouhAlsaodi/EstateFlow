@@ -1,78 +1,81 @@
 /**
- * EF-402 — Arabic-first presentation labels for the content lifecycle,
- * channels, and typed failure kinds. Pure data so tests can assert the exact
- * wording.
+ * EF-402/EF-630 — content label maps hold translation-catalog keys; the
+ * written Arabic/English text lives in `src/i18n/messages/content.ts`.
+ * Pure data so tests can assert the exact catalog wording.
  */
 
+import type { MessageKey, Translator } from "../../i18n";
 import type {
   ContentChannel,
   ContentFailureKind,
   ContentStatus,
+  GenerationSlot,
 } from "./content-contract";
 
-export const contentStatusLabels: Record<ContentStatus, string> = {
-  IDEA: "فكرة",
-  DRAFT: "مسودة",
-  REVIEW: "قيد المراجعة",
-  APPROVED: "معتمد",
-  SCHEDULED: "مجدول",
-  PUBLISHED: "منشور",
-  FAILED: "فشل النشر",
+export const contentStatusLabels: Record<ContentStatus, MessageKey> = {
+  IDEA: "content.status.IDEA",
+  DRAFT: "content.status.DRAFT",
+  REVIEW: "content.status.REVIEW",
+  APPROVED: "content.status.APPROVED",
+  SCHEDULED: "content.status.SCHEDULED",
+  PUBLISHED: "content.status.PUBLISHED",
+  FAILED: "content.status.FAILED",
 };
 
-export const contentChannelLabels: Record<ContentChannel, string> = {
-  INSTAGRAM: "إنستغرام",
-  X: "إكس",
-  SNAPCHAT: "سناب شات",
-  TIKTOK: "تيك توك",
-  LINKEDIN: "لينكد إن",
-  FACEBOOK: "فيسبوك",
-  WHATSAPP: "واتساب",
-  EMAIL: "بريد إلكتروني",
-  WEBSITE: "الموقع",
-  OTHER: "أخرى",
+export const contentChannelLabels: Record<ContentChannel, MessageKey> = {
+  INSTAGRAM: "content.channel.INSTAGRAM",
+  X: "content.channel.X",
+  SNAPCHAT: "content.channel.SNAPCHAT",
+  TIKTOK: "content.channel.TIKTOK",
+  LINKEDIN: "content.channel.LINKEDIN",
+  FACEBOOK: "content.channel.FACEBOOK",
+  WHATSAPP: "content.channel.WHATSAPP",
+  EMAIL: "content.channel.EMAIL",
+  WEBSITE: "content.channel.WEBSITE",
+  OTHER: "content.channel.OTHER",
 };
 
-export const contentFailureKindLabels: Record<ContentFailureKind, string> = {
-  CHANNEL_REJECTED: "رفض القناة",
-  CHANNEL_TIMEOUT: "انتهاء المهلة",
-  CONTENT_POLICY_VIOLATION: "مخالفة سياسة المحتوى",
-  SCHEDULE_MISSED: "فوّت الموعد",
-  OTHER: "سبب آخر",
-};
+export const contentFailureKindLabels: Record<ContentFailureKind, MessageKey> =
+  {
+    CHANNEL_REJECTED: "content.failure.CHANNEL_REJECTED",
+    CHANNEL_TIMEOUT: "content.failure.CHANNEL_TIMEOUT",
+    CONTENT_POLICY_VIOLATION: "content.failure.CONTENT_POLICY_VIOLATION",
+    SCHEDULE_MISSED: "content.failure.SCHEDULE_MISSED",
+    OTHER: "content.failure.OTHER",
+  };
 
-/** One-line Arabic description of each lifecycle state for the detail view. */
-export const contentStatusHints: Record<ContentStatus, string> = {
-  IDEA: "فكرة أولية قابلة للتحرير قبل صياغة المحتوى.",
-  DRAFT: "مسودة قابلة للتحرير حتى إرسالها للمراجعة.",
-  REVIEW: "مقفلة في قائمة المراجعة حتى الاعتماد أو الإعادة.",
-  APPROVED: "محتوى معتمد ومقفول بنسخة وبصمة hash.",
-  SCHEDULED: "موعد النشر والقناة مسجلان؛ التنفيذ الفعلي في EF-404.",
-  PUBLISHED: "محتوى منشور غير قابل لأي تعديل أو حذف.",
-  FAILED: "فشل النشر بسبب موثق؛ يمكن إعادته للمراجعة أو إنشاء نسخة منقحة.",
+/** One-line description of each lifecycle state for the detail view. */
+export const contentStatusHints: Record<ContentStatus, MessageKey> = {
+  IDEA: "content.hint.IDEA",
+  DRAFT: "content.hint.DRAFT",
+  REVIEW: "content.hint.REVIEW",
+  APPROVED: "content.hint.APPROVED",
+  SCHEDULED: "content.hint.SCHEDULED",
+  PUBLISHED: "content.hint.PUBLISHED",
+  FAILED: "content.hint.FAILED",
 };
 
 /**
- * EF-403 — Arabic presentation for the generation flow: the missing-fact
- * placeholders and the provenance stamp wording. Pure data so tests can
- * assert the exact wording.
+ * EF-403 — presentation for the generation flow: the missing-fact slot
+ * labels and the provenance stamp wording resolved through the catalog.
  */
-
-import type { GenerationSlot } from "./content-contract";
-
-export const generationSlotLabels: Record<GenerationSlot, string> = {
-  PRICE: "السعر",
-  AREA: "المساحة",
-  BEDROOMS: "عدد الغرف",
-  BATHROOMS: "عدد الحمامات",
+export const generationSlotLabels: Record<GenerationSlot, MessageKey> = {
+  PRICE: "content.slot.PRICE",
+  AREA: "content.slot.AREA",
+  BEDROOMS: "content.slot.BEDROOMS",
+  BATHROOMS: "content.slot.BATHROOMS",
 };
 
-export const generationPanelIntro =
-  "توليد آلي مقيّد: تُقرأ بيانات العقار المسموحة فقط (النوع، العنوان، الاسم الوصفي) ولا تُخترع أسعار أو مساحات أو وعود قانونية؛ كل معلومة ناقصة تظهر كعنصر نائب مرئي مثل [PRICE].";
+export const generationPanelIntroKey: MessageKey = "content.generation.intro";
 
 export const generationProvenanceLabel = (
+  t: Translator,
   templateId: string,
   templateVersion: number,
   propertyVersion: number,
 ): string =>
-  `مولّد من القالب ${templateId} (إصدار ${templateVersion}) من إصدار العقار ${propertyVersion}`;
+  t("content.generation.provenance", {
+    templateId,
+    templateVersion,
+    propertyVersion,
+  });

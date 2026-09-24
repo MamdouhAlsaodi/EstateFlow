@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { arMessages } from "../i18n/catalog";
 
 const root = new URL("../", import.meta.url);
 
@@ -33,9 +34,21 @@ test("workspace exposes exactly three Arabic commands through the API client", a
   assert.match(workspace, /pending/);
   assert.match(workspace, /role=.*alert/);
   assert.match(workspace, /role=.*status/);
-  assert.match(workspace, /إنشاء نسخة خطة العمولة/);
-  assert.match(workspace, /التقاط القيمة القابلة للعمولة/);
-  assert.match(workspace, /إنشاء الاستحقاق المتوقع/);
+  assert.match(workspace, /finance\.commission\.planTitle/);
+  assert.match(workspace, /finance\.commission\.valueTitle/);
+  assert.match(workspace, /finance\.commission\.accrualTitle/);
+  assert.equal(
+    arMessages["finance.commission.planTitle"],
+    "إنشاء نسخة خطة العمولة",
+  );
+  assert.equal(
+    arMessages["finance.commission.valueTitle"],
+    "التقاط القيمة القابلة للعمولة",
+  );
+  assert.equal(
+    arMessages["finance.commission.accrualTitle"],
+    "إنشاء الاستحقاق المتوقع",
+  );
   assert.doesNotMatch(workspace, /fetch\s*\(/);
   assert.doesNotMatch(
     workspace,
@@ -53,7 +66,11 @@ test("workspace has scoped validation, success replay messaging, and safe retry"
   assert.match(workspace, /sessionCsrfProvider\.clear\(\)/);
   assert.match(workspace, /kind === "replayed"/);
   assert.doesNotMatch(workspace, /idempotent-replay/);
-  assert.match(workspace, /إعادة التحقق من الجلسة/);
+  assert.match(workspace, /finance\.command\.reauthButton/);
+  assert.equal(
+    arMessages["finance.command.reauthButton"],
+    "إعادة التحقق من الجلسة",
+  );
   assert.match(workspace, /amountMinor: ""/);
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useT } from "../../i18n";
 import {
   approveContractTemplate,
   createContractTemplate,
@@ -22,13 +23,13 @@ import {
   type ContractSummary,
   type ContractTemplateSummary,
 } from "./contracts-contract";
+import { arMessages } from "../../i18n";
 import styles from "./contracts.module.css";
 
-const DEFAULT_TITLE_PATTERN = "عقد بيع — {PROPERTY_TITLE}";
-const DEFAULT_BODY_PATTERN = `تم الاتفاق بين الطرفين على عقار {PROPERTY_TYPE} في {PROPERTY_ADDRESS} ضمن الصفقة {DEAL_REFERENCE}.
-الجهة: {ORGANIZATION_NAME}
-الوسيط: {BROKER_REFERENCE}
-تاريخ اللقطة: {SNAPSHOT_CAPTURED_AT}`;
+const DEFAULT_TITLE_PATTERN =
+  arMessages["contracts.template.defaultTitlePattern"];
+const DEFAULT_BODY_PATTERN =
+  arMessages["contracts.template.defaultBodyPattern"];
 
 function shortHash(hash: string): string {
   return hash.slice(0, 12);
@@ -37,6 +38,7 @@ function shortHash(hash: string): string {
 export function ContractsWorkspace({
   organizationId,
 }: Readonly<{ organizationId: string }>) {
+  const t = useT();
   const [templates, setTemplates] = useState<
     readonly ContractTemplateSummary[]
   >([]);
@@ -64,7 +66,7 @@ export function ContractsWorkspace({
       setContracts(contractItems);
       setError(null);
     } catch {
-      setError("تعذر تحميل العقود — تحقق من الجلسة والصلاحيات.");
+      setError(t("contracts.workspace.loadFailed"));
     }
   }, [organizationId, filterDealId]);
 
@@ -82,7 +84,7 @@ export function ContractsWorkspace({
         if (typeof message === "string") setNotice(message);
         await refresh();
       } catch {
-        setError("تعذر تنفيذ الأمر — تحقق من الصلاحيات وترتيب التوقيع.");
+        setError(t("contracts.workspace.actionFailed"));
       } finally {
         setBusy(false);
       }
@@ -113,20 +115,17 @@ export function ContractsWorkspace({
 
   return (
     <main className={styles.grid} dir="rtl">
-      <h1>العقود والتوقيع</h1>
+      <h1>{t("contracts.workspace.title")}</h1>
       <p className={styles.disclaimer} role="note">
         ⚠️ {OPERATIONAL_ESIGN_DISCLAIMER_AR}
       </p>
 
       <section className={styles.panel} aria-labelledby="generate-heading">
-        <h2 id="generate-heading">توليد عقد من صفقة</h2>
-        <p className={styles.meta}>
-          يولَّد محتوى العقد حتميًا من نسخة قالب معتمدة ولقطة بيانات الصفقة
-          والعقار، ويُسجَّل بصمة SHA-256 للمستند مع ختم المصدر.
-        </p>
+        <h2 id="generate-heading">{t("contracts.workspace.generateTitle")}</h2>
+        <p className={styles.meta}>{t("contracts.workspace.generateIntro")}</p>
         <div className={styles.toolbar}>
           <label className={styles.field}>
-            <span>معرّف الصفقة (UUID)</span>
+            <span>{t("contracts.workspace.dealIdLabel")}</span>
             <input
               value={dealIdInput}
               onChange={(event) => setDealIdInput(event.target.value)}
@@ -135,18 +134,23 @@ export function ContractsWorkspace({
             />
           </label>
           <label className={styles.field}>
-            <span>القالب المعتمد</span>
+            <span>{t("contracts.workspace.templateLabel")}</span>
             <select
               value={effectiveTemplateId}
               onChange={(event) => setSelectedTemplateId(event.target.value)}
               disabled={busy || approvedTemplates.length === 0}
             >
               {approvedTemplates.length === 0 ? (
-                <option value="">لا توجد قوالب معتمدة</option>
+                <option value="">
+                  {t("contracts.workspace.noApprovedTemplates")}
+                </option>
               ) : (
                 approvedTemplates.map((template) => (
                   <option key={template.templateId} value={template.templateId}>
-                    {template.templateKey} · نسخة {template.version}
+                    {t("contracts.workspace.templateWithVersion", {
+                      templateKey: template.templateKey,
+                      version: template.version,
+                    })}
                   </option>
                 ))
               )}
@@ -162,22 +166,22 @@ export function ContractsWorkspace({
                   dealId: dealIdInput.trim(),
                   templateId: effectiveTemplateId,
                 });
-                return "تم توليد العقد وحفظ لقطة البيانات بشكل غير قابل للتغيير.";
+                return t("contracts.workspace.generatedNotice");
               })
             }
           >
-            توليد العقد
+            {t("contracts.workspace.generate")}
           </button>
         </div>
       </section>
 
       <section className={styles.panel} aria-labelledby="template-heading">
-        <h2 id="template-heading">قوالب العقود</h2>
+        <h2 id="template-heading">{t("contracts.workspace.templatesTitle")}</h2>
         <details className={styles.editor}>
-          <summary>إنشاء قالب جديد (مالك/مدير)</summary>
+          <summary>{t("contracts.workspace.newTemplateSummary")}</summary>
           <div className={styles.toolbar}>
             <label className={styles.field}>
-              <span>مفتاح القالب</span>
+              <span>{t("contracts.workspace.templateKeyLabel")}</span>
               <input
                 value={templateKey}
                 onChange={(event) => setTemplateKey(event.target.value)}
@@ -185,7 +189,7 @@ export function ContractsWorkspace({
               />
             </label>
             <label className={styles.field}>
-              <span>نمط العنوان</span>
+              <span>{t("contracts.workspace.titlePatternLabel")}</span>
               <input
                 value={titlePattern}
                 onChange={(event) => setTitlePattern(event.target.value)}
@@ -194,9 +198,7 @@ export function ContractsWorkspace({
             </label>
           </div>
           <label className={styles.fieldWide}>
-            <span>
-              نمط المتن — المتغيرات المسموحة فقط مثل {"{PROPERTY_TITLE}"}
-            </span>
+            <span>{t("contracts.workspace.bodyPatternLabel")}</span>
             <textarea
               value={bodyPattern}
               onChange={(event) => setBodyPattern(event.target.value)}
@@ -215,26 +217,33 @@ export function ContractsWorkspace({
                   titlePattern,
                   bodyPattern,
                 });
-                return "تم إنشاء القالب كمسودة — يلزم اعتماده قبل الاستخدام.";
+                return t("contracts.workspace.templateCreatedNotice");
               })
             }
           >
-            إنشاء مسودة القالب
+            {t("contracts.workspace.createTemplate")}
           </button>
         </details>
         {templates.length === 0 ? (
-          <p className={styles.meta}>لا توجد قوالب بعد.</p>
+          <p className={styles.meta}>{t("contracts.workspace.noTemplates")}</p>
         ) : (
           <ul className={styles.list}>
             {templates.map((template) => (
               <li key={template.templateId} className={styles.card}>
                 <strong>
-                  {template.templateKey} · نسخة {template.version}
+                  {t("contracts.workspace.templateWithVersion", {
+                    templateKey: template.templateKey,
+                    version: template.version,
+                  })}
                 </strong>
                 <span className={styles.meta}>
                   {template.status === "APPROVED"
-                    ? `معتمد${template.approvedAt ? ` — ${template.approvedAt}` : ""}`
-                    : "مسودة"}
+                    ? template.approvedAt
+                      ? t("contracts.workspace.templateApprovedAt", {
+                          date: template.approvedAt,
+                        })
+                      : t("contracts.workspace.templateApproved")
+                    : t("contracts.workspace.templateDraft")}
                 </span>
                 <span className={styles.meta}>{template.titlePattern}</span>
                 {template.status === "DRAFT" ? (
@@ -247,11 +256,11 @@ export function ContractsWorkspace({
                           organizationId,
                           templateId: template.templateId,
                         });
-                        return "تم اعتماد القالب — النسخة المعتمدة غير قابلة للتغيير.";
+                        return t("contracts.workspace.templateApprovedNotice");
                       })
                     }
                   >
-                    اعتماد
+                    {t("contracts.workspace.approve")}
                   </button>
                 ) : null}
               </li>
@@ -272,10 +281,12 @@ export function ContractsWorkspace({
       ) : null}
 
       <section className={styles.panel} aria-labelledby="contracts-heading">
-        <h2 id="contracts-heading">العقود</h2>
+        <h2 id="contracts-heading">
+          {t("contracts.workspace.contractsTitle")}
+        </h2>
         <div className={styles.toolbar}>
           <label className={styles.field}>
-            <span>تصفية حسب الصفقة (اختياري)</span>
+            <span>{t("contracts.workspace.filterLabel")}</span>
             <input
               value={filterDealId ?? ""}
               onChange={(event) =>
@@ -285,13 +296,13 @@ export function ContractsWorkspace({
                     : event.target.value.trim(),
                 )
               }
-              placeholder="كل العقود"
+              placeholder={t("contracts.workspace.filterPlaceholder")}
               disabled={busy}
             />
           </label>
         </div>
         {contracts.length === 0 ? (
-          <p className={styles.meta}>لا توجد عقود بعد.</p>
+          <p className={styles.meta}>{t("contracts.workspace.noContracts")}</p>
         ) : (
           <ul className={styles.list}>
             {contracts.map((contract) => (
@@ -301,24 +312,33 @@ export function ContractsWorkspace({
               >
                 <strong>{contract.title}</strong>
                 <span className={styles.meta}>
-                  {CONTRACT_STATUS_LABELS[contract.status]} ·{" "}
-                  {contract.signatureCount}/{contract.signerTotal} توقيع ·{" "}
-                  {contract.templateKey} نسخة {contract.templateVersion}
+                  {t(CONTRACT_STATUS_LABELS[contract.status])} ·{" "}
+                  {t("contracts.workspace.signatureCount", {
+                    count: contract.signatureCount,
+                    total: contract.signerTotal,
+                  })}{" "}
+                  ·{" "}
+                  {t("contracts.workspace.contractTemplateVersion", {
+                    templateKey: contract.templateKey,
+                    version: contract.templateVersion,
+                  })}
                 </span>
                 <span className={styles.hashLine}>
-                  المستند: {shortHash(contract.pdfSha256)}… · المحتوى:{" "}
-                  {shortHash(contract.contentHash)}…
+                  {t("contracts.workspace.hashLine", {
+                    pdf: shortHash(contract.pdfSha256),
+                    content: shortHash(contract.contentHash),
+                  })}
                 </span>
                 <div className={styles.actions}>
                   <a href={contractPdfUrl(organizationId, contract.contractId)}>
-                    عرض PDF
+                    {t("contracts.workspace.viewPdf")}
                   </a>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => openDetail(contract.contractId)}
                   >
-                    التفاصيل وخط التوقيع
+                    {t("contracts.workspace.openDetail")}
                   </button>
                   {contract.status === "DRAFT" ? (
                     <button
@@ -331,12 +351,12 @@ export function ContractsWorkspace({
                             contractId: contract.contractId,
                           });
                           return result.contractStatus === "FINALIZED"
-                            ? "تم تسجيل آخر توقيع — العقد مكتمل ومجمّد."
-                            : "تم تسجيل التوقيع بالترتيب الصحيح.";
+                            ? t("contracts.workspace.finalizedNotice")
+                            : t("contracts.workspace.signedNotice");
                         })
                       }
                     >
-                      توقيع (حسب الدور)
+                      {t("contracts.workspace.sign")}
                     </button>
                   ) : null}
                 </div>
@@ -348,55 +368,65 @@ export function ContractsWorkspace({
 
       {detail ? (
         <section className={styles.panel} aria-labelledby="detail-heading">
-          <h2 id="detail-heading">تفاصيل العقد</h2>
+          <h2 id="detail-heading">{t("contracts.workspace.detailTitle")}</h2>
           <p className={styles.disclaimer}>{detail.disclaimer}</p>
           <dl className={styles.details}>
-            <dt>العنوان</dt>
+            <dt>{t("contracts.workspace.dtTitle")}</dt>
             <dd>{detail.title}</dd>
-            <dt>الحالة</dt>
-            <dd>{CONTRACT_STATUS_LABELS[detail.status]}</dd>
-            <dt>العقار (من اللقطة)</dt>
+            <dt>{t("contracts.workspace.dtStatus")}</dt>
+            <dd>{t(CONTRACT_STATUS_LABELS[detail.status])}</dd>
+            <dt>{t("contracts.workspace.dtProperty")}</dt>
             <dd>
               {detail.propertyTitle} — {detail.propertyType} —{" "}
               {detail.propertyAddress}
             </dd>
-            <dt>الجهة</dt>
+            <dt>{t("contracts.workspace.dtOrg")}</dt>
             <dd>{detail.organizationName}</dd>
-            <dt>تاريخ اللقطة</dt>
+            <dt>{t("contracts.workspace.dtCapturedAt")}</dt>
             <dd>{detail.capturedAt}</dd>
-            <dt>بصمة المستند (PDF)</dt>
+            <dt>{t("contracts.workspace.dtPdfHash")}</dt>
             <dd className={styles.hashLine}>{detail.pdfSha256}</dd>
-            <dt>بصمة المحتوى</dt>
+            <dt>{t("contracts.workspace.dtContentHash")}</dt>
             <dd className={styles.hashLine}>{detail.contentHash}</dd>
           </dl>
           <pre className={styles.body}>{detail.body}</pre>
-          <h3>خط التوقيع التسلسلي</h3>
+          <h3>{t("contracts.workspace.signersTitle")}</h3>
           <ol className={styles.signers}>
             {detail.signers.map((signer) => (
               <li key={signer.userId}>
                 {signer.order}.{" "}
-                {CONTRACT_ROLE_LABELS[signer.role] ?? signer.role} —{" "}
-                {signer.reference} —{" "}
+                {CONTRACT_ROLE_LABELS[signer.role]
+                  ? t(CONTRACT_ROLE_LABELS[signer.role])
+                  : signer.role}{" "}
+                — {signer.reference} —{" "}
                 {signer.signedAt
-                  ? `وُقّع ${signer.signedAt} (${shortHash(signer.documentHash ?? "")}…)`
+                  ? t("contracts.workspace.signedAt", {
+                      at: signer.signedAt,
+                      hash: shortHash(signer.documentHash ?? ""),
+                    })
                   : detail.status === "DRAFT"
-                    ? "بانتظار دوره بالترتيب"
-                    : "لم يُوقّع"}
+                    ? t("contracts.workspace.awaitingTurn")
+                    : t("contracts.workspace.notSigned")}
               </li>
             ))}
           </ol>
           {detail.nextSignerOrder !== null ? (
             <p className={styles.meta}>
-              الدور المطلوب الآن: التوقيع رقم {detail.nextSignerOrder} — الرفض
-              خارج الترتيب إلزامي.
+              {t("contracts.workspace.nextSignerRequired", {
+                order: detail.nextSignerOrder,
+              })}
             </p>
           ) : null}
-          <h3>السجل التدقيقي (إلحاقي فقط)</h3>
+          <h3>{t("contracts.workspace.auditTitle")}</h3>
           <ul className={styles.auditList}>
             {detail.auditEvents.map((event) => (
               <li key={event.eventId}>
-                {CONTRACT_AUDIT_LABELS[event.action]} — {event.createdAt}
-                {event.reason ? ` — السبب: ${event.reason}` : ""}
+                {t(CONTRACT_AUDIT_LABELS[event.action])} — {event.createdAt}
+                {event.reason
+                  ? t("contracts.workspace.auditReason", {
+                      reason: event.reason,
+                    })
+                  : ""}
               </li>
             ))}
           </ul>
@@ -411,20 +441,22 @@ export function ContractsWorkspace({
                       await requestAmendment({
                         organizationId,
                         contractId: detail.contractId,
-                        reason: "طلب تعديل قبل التوقيع النهائي",
+                        reason: t("contracts.workspace.amendmentReason"),
                       });
-                      return "سُجّل طلب التعديل في السجل التدقيقي (المستند نفسه غير قابل للتعديل).";
+                      return t("contracts.workspace.amendmentNotice");
                     })
                   }
                 >
-                  طلب تعديل (توثيق فقط)
+                  {t("contracts.workspace.requestAmendment")}
                 </button>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() =>
                     run(async () => {
-                      const reason = window.prompt("سبب إلغاء العقد (إلزامي):");
+                      const reason = window.prompt(
+                        t("contracts.workspace.voidPrompt"),
+                      );
                       if (!reason || reason.trim().length === 0)
                         return undefined;
                       await voidContract({
@@ -432,11 +464,11 @@ export function ContractsWorkspace({
                         contractId: detail.contractId,
                         reason: reason.trim(),
                       });
-                      return "أُلغي العقد وسُجّل السبب — لا تعديل بعده.";
+                      return t("contracts.workspace.voidedNotice");
                     })
                   }
                 >
-                  إلغاء (مالك فقط)
+                  {t("contracts.workspace.void")}
                 </button>
               </>
             ) : null}
@@ -445,7 +477,7 @@ export function ContractsWorkspace({
               disabled={busy}
               onClick={() => setDetail(null)}
             >
-              إغلاق التفاصيل
+              {t("contracts.workspace.closeDetail")}
             </button>
           </div>
         </section>

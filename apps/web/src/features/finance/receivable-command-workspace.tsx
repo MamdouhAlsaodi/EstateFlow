@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "../../i18n";
 import { createApiClient } from "../../lib/api-client/index";
 import { createSessionCsrfProvider } from "../../lib/api-client/session";
 import { useOrganizationContext } from "../organization-context/organization-context";
@@ -25,6 +26,7 @@ const apiClient = createApiClient();
 const sessionCsrfProvider = createSessionCsrfProvider(apiClient);
 
 export function ReceivableCommandWorkspace() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [form, setForm] = useState<ReceivableFormState>(EMPTY_RECEIVABLE_FORM);
   const [pending, setPending] = useState<ReceivableCommand | null>(null);
@@ -49,16 +51,16 @@ export function ReceivableCommandWorkspace() {
       setMessage({
         kind: "success",
         text: isReceivableReplay(result)
-          ? "الأمر مطابق لعملية سابقة؛ لم تُنشأ حركة مالية مكررة."
-          : receivableSuccessMessage(command),
+          ? t("finance.receivable.replayNotice")
+          : t(receivableSuccessMessage(command)),
       });
     } catch (error) {
       if (isSessionError(error)) sessionCsrfProvider.clear();
       setMessage({
         kind: "error",
         text: isSessionError(error)
-          ? "انتهت الجلسة. أعد التحقق ثم نفّذ الأمر مرة أخرى."
-          : "تعذر تنفيذ الأمر. بقيت البيانات كما هي لتراجعها وتحاول مجددًا.",
+          ? t("finance.receivable.sessionExpired")
+          : t("finance.command.actionFailed"),
       });
     } finally {
       setPending(null);
@@ -71,7 +73,7 @@ export function ReceivableCommandWorkspace() {
       !isAmount(form.draftAmountMinor) ||
       !isCurrency(form.draftCurrency)
     ) {
-      validation("تحقق من معرّف الصفقة والمبلغ والعملة.");
+      validation(t("finance.receivable.draftValidation"));
       return;
     }
     void run(
@@ -96,9 +98,7 @@ export function ReceivableCommandWorkspace() {
       !isUtc(form.dueAt) ||
       Date.parse(form.dueAt) < Date.parse(form.issuedAt)
     ) {
-      validation(
-        "تحقق من المعرّفات والتواريخ؛ موعد الاستحقاق لا يسبق الإصدار.",
-      );
+      validation(t("finance.receivable.issueValidation"));
       return;
     }
     void run(
@@ -130,7 +130,7 @@ export function ReceivableCommandWorkspace() {
       !isCurrency(form.paymentCurrency) ||
       !isUtc(form.recordedAt)
     ) {
-      validation("تحقق من معرّف المستحق والمبلغ والعملة ووقت التسجيل.");
+      validation(t("finance.receivable.paymentValidation"));
       return;
     }
     void run(
@@ -166,69 +166,69 @@ export function ReceivableCommandWorkspace() {
   return (
     <section className={styles.workspace} aria-labelledby="receivable-title">
       <header className={styles.heading}>
-        <p className="eyebrow">الفواتير والمستحقات</p>
-        <h1 id="receivable-title">مسار التحصيل</h1>
-        <p>
-          ثلاثة أوامر مالية واضحة للمؤسسة الحالية. كل مرحلة تعتمد على معرّفات
-          مؤكدة، وتظهر أسفلها أدوات الإلغاء وقراءة أعمار المستحقات.
-        </p>
+        <p className="eyebrow">{t("finance.receivable.eyebrow")}</p>
+        <h1 id="receivable-title">{t("finance.receivable.title")}</h1>
+        <p>{t("finance.receivable.subtitle")}</p>
       </header>
 
-      <div className={styles.rail} aria-label="مراحل التحصيل الثلاث">
+      <div
+        className={styles.rail}
+        aria-label={t("finance.receivable.railAria")}
+      >
         <FinanceCommandForm
-          index="١"
-          title="إنشاء مسودة فاتورة"
-          note="حدد الصفقة والمبلغ الصريح قبل تثبيت الفاتورة."
+          index={t("finance.stepIndex.1")}
+          title={t("finance.receivable.draftTitle")}
+          note={t("finance.receivable.draftNote")}
           pending={pending === "draft"}
           disabled={pending !== null}
-          action="إنشاء المسودة"
+          action={t("finance.receivable.draftAction")}
           onSubmit={submitDraft}
         >
           <TechnicalField
-            label="معرّف الصفقة"
+            label={t("finance.field.dealId")}
             value={form.dealId}
             onChange={(value) => update("dealId", value)}
           />
           <TechnicalField
-            label="المبلغ بوحدة صغرى"
+            label={t("finance.field.amountMinor")}
             value={form.draftAmountMinor}
             inputMode="numeric"
             onChange={(value) => update("draftAmountMinor", value)}
           />
           <TechnicalField
-            label="العملة"
+            label={t("finance.field.currency")}
             value={form.draftCurrency}
             onChange={(value) => update("draftCurrency", value.toUpperCase())}
           />
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٢"
-          title="إصدار الفاتورة"
-          note="الإصدار يثبت المبلغ وينشئ مستحقًا واحدًا."
+          index={t("finance.stepIndex.2")}
+          title={t("finance.receivable.issueTitle")}
+          note={t("finance.receivable.issueNote")}
           pending={pending === "issue"}
           disabled={pending !== null}
-          action="إصدار الفاتورة"
+          action={t("finance.receivable.issueAction")}
           onSubmit={submitIssue}
         >
           <TechnicalField
-            label="معرّف الفاتورة"
+            label={t("finance.receivable.invoiceIdLabel")}
             value={form.invoiceId}
             onChange={(value) => update("invoiceId", value)}
           />
           <TechnicalField
-            label="معرّف المستحق الجديد"
+            label={t("finance.receivable.newReceivableIdLabel")}
             value={form.receivableId}
             onChange={(value) => update("receivableId", value)}
           />
           <TechnicalField
-            label="وقت الإصدار UTC"
+            label={t("finance.receivable.issuedAtLabel")}
             placeholder="2026-08-17T10:00:00.000Z"
             value={form.issuedAt}
             onChange={(value) => update("issuedAt", value)}
           />
           <TechnicalField
-            label="موعد الاستحقاق UTC"
+            label={t("finance.receivable.dueAtLabel")}
             placeholder="2026-09-17T10:00:00.000Z"
             value={form.dueAt}
             onChange={(value) => update("dueAt", value)}
@@ -236,32 +236,32 @@ export function ReceivableCommandWorkspace() {
         </FinanceCommandForm>
 
         <FinanceCommandForm
-          index="٣"
-          title="تسجيل دفعة"
-          note="أعد المحاولة بأمان عند انقطاع الطلب؛ هوية الدفعة تبقى ثابتة حتى النجاح."
+          index={t("finance.stepIndex.3")}
+          title={t("finance.receivable.paymentTitle")}
+          note={t("finance.receivable.paymentNote")}
           pending={pending === "payment"}
           disabled={pending !== null}
-          action="تسجيل الدفعة"
+          action={t("finance.receivable.paymentAction")}
           onSubmit={submitPayment}
         >
           <TechnicalField
-            label="معرّف المستحق"
+            label={t("finance.receivable.receivableIdLabel")}
             value={form.paymentReceivableId}
             onChange={(value) => update("paymentReceivableId", value)}
           />
           <TechnicalField
-            label="المبلغ بوحدة صغرى"
+            label={t("finance.field.amountMinor")}
             value={form.paymentAmountMinor}
             inputMode="numeric"
             onChange={(value) => update("paymentAmountMinor", value)}
           />
           <TechnicalField
-            label="العملة"
+            label={t("finance.field.currency")}
             value={form.paymentCurrency}
             onChange={(value) => update("paymentCurrency", value.toUpperCase())}
           />
           <TechnicalField
-            label="وقت التسجيل UTC"
+            label={t("finance.receivable.recordedAtLabel")}
             placeholder="2026-08-18T10:00:00.000Z"
             value={form.recordedAt}
             onChange={(value) => update("recordedAt", value)}
@@ -284,7 +284,7 @@ export function ReceivableCommandWorkspace() {
                 void sessionCsrfProvider.getToken();
               }}
             >
-              إعادة التحقق من الجلسة
+              {t("finance.command.reauthButton")}
             </button>
           )}
         </div>

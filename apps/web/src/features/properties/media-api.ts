@@ -103,7 +103,9 @@ export async function uploadMediaBytes(input: {
     },
   );
   if (!response.ok) {
-    throw new Error("فشل الرفع المباشر إلى التخزين");
+    // EF-630: stable failure code; the workspace renders the localized
+    // message from the catalog.
+    throw new Error("MEDIA_DIRECT_UPLOAD_FAILED");
   }
 }
 

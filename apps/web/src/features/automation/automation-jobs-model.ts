@@ -1,13 +1,15 @@
 import { ApiError } from "../../lib/api-client/index";
+import type { MessageKey } from "../../i18n";
 
 /**
- * EF-306 — Arabic error mapping for automation rule/job actions. Pure so the
- * authority-matrix wording is testable without a browser.
+ * EF-306 — error mapping for automation rule/job actions. Pure so the
+ * authority-matrix mapping is testable without a browser. EF-630: the model
+ * returns a message KEY; the views resolve it through the translator.
  */
 
 export type AutomationActionError = Readonly<{
   kind: "forbidden" | "stale" | "missing" | "session" | "error";
-  message: string;
+  messageKey: MessageKey;
 }>;
 
 export function getAutomationActionError(
@@ -17,21 +19,21 @@ export function getAutomationActionError(
     if (error.status === 401 || error.status === 403)
       return {
         kind: "forbidden",
-        message: "غير مصرّح: هذه الإجراءات متاحة لصاحب المؤسسة أو المدير فقط.",
+        messageKey: "automation.action.forbidden",
       };
     if (error.status === 404)
       return {
         kind: "missing",
-        message: "العنصر غير موجود في هذه المؤسسة.",
+        messageKey: "automation.action.notFound",
       };
     if (error.status === 409)
       return {
         kind: "stale",
-        message: "تغيرت حالة الوظيفة؛ تم تحديث القائمة بدون تنفيذ مكرر.",
+        messageKey: "automation.action.stale",
       };
   }
   return {
     kind: "error",
-    message: "تعذر تنفيذ الإجراء. تحقق من الجلسة ثم حاول مرة أخرى.",
+    messageKey: "automation.action.generic",
   };
 }

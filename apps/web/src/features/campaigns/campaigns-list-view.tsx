@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
+import { labelFromKey, useT } from "../../i18n";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   CAMPAIGN_CHANNELS,
@@ -36,6 +37,7 @@ const EMPTY_FORM = {
  * guarded command; every figure comes from the strict API contract.
  */
 export function CampaignsListView() {
+  const t = useT();
   const { organizationId } = useOrganizationContext();
   const [page, setPage] = useState<CampaignListPage | null>(null);
   const [analytics, setAnalytics] = useState<CampaignAnalyticsResponse | null>(
@@ -57,7 +59,7 @@ export function CampaignsListView() {
       setPage(campaignPage);
       setAnalytics(organizationAnalytics);
     } catch {
-      setError("تعذر تحميل الحملات من الخادم. حاول مرة أخرى.");
+      setError(t("campaigns.list.loadFailed"));
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ export function CampaignsListView() {
       !/^[1-9]\d*$/.test(form.budgetPlannedMinor) ||
       !/^[A-Z]{3}$/.test(form.currency)
     ) {
-      setError("تحقق من الحقول: الاسم، الهدف، التواريخ UTC، والميزانية.");
+      setError(t("campaigns.list.validation"));
       return;
     }
     setPending(true);
@@ -82,7 +84,7 @@ export function CampaignsListView() {
       setForm(EMPTY_FORM);
       await refresh();
     } catch {
-      setError("تعذر إنشاء الحملة. تحقق من صلاحياتك وحاول مجددًا.");
+      setError(t("campaigns.list.createFailed"));
     } finally {
       setPending(false);
     }
@@ -91,12 +93,9 @@ export function CampaignsListView() {
   return (
     <div className="workspace-stack">
       <section aria-labelledby="campaigns-title">
-        <p className="eyebrow">EF-401 — الحملات والإسناد</p>
-        <h1 id="campaigns-title">الحملات التسويقية</h1>
-        <p>
-          الميزانية المخططة مقابل الفعلية من المصروفات المعتمدة المرتبطة
-          بالحملة، مع عدد لمسات العملاء المرتبطة.
-        </p>
+        <p className="eyebrow">{t("campaigns.list.eyebrow")}</p>
+        <h1 id="campaigns-title">{t("campaigns.list.title")}</h1>
+        <p>{t("campaigns.list.subtitle")}</p>
         <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
           <button
             className="button button-secondary"
@@ -104,7 +103,9 @@ export function CampaignsListView() {
             onClick={() => void run(refresh)}
             disabled={loading || pending}
           >
-            {loading ? "جارٍ التحميل…" : "تحديث القائمة"}
+            {loading
+              ? t("campaigns.list.loading")
+              : t("campaigns.list.refresh")}
           </button>
         </div>
         {error && (
@@ -117,11 +118,11 @@ export function CampaignsListView() {
       {analytics && <CampaignAnalyticsSummary response={analytics} />}
 
       <section aria-labelledby="campaign-list-title">
-        <h2 id="campaign-list-title">قائمة الحملات</h2>
+        <h2 id="campaign-list-title">{t("campaigns.list.sectionTitle")}</h2>
         {!page ? (
-          <p>اضغط «تحديث القائمة» للعرض.</p>
+          <p>{t("campaigns.list.pressRefresh")}</p>
         ) : page.items.length === 0 ? (
-          <p>لا توجد حملات بعد.</p>
+          <p>{t("campaigns.list.empty")}</p>
         ) : (
           <ul
             style={{
@@ -138,16 +139,16 @@ export function CampaignsListView() {
         )}
         {page?.nextCursor && (
           <p style={{ color: "var(--ef-ink-muted)" }}>
-            توجد حملات إضافية — استخدم تصفية الحالة لتضييق القائمة.
+            {t("campaigns.list.morePages")}
           </p>
         )}
       </section>
 
       <section aria-labelledby="campaign-create-title">
-        <h2 id="campaign-create-title">حملة جديدة</h2>
+        <h2 id="campaign-create-title">{t("campaigns.list.createTitle")}</h2>
         <div className={styles.formGrid}>
           <label>
-            الاسم
+            {t("campaigns.list.nameLabel")}
             <input
               value={form.name}
               onChange={(event) =>
@@ -156,7 +157,7 @@ export function CampaignsListView() {
             />
           </label>
           <label>
-            الهدف
+            {t("campaigns.list.objectiveLabel")}
             <input
               value={form.objective}
               onChange={(event) =>
@@ -165,7 +166,7 @@ export function CampaignsListView() {
             />
           </label>
           <label>
-            القناة
+            {t("campaigns.list.channelLabel")}
             <select
               value={form.channel}
               onChange={(event) =>
@@ -174,13 +175,13 @@ export function CampaignsListView() {
             >
               {CAMPAIGN_CHANNELS.map((channel) => (
                 <option key={channel} value={channel}>
-                  {campaignChannelLabels[channel]}
+                  {labelFromKey(campaignChannelLabels, t, channel, channel)}
                 </option>
               ))}
             </select>
           </label>
           <label>
-            البداية (UTC)
+            {t("campaigns.list.startsLabel")}
             <input
               placeholder="2026-10-01T00:00:00.000Z"
               value={form.startsAt}
@@ -191,7 +192,7 @@ export function CampaignsListView() {
             />
           </label>
           <label>
-            النهاية (UTC)
+            {t("campaigns.list.endsLabel")}
             <input
               placeholder="2026-10-31T23:59:59.999Z"
               value={form.endsAt}
@@ -202,7 +203,7 @@ export function CampaignsListView() {
             />
           </label>
           <label>
-            الميزانية المخططة (أصغر وحدة)
+            {t("campaigns.list.budgetLabel")}
             <input
               value={form.budgetPlannedMinor}
               onChange={(event) =>
@@ -212,7 +213,7 @@ export function CampaignsListView() {
             />
           </label>
           <label>
-            العملة
+            {t("campaigns.list.currencyLabel")}
             <input
               value={form.currency}
               onChange={(event) =>
@@ -259,7 +260,9 @@ export function CampaignsListView() {
             disabled={pending}
             onClick={() => void submitCreate()}
           >
-            {pending ? "جارٍ الإنشاء…" : "إنشاء الحملة"}
+            {pending
+              ? t("campaigns.list.creating")
+              : t("campaigns.list.create")}
           </button>
         </div>
       </section>
@@ -278,6 +281,7 @@ export function CampaignsListView() {
 }
 
 function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
+  const t = useT();
   return (
     <li
       style={{
@@ -301,7 +305,12 @@ function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
         </Link>
         <StatusChip status={campaign.status} />
         <span style={{ color: "var(--ef-ink-muted)" }}>
-          {campaignChannelLabels[campaign.channel]}
+          {labelFromKey(
+            campaignChannelLabels,
+            t,
+            campaign.channel,
+            campaign.channel,
+          )}
         </span>
       </div>
       <p style={{ margin: 0 }}>{campaign.objective}</p>
@@ -311,7 +320,7 @@ function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
         currency={campaign.currency}
       />
       <span style={{ color: "var(--ef-ink-muted)" }}>
-        لمسات مرتبطة: {campaign.touchCount}
+        {t("campaigns.list.touches", { count: campaign.touchCount })}
       </span>
     </li>
   );
@@ -320,6 +329,7 @@ function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
 function CampaignAnalyticsSummary({
   response,
 }: Readonly<{ response: CampaignAnalyticsResponse }>) {
+  const t = useT();
   const { analytics } = response;
   const planned = analytics.plannedBudget[0];
   const spend = planned
@@ -330,7 +340,7 @@ function CampaignAnalyticsSummary({
       className={styles.panel}
       aria-labelledby="campaign-analytics-title"
     >
-      <h2 id="campaign-analytics-title">ملخص تحليلات التسويق</h2>
+      <h2 id="campaign-analytics-title">{t("campaigns.analytics.title")}</h2>
       {planned ? (
         <BudgetProgressBar
           plannedMinor={planned.amountMinor}
@@ -338,23 +348,23 @@ function CampaignAnalyticsSummary({
           currency={planned.currency}
         />
       ) : (
-        <p>لا توجد ميزانيات حملات بعد.</p>
+        <p>{t("campaigns.analytics.noBudgets")}</p>
       )}
       <div className={styles.analyticsGrid}>
         <div>
-          <strong>اللمسات</strong>
+          <strong>{t("campaigns.analytics.touches")}</strong>
           <p>{analytics.touchCount}</p>
         </div>
         <div>
-          <strong>عملاء أول لمسة</strong>
+          <strong>{t("campaigns.analytics.firstTouchLeads")}</strong>
           <p>{analytics.attribution.firstTouchLeadCount}</p>
         </div>
         <div>
-          <strong>عملاء آخر لمسة</strong>
+          <strong>{t("campaigns.analytics.lastTouchLeads")}</strong>
           <p>{analytics.attribution.lastTouchLeadCount}</p>
         </div>
         <div>
-          <strong>الفوز المنسوب</strong>
+          <strong>{t("campaigns.analytics.attributedWins")}</strong>
           <p>
             {analytics.attribution.firstTouchWinCount} /{" "}
             {analytics.attribution.lastTouchWinCount}
@@ -362,13 +372,17 @@ function CampaignAnalyticsSummary({
         </div>
       </div>
       <p className={styles.muted}>
-        آخر تحديث: <span dir="ltr">{response.asOf}</span>
+        {t("campaigns.analytics.lastUpdatePrefix")}{" "}
+        <span dir="ltr">{response.asOf}</span>
       </p>
       {analytics.publishedContent.length > 0 && (
         <ul className={styles.analyticsChannels}>
           {analytics.publishedContent.map((item) => (
             <li key={item.channel}>
-              منشور {item.channel}: <strong>{item.count}</strong>
+              {t("campaigns.analytics.publishedByChannel", {
+                channel: item.channel,
+              })}{" "}
+              <strong>{item.count}</strong>
             </li>
           ))}
         </ul>
@@ -378,6 +392,7 @@ function CampaignAnalyticsSummary({
 }
 
 export function StatusChip({ status }: { status: CampaignSummary["status"] }) {
+  const t = useT();
   const className =
     status === "ACTIVE"
       ? `${styles.statusChip} ${styles.statusActive}`
@@ -386,5 +401,9 @@ export function StatusChip({ status }: { status: CampaignSummary["status"] }) {
         : status === "CANCELLED"
           ? `${styles.statusChip} ${styles.statusCancelled}`
           : `${styles.statusChip} ${styles.statusDraft}`;
-  return <span className={className}>{campaignStatusLabels[status]}</span>;
+  return (
+    <span className={className}>
+      {labelFromKey(campaignStatusLabels, t, status, status)}
+    </span>
+  );
 }
