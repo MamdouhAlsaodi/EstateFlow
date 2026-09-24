@@ -5,11 +5,16 @@ import Link from "next/link";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import {
   CAMPAIGN_CHANNELS,
+  type CampaignAnalyticsResponse,
   type CampaignListPage,
   type CampaignSummary,
 } from "./campaign-contract";
 import { campaignChannelLabels, campaignStatusLabels } from "./campaign-labels";
-import { createCampaign, fetchCampaigns } from "./campaign-api";
+import {
+  createCampaign,
+  fetchCampaigns,
+  fetchOrganizationCampaignAnalytics,
+} from "./campaign-api";
 import { BudgetProgressBar } from "./budget-progress";
 import styles from "./campaign-views.module.css";
 
@@ -33,6 +38,9 @@ const EMPTY_FORM = {
 export function CampaignsListView() {
   const { organizationId } = useOrganizationContext();
   const [page, setPage] = useState<CampaignListPage | null>(null);
+  const [analytics, setAnalytics] = useState<CampaignAnalyticsResponse | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +50,12 @@ export function CampaignsListView() {
     setLoading(true);
     setError(null);
     try {
-      setPage(await fetchCampaigns({ organizationId }));
+      const [campaignPage, organizationAnalytics] = await Promise.all([
+        fetchCampaigns({ organizationId }),
+        fetchOrganizationCampaignAnalytics({ organizationId }),
+      ]);
+      setPage(campaignPage);
+      setAnalytics(organizationAnalytics);
     } catch {
       setError("تعذر تحميل الحملات من الخادم. حاول مرة أخرى.");
     } finally {
@@ -100,6 +113,8 @@ export function CampaignsListView() {
           </div>
         )}
       </section>
+
+      {analytics && <CampaignAnalyticsSummary response={analytics} />}
 
       <section aria-labelledby="campaign-list-title">
         <h2 id="campaign-list-title">قائمة الحملات</h2>
@@ -299,6 +314,66 @@ function CampaignCard({ campaign }: { campaign: CampaignSummary }) {
         لمسات مرتبطة: {campaign.touchCount}
       </span>
     </li>
+  );
+}
+
+function CampaignAnalyticsSummary({
+  response,
+}: Readonly<{ response: CampaignAnalyticsResponse }>) {
+  const { analytics } = response;
+  const planned = analytics.plannedBudget[0];
+  const spend = planned
+    ? analytics.approvedSpend.find((row) => row.currency === planned.currency)
+    : undefined;
+  return (
+    <section
+      className={styles.panel}
+      aria-labelledby="campaign-analytics-title"
+    >
+      <h2 id="campaign-analytics-title">ملخص تحليلات التسويق</h2>
+      {planned ? (
+        <BudgetProgressBar
+          plannedMinor={planned.amountMinor}
+          actualMinor={spend?.amountMinor}
+          currency={planned.currency}
+        />
+      ) : (
+        <p>لا توجد ميزانيات حملات بعد.</p>
+      )}
+      <div className={styles.analyticsGrid}>
+        <div>
+          <strong>اللمسات</strong>
+          <p>{analytics.touchCount}</p>
+        </div>
+        <div>
+          <strong>عملاء أول لمسة</strong>
+          <p>{analytics.attribution.firstTouchLeadCount}</p>
+        </div>
+        <div>
+          <strong>عملاء آخر لمسة</strong>
+          <p>{analytics.attribution.lastTouchLeadCount}</p>
+        </div>
+        <div>
+          <strong>الفوز المنسوب</strong>
+          <p>
+            {analytics.attribution.firstTouchWinCount} /{" "}
+            {analytics.attribution.lastTouchWinCount}
+          </p>
+        </div>
+      </div>
+      <p className={styles.muted}>
+        آخر تحديث: <span dir="ltr">{response.asOf}</span>
+      </p>
+      {analytics.publishedContent.length > 0 && (
+        <ul className={styles.analyticsChannels}>
+          {analytics.publishedContent.map((item) => (
+            <li key={item.channel}>
+              منشور {item.channel}: <strong>{item.count}</strong>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

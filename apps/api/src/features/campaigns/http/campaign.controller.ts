@@ -56,6 +56,8 @@ import {
   budgetCorrectionBody,
   campaignDetailResponse,
   campaignListResponse,
+  campaignAnalyticsResponse,
+  organizationAnalyticsResponse,
   campaignPerformanceEntriesResponse,
   createCampaignBody,
   cursorParameter,
@@ -171,6 +173,30 @@ export class CampaignController {
     );
   }
 
+  @Get("organizations/:organizationId/campaigns/analytics")
+  @ApiOperation({ operationId: "CampaignController_organizationAnalytics" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: organizationAnalyticsResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async organizationAnalytics(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(() =>
+      this.campaigns.getOrganizationAnalytics({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+      }),
+    );
+  }
+
   @Get("organizations/:organizationId/campaigns/:campaignId")
   @ApiOperation({ operationId: "CampaignController_find" })
   @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
@@ -191,6 +217,34 @@ export class CampaignController {
   ) {
     return this.execute(() =>
       this.campaigns.getCampaign({
+        actor: this.actor(request),
+        userId: request.auth.userId,
+        organizationId,
+        campaignId,
+      }),
+    );
+  }
+
+  @Get("organizations/:organizationId/campaigns/:campaignId/analytics")
+  @ApiOperation({ operationId: "CampaignController_campaignAnalytics" })
+  @ApiParam({ name: "organizationId", required: true, schema: uuidParameter })
+  @ApiParam({ name: "campaignId", required: true, schema: uuidParameter })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    content: { "application/json": { schema: campaignAnalyticsResponse } },
+  })
+  @ApiResponse({ status: HttpStatus.UNAUTHORIZED })
+  @ApiResponse({ status: HttpStatus.FORBIDDEN })
+  @ApiResponse({ status: HttpStatus.NOT_FOUND })
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(BrowserSessionGuard)
+  async campaignAnalytics(
+    @Param("organizationId", new ParseUUIDPipe()) organizationId: string,
+    @Param("campaignId", new ParseUUIDPipe()) campaignId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.execute(() =>
+      this.campaigns.getCampaignAnalytics({
         actor: this.actor(request),
         userId: request.auth.userId,
         organizationId,

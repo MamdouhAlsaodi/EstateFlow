@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { useOrganizationContext } from "../organization-context/organization-context";
 import type {
+  CampaignAnalyticsResponse,
   CampaignDetailResponse,
   LeadAttribution,
   PerformanceEntry,
@@ -15,6 +16,7 @@ import {
 } from "./campaign-labels";
 import {
   correctCampaignBudget,
+  fetchCampaignAnalytics,
   correctLeadAttribution,
   fetchCampaignDetail,
   fetchCampaignPerformanceEntries,
@@ -35,6 +37,9 @@ export function CampaignDetailView({
 }: Readonly<{ campaignId: string }>) {
   const { organizationId } = useOrganizationContext();
   const [detail, setDetail] = useState<CampaignDetailResponse | null>(null);
+  const [analytics, setAnalytics] = useState<CampaignAnalyticsResponse | null>(
+    null,
+  );
   const [entries, setEntries] = useState<readonly PerformanceEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
@@ -48,12 +53,14 @@ export function CampaignDetailView({
     setLoading(true);
     setError(null);
     try {
-      const [detailPage, entryPage] = await Promise.all([
+      const [detailPage, entryPage, analyticsPage] = await Promise.all([
         fetchCampaignDetail({ organizationId, campaignId }),
         fetchCampaignPerformanceEntries({ organizationId, campaignId }),
+        fetchCampaignAnalytics({ organizationId, campaignId }),
       ]);
       setDetail(detailPage);
       setEntries(entryPage.items);
+      setAnalytics(analyticsPage);
     } catch {
       setError("تعذر تحميل الحملة من الخادم.");
     } finally {
@@ -195,6 +202,73 @@ export function CampaignDetailView({
               >
                 تسجيل تصحيح ميزانية
               </button>
+            )}
+          </section>
+
+          <section className={styles.panel} aria-labelledby="analytics-title">
+            <h2 id="analytics-title">تحليلات الحملة</h2>
+            {analytics && (
+              <>
+                <BudgetProgressBar
+                  plannedMinor={
+                    analytics.analytics.plannedBudget[0]?.amountMinor ??
+                    campaign.budgetPlannedMinor
+                  }
+                  actualMinor={
+                    analytics.analytics.approvedSpend.find(
+                      (row) => row.currency === campaign.currency,
+                    )?.amountMinor
+                  }
+                  currency={campaign.currency}
+                />
+                <div className={styles.analyticsGrid}>
+                  <div>
+                    <strong>اللمسات</strong>
+                    <p>{analytics.analytics.touchCount}</p>
+                  </div>
+                  <div>
+                    <strong>أول لمسة</strong>
+                    <p>
+                      {analytics.analytics.attribution.firstTouchLeadCount}{" "}
+                      عملاء /{" "}
+                      {
+                        analytics.analytics.attribution
+                          .firstTouchQualifiedLeadCount
+                      }{" "}
+                      مؤهل
+                    </p>
+                  </div>
+                  <div>
+                    <strong>آخر لمسة</strong>
+                    <p>
+                      {analytics.analytics.attribution.lastTouchLeadCount} عملاء
+                      /{" "}
+                      {
+                        analytics.analytics.attribution
+                          .lastTouchQualifiedLeadCount
+                      }{" "}
+                      مؤهل
+                    </p>
+                  </div>
+                  <div>
+                    <strong>الفوز المنسوب</strong>
+                    <p>
+                      {analytics.analytics.attribution.firstTouchWinCount} /{" "}
+                      {analytics.analytics.attribution.lastTouchWinCount}
+                    </p>
+                  </div>
+                </div>
+                <ul className={styles.analyticsChannels}>
+                  {analytics.analytics.publishedContent.map((item) => (
+                    <li key={item.channel}>
+                      منشور {item.channel}: <strong>{item.count}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <p className={styles.muted}>
+                  تحديث البيانات: <span dir="ltr">{analytics.asOf}</span>
+                </p>
+              </>
             )}
           </section>
 

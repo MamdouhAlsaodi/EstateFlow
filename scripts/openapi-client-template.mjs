@@ -204,6 +204,10 @@ const commissionOperations = new Map([
 
 const uuidSchema = { type: "string", format: "uuid" };
 const amountMinorSchema = { type: "string", pattern: "^[1-9]\\d*$" };
+const signedAmountMinorSchema = {
+  type: "string",
+  pattern: "^-?(0|[1-9]\\d*)$",
+};
 const currencySchema = { type: "string", pattern: "^[A-Z]{3}$" };
 const instantSchema = {
   type: "string",
@@ -735,7 +739,141 @@ const campaignPagedSchema = (itemsSchema) => ({
   },
 });
 
+const analyticsMoneyRowSchema = {
+  type: "object",
+  required: ["currency", "count", "amountMinor"],
+  additionalProperties: false,
+  properties: {
+    currency: currencySchema,
+    count: { type: "integer", minimum: 0 },
+    amountMinor: signedAmountMinorSchema,
+  },
+};
+const analyticsAttributionSchema = {
+  type: "object",
+  required: [
+    "firstTouchLeadCount",
+    "firstTouchQualifiedLeadCount",
+    "firstTouchWinCount",
+    "firstTouchAttributedRevenue",
+    "lastTouchLeadCount",
+    "lastTouchQualifiedLeadCount",
+    "lastTouchWinCount",
+    "lastTouchAttributedRevenue",
+  ],
+  additionalProperties: false,
+  properties: {
+    firstTouchLeadCount: { type: "integer", minimum: 0 },
+    firstTouchQualifiedLeadCount: { type: "integer", minimum: 0 },
+    firstTouchWinCount: { type: "integer", minimum: 0 },
+    firstTouchAttributedRevenue: {
+      type: "array",
+      items: analyticsMoneyRowSchema,
+    },
+    lastTouchLeadCount: { type: "integer", minimum: 0 },
+    lastTouchQualifiedLeadCount: { type: "integer", minimum: 0 },
+    lastTouchWinCount: { type: "integer", minimum: 0 },
+    lastTouchAttributedRevenue: {
+      type: "array",
+      items: analyticsMoneyRowSchema,
+    },
+  },
+};
+const publishedContentCountSchema = {
+  type: "object",
+  required: ["channel", "count"],
+  additionalProperties: false,
+  properties: {
+    channel: { type: "string", minLength: 1 },
+    count: { type: "integer", minimum: 0 },
+  },
+};
+const analyticsMetricSchema = {
+  type: "object",
+  required: ["currency", "cpl", "cac", "roi"],
+  additionalProperties: false,
+  properties: {
+    currency: currencySchema,
+    cpl: { type: "string" },
+    cac: { type: "string" },
+    roi: { type: "string" },
+  },
+};
+const analyticsMetricsSchema = {
+  type: "object",
+  required: ["firstTouch", "lastTouch"],
+  additionalProperties: false,
+  properties: {
+    firstTouch: { type: "array", items: analyticsMetricSchema },
+    lastTouch: { type: "array", items: analyticsMetricSchema },
+  },
+};
+const campaignAnalyticsSchema = {
+  type: "object",
+  required: [
+    "campaignId",
+    "plannedBudget",
+    "approvedSpend",
+    "touchCount",
+    "attribution",
+    "publishedContent",
+  ],
+  additionalProperties: false,
+  properties: {
+    campaignId: uuidSchema,
+    plannedBudget: { type: "array", items: analyticsMoneyRowSchema },
+    approvedSpend: { type: "array", items: analyticsMoneyRowSchema },
+    touchCount: { type: "integer", minimum: 0 },
+    attribution: analyticsAttributionSchema,
+    publishedContent: { type: "array", items: publishedContentCountSchema },
+  },
+};
+const organizationAnalyticsSchema = {
+  type: "object",
+  required: [
+    "campaignCount",
+    "plannedBudget",
+    "approvedSpend",
+    "touchCount",
+    "attribution",
+    "publishedContent",
+  ],
+  additionalProperties: false,
+  properties: {
+    campaignId: uuidSchema,
+    campaignCount: { type: "integer", minimum: 0 },
+    plannedBudget: { type: "array", items: analyticsMoneyRowSchema },
+    approvedSpend: { type: "array", items: analyticsMoneyRowSchema },
+    touchCount: { type: "integer", minimum: 0 },
+    attribution: analyticsAttributionSchema,
+    publishedContent: { type: "array", items: publishedContentCountSchema },
+  },
+};
+const analyticsResponseSchema = (payload) => ({
+  type: "object",
+  required: ["asOf", "analytics", "metrics"],
+  additionalProperties: false,
+  properties: {
+    asOf: instantSchema,
+    analytics: payload,
+    metrics: analyticsMetricsSchema,
+  },
+});
+
 const campaignOperations = new Map([
+  [
+    "get /organizations/{organizationId}/campaigns/analytics",
+    {
+      operationId: "CampaignController_organizationAnalytics",
+      clientMethod: "getOrganizationCampaignAnalytics",
+      body: null,
+      responseSchema: analyticsResponseSchema(organizationAnalyticsSchema),
+      responseType: "OrganizationCampaignAnalyticsResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["401", "403"],
+      idempotency: false,
+    },
+  ],
   [
     "post /organizations/{organizationId}/campaigns",
     {
@@ -858,6 +996,19 @@ const campaignOperations = new Map([
       responseType: "CampaignListPage",
       successStatuses: ["200"],
       errorStatuses: ["400", "401", "403"],
+      idempotency: false,
+    },
+  ],
+  [
+    "get /organizations/{organizationId}/campaigns/{campaignId}/analytics",
+    {
+      operationId: "CampaignController_campaignAnalytics",
+      clientMethod: "getCampaignAnalytics",
+      body: null,
+      responseSchema: analyticsResponseSchema(campaignAnalyticsSchema),
+      responseType: "CampaignAnalyticsResponse",
+      successStatuses: ["200"],
+      errorStatuses: ["401", "403", "404"],
       idempotency: false,
     },
   ],
@@ -2971,6 +3122,8 @@ export function generateOpenApiClient(document) {
   const campaignTypes = [
     "CampaignListPage",
     "CampaignDetailResponse",
+    "CampaignAnalyticsResponse",
+    "OrganizationCampaignAnalyticsResponse",
     "CampaignPerformanceEntryPage",
     "LeadTouchPage",
     "LeadAttributionResponse",
