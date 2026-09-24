@@ -218,6 +218,10 @@ model Organization {
   viewings                         Viewing[]
   viewingTransitions               ViewingTransition[]
   mediaAssets                      MediaAsset[]
+  contractTemplates                ContractTemplate[]
+  contracts                        Contract[]
+  contractSignatures               ContractSignature[]
+  contractAuditEvents              ContractAuditEvent[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -610,6 +614,7 @@ model Deal {
   property       Property          @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
   broker         Membership        @relation("DealBrokerMembership", fields: [organizationId, brokerId], references: [organizationId, userId], onDelete: Restrict)
   domainEvents         DealDomainEvent[]
+  contracts            Contract[]
   commissionableValue  CommissionableValue?
   commissionAccruals   CommissionAccrual[]
   invoices             Invoice[]
@@ -1299,4 +1304,116 @@ model ContentDelivery {
   @@unique([organizationId, contentItemId, approvedVersion, channel])
   @@unique([publishJobId, organizationId])
   @@index([organizationId, deliveredAt])
+}
+
+// EF-610 — Contracts: operational simple e-sign, NOT a certified legal
+// signature. Org-scoped versioned contract templates with strict placeholders;
+// contracts are generated deterministically from (template version, deal/property
+// snapshot); the snapshot, rendered content, content hash and PDF hash are
+// immutable from creation (DB triggers); signing is strictly sequential over
+// the ordered snapshot signers; the audit trail is append-only.
+
+enum ContractStatus {
+  DRAFT
+  FINALIZED
+  VOID
+}
+
+enum ContractTemplateStatus {
+  DRAFT
+  APPROVED
+}
+
+enum ContractAuditAction {
+  GENERATED
+  AMEND_REQUESTED
+  SIGNATURE_RECORDED
+  FINALIZED
+  VOIDED
+}
+
+model ContractTemplate {
+  id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String                @db.Uuid
+  templateKey  String                  @db.VarChar(100)
+  version      Int
+  titlePattern String                  @db.VarChar(200)
+  bodyPattern  String                  @db.VarChar(8000)
+  status       ContractTemplateStatus  @default(DRAFT)
+  createdBy    String                  @db.Uuid
+  createdAt    DateTime                @default(now()) @db.Timestamptz(6)
+  approvedBy   String?                 @db.Uuid
+  approvedAt   DateTime?               @db.Timestamptz(6)
+  organization Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  contracts    Contract[]
+
+  @@unique([organizationId, templateKey, version])
+  @@unique([organizationId, id])
+  @@index([organizationId, status])
+}
+
+model Contract {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String         @db.Uuid
+  dealId          String         @db.Uuid
+  templateId      String         @db.Uuid
+  templateKey     String         @db.VarChar(100)
+  templateVersion Int
+  title           String         @db.VarChar(200)
+  body            String         @db.VarChar(8000)
+  contentHash     String         @db.Char(64)
+  snapshot        Json
+  pdfSha256       String         @db.Char(64)
+  pdfByteSize     Int
+  status          ContractStatus @default(DRAFT)
+  generatedBy     String         @db.Uuid
+  createdAt       DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @db.Timestamptz(6)
+  finalizedAt     DateTime?      @db.Timestamptz(6)
+  voidedBy        String?        @db.Uuid
+  voidedAt        DateTime?      @db.Timestamptz(6)
+  voidReason      String?        @db.VarChar(500)
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  deal            Deal           @relation(fields: [organizationId, dealId], references: [organizationId, id], onDelete: Restrict)
+  template        ContractTemplate @relation(fields: [organizationId, templateId], references: [organizationId, id], onDelete: Restrict)
+  signatures      ContractSignature[]
+  auditEvents     ContractAuditEvent[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, dealId, status])
+  @@index([organizationId, status, createdAt])
+}
+
+model ContractSignature {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @db.Uuid
+  contractId     String   @db.Uuid
+  signerOrder    Int
+  signerUserId   String   @db.Uuid
+  signerRole     String   @db.VarChar(20)
+  documentHash   String   @db.Char(64)
+  signedAt       DateTime @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+  contract       Contract @relation(fields: [organizationId, contractId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@unique([organizationId, contractId, signerOrder])
+  @@index([organizationId, contractId])
+}
+
+model ContractAuditEvent {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String             @db.Uuid
+  contractId     String             @db.Uuid
+  action         ContractAuditAction
+  actorId        String             @db.Uuid
+  reason         String?            @db.VarChar(500)
+  data           Json?
+  createdAt      DateTime           @default(now()) @db.Timestamptz(6)
+  contract       Contract           @relation(fields: [organizationId, contractId], references: [organizationId, id], onDelete: Restrict)
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, contractId, createdAt])
 }

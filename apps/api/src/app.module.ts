@@ -11,6 +11,7 @@ import { CampaignsModule } from "./features/campaigns/campaigns.module.js";
 import { ContentModule } from "./features/content/content.module.js";
 import { ViewingsModule } from "./features/viewings/viewings.module.js";
 import { MediaModule } from "./features/media/media.module.js";
+import { ContractsModule } from "./features/contracts/contracts.module.js";
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { MediaModule } from "./features/media/media.module.js";
     ContentModule,
     ViewingsModule,
     MediaModule,
+    ContractsModule,
   ],
 })
 export class AppModule {}
