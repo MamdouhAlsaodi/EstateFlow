@@ -118,6 +118,12 @@ export class PrismaPropertyRepository implements PropertyRepository {
           ...(changes.ownerReference !== undefined
             ? { ownerReference: changes.ownerReference as string | null }
             : {}),
+          ...(changes.latitude !== undefined
+            ? { latitude: changes.latitude as number | null }
+            : {}),
+          ...(changes.longitude !== undefined
+            ? { longitude: changes.longitude as number | null }
+            : {}),
           version: { increment: 1 },
         },
       });
