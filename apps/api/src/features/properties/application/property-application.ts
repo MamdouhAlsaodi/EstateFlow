@@ -81,6 +81,8 @@ export class PropertyApplication {
       propertyType: string;
       addressText: string;
       ownerReference?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
     };
     now?: Date;
   }): Promise<Property> {
@@ -105,6 +107,8 @@ export class PropertyApplication {
       propertyType?: string;
       addressText?: string;
       ownerReference?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
     };
     now?: Date;
   }): Promise<Property> {

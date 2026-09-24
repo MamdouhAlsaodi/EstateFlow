@@ -19,6 +19,8 @@ export type Property = {
   propertyType: string;
   addressText: string;
   ownerReference: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: PropertyStatus;
   version: number;
   createdAt: Date;
@@ -40,6 +42,30 @@ export class PropertyVersionConflictError extends Error {}
 export class PropertyTransitionError extends Error {}
 
 const MAX_TEXT_LENGTH = 500;
+
+function optionalCoordinate(value: unknown, field: string): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || !Number.isFinite(value))
+    throw new PropertyValidationError(`Invalid ${field}`);
+  if (field === "latitude" && (value < -90 || value > 90))
+    throw new PropertyValidationError(`Invalid ${field}`);
+  if (field === "longitude" && (value < -180 || value > 180))
+    throw new PropertyValidationError(`Invalid ${field}`);
+  return value;
+}
+
+function coordinates(
+  latitude: unknown,
+  longitude: unknown,
+): { latitude: number | null; longitude: number | null } {
+  const nextLatitude = optionalCoordinate(latitude, "latitude");
+  const nextLongitude = optionalCoordinate(longitude, "longitude");
+  if ((nextLatitude === null) !== (nextLongitude === null))
+    throw new PropertyValidationError(
+      "Latitude and longitude must be supplied together",
+    );
+  return { latitude: nextLatitude, longitude: nextLongitude };
+}
 
 function requiredText(value: unknown, field: string): string {
   if (
@@ -73,8 +99,11 @@ export function createProperty(input: {
   propertyType: string;
   addressText: string;
   ownerReference?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   now: Date;
 }): Property {
+  const location = coordinates(input.latitude, input.longitude);
   return {
     id: input.id,
     organizationId: input.organizationId,
@@ -82,6 +111,7 @@ export function createProperty(input: {
     propertyType: requiredText(input.propertyType, "propertyType"),
     addressText: requiredText(input.addressText, "addressText"),
     ownerReference: optionalText(input.ownerReference),
+    ...location,
     status: PropertyStatus.ACTIVE,
     version: 1,
     createdAt: input.now,
@@ -97,6 +127,8 @@ export function updateProperty(
     propertyType?: string;
     addressText?: string;
     ownerReference?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   },
   now: Date,
 ): Property {
@@ -107,6 +139,8 @@ export function updateProperty(
     "propertyType",
     "addressText",
     "ownerReference",
+    "latitude",
+    "longitude",
   ]);
   if (Object.keys(changes).some((key) => !allowed.has(key)))
     throw new PropertyValidationError("Invalid writable fields");
@@ -119,6 +153,14 @@ export function updateProperty(
     next.addressText = requiredText(changes.addressText, "addressText");
   if (changes.ownerReference !== undefined)
     next.ownerReference = optionalText(changes.ownerReference);
+  if (changes.latitude !== undefined || changes.longitude !== undefined) {
+    const location = coordinates(
+      changes.latitude === undefined ? property.latitude : changes.latitude,
+      changes.longitude === undefined ? property.longitude : changes.longitude,
+    );
+    next.latitude = location.latitude;
+    next.longitude = location.longitude;
+  }
   return { ...next, version: property.version + 1, updatedAt: now };
 }
 

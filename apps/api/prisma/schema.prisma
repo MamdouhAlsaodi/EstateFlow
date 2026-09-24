@@ -498,6 +498,8 @@ model Property {
   propertyType   String
   addressText    String
   ownerReference String?
+  latitude       Float?
+  longitude      Float?
   status         PropertyStatus @default(ACTIVE)
   version        Int            @default(1)
   createdAt      DateTime       @default(now()) @db.Timestamptz(6)

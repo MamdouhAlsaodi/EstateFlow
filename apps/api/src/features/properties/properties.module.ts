@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service.js";
 import { AuthModule } from "../auth/auth.module.js";
+import { SearchModule } from "../search/search.module.js";
 import { PropertyApplication } from "./application/property-application.js";
 import type { PropertyRepository } from "./application/property-repository.js";
 import { PrismaPropertyRepository } from "./infrastructure/prisma-property.repository.js";
@@ -12,7 +13,7 @@ import {
 export const PROPERTY_REPOSITORY = Symbol("PROPERTY_REPOSITORY");
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SearchModule],
   controllers: [PropertyController],
   providers: [
     {
