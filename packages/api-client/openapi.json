@@ -9461,6 +9461,292 @@
         "summary": "",
         "tags": ["Content"]
       }
+    },
+    "/organizations/{organizationId}/viewings": {
+      "get": {
+        "operationId": "ViewingController_list",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      },
+      "post": {
+        "operationId": "ViewingController_request",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateViewingDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}": {
+      "get": {
+        "operationId": "ViewingController_find",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}/confirm": {
+      "post": {
+        "operationId": "ViewingController_confirm",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}/reschedule": {
+      "post": {
+        "operationId": "ViewingController_reschedule",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RescheduleViewingDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}/cancel": {
+      "post": {
+        "operationId": "ViewingController_cancel",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ViewingReasonDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}/complete": {
+      "post": {
+        "operationId": "ViewingController_complete",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ViewingReasonDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/viewings/{viewingId}/no-show": {
+      "post": {
+        "operationId": "ViewingController_noShow",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "viewingId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ViewingReasonDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/brokers/{brokerId}/availability": {
+      "get": {
+        "operationId": "ViewingController_getAvailability",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "brokerId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/brokers/{brokerId}/availability/weekly": {
+      "post": {
+        "operationId": "ViewingController_addWeeklyAvailability",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "brokerId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AvailabilityRuleDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
+    },
+    "/organizations/{organizationId}/brokers/{brokerId}/availability/exceptions": {
+      "post": {
+        "operationId": "ViewingController_addAvailabilityException",
+        "parameters": [
+          {
+            "name": "organizationId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "brokerId",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AvailabilityExceptionDto"
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "summary": "",
+        "tags": ["Viewings"]
+      }
     }
   },
   "info": {
@@ -9486,7 +9772,12 @@
       "CreatePropertyDto": { "type": "object", "properties": {} },
       "UpdatePropertyDto": { "type": "object", "properties": {} },
       "ListingVersionDto": { "type": "object", "properties": {} },
-      "ImageMetadataDto": { "type": "object", "properties": {} }
+      "ImageMetadataDto": { "type": "object", "properties": {} },
+      "CreateViewingDto": { "type": "object", "properties": {} },
+      "RescheduleViewingDto": { "type": "object", "properties": {} },
+      "ViewingReasonDto": { "type": "object", "properties": {} },
+      "AvailabilityRuleDto": { "type": "object", "properties": {} },
+      "AvailabilityExceptionDto": { "type": "object", "properties": {} }
     }
   }
 }

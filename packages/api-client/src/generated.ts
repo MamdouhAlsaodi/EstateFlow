@@ -1041,6 +1041,113 @@ export function createEstateFlowClient({
           body: JSON.stringify(body),
         },
       ),
+    listViewings: (params: { organizationId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings`,
+        { method: "GET" },
+      ),
+    requestViewing: (
+      params: { organizationId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    getViewing: (params: { organizationId: string; viewingId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}`,
+        { method: "GET" },
+      ),
+    confirmViewing: (params: { organizationId: string; viewingId: string }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}/confirm`,
+        { method: "POST" },
+      ),
+    rescheduleViewing: (
+      params: { organizationId: string; viewingId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}/reschedule`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    cancelViewing: (
+      params: { organizationId: string; viewingId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}/cancel`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    completeViewing: (
+      params: { organizationId: string; viewingId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}/complete`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    markViewingNoShow: (
+      params: { organizationId: string; viewingId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/viewings/${encodeURIComponent(params.viewingId)}/no-show`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    getBrokerAvailability: (params: {
+      organizationId: string;
+      brokerId: string;
+    }) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/brokers/${encodeURIComponent(params.brokerId)}/availability`,
+        { method: "GET" },
+      ),
+    addBrokerWeeklyAvailability: (
+      params: { organizationId: string; brokerId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/brokers/${encodeURIComponent(params.brokerId)}/availability/weekly`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
+    addBrokerAvailabilityException: (
+      params: { organizationId: string; brokerId: string },
+      body: Record<string, unknown>,
+    ) =>
+      requestJson(
+        `organizations/${encodeURIComponent(params.organizationId)}/brokers/${encodeURIComponent(params.brokerId)}/availability/exceptions`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      ),
     getOwnerCashFlow: (params: {
       organizationId: string;
       from?: string;
