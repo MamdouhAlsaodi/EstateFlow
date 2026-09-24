@@ -99,6 +99,12 @@ enum LeadTimelineEventType {
   LEAD_TASK_RESCHEDULED
   LEAD_CLOSED_WON
   LEAD_CLOSED_LOST
+  VIEWING_REQUESTED
+  VIEWING_CONFIRMED
+  VIEWING_RESCHEDULED
+  VIEWING_CANCELLED
+  VIEWING_COMPLETED
+  VIEWING_NO_SHOW
 }
 enum LeadTaskStatus {
   OPEN
@@ -179,6 +185,10 @@ model Organization {
   contentTransitions               ContentTransition[]
   contentPublishJobs               ContentPublishJob[]
   contentDeliveries                ContentDelivery[]
+  brokerAvailabilityRules          BrokerAvailabilityRule[]
+  brokerAvailabilityExceptions    BrokerAvailabilityException[]
+  viewings                         Viewing[]
+  viewingTransitions               ViewingTransition[]
 }
 
 // EF-401 — Campaigns and attribution.
@@ -355,6 +365,9 @@ model Membership {
   approvedByUser   User?            @relation("MembershipApprover", fields: [approvedByUserId], references: [id], onDelete: Restrict)
   ownedLeads       Lead[]           @relation("LeadOwnerMembership")
   brokerDeals      Deal[]           @relation("DealBrokerMembership")
+  availabilityRules BrokerAvailabilityRule[]
+  availabilityExceptions BrokerAvailabilityException[]
+  brokerViewings    Viewing[]
 
   @@unique([organizationId, userId])
   @@index([organizationId, status])
@@ -494,6 +507,7 @@ model Property {
   deals              Deal[]
   expenses           Expense[]
   sourceContentItems ContentItem[]  @relation("ContentSourceProperty")
+  viewings          Viewing[]
 
   @@unique([organizationId, id])
   @@index([organizationId, status])
@@ -532,6 +546,7 @@ model Lead {
   idempotencyRecords LeadIdempotencyRecord[]
   notes              LeadNote[]
   tasks              LeadTask[]
+  viewings           Viewing[]
   deals              Deal[]
 
   @@unique([organizationId, id])
@@ -929,6 +944,110 @@ model ExpenseApprovalPolicy {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   @@index([updatedAt])
+}
+
+// EF-501 — broker availability and conflict-safe viewings.
+
+enum ViewingStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum ViewingTransitionAction {
+  REQUESTED
+  CONFIRMED
+  RESCHEDULED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum AvailabilityExceptionKind {
+  BLOCKED
+  EXTRA
+}
+
+model BrokerAvailabilityRule {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String     @db.Uuid
+  brokerId       String     @db.Uuid
+  weekday        Int
+  startMinute    Int
+  endMinute      Int
+  timezone       String     @db.VarChar(64)
+  createdBy      String     @db.Uuid
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  broker         Membership @relation(fields: [organizationId, brokerId], references: [organizationId, userId], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, brokerId, weekday])
+}
+
+model BrokerAvailabilityException {
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String     @db.Uuid
+  brokerId       String     @db.Uuid
+  localDate      String     @db.VarChar(10)
+  kind           AvailabilityExceptionKind
+  startMinute    Int
+  endMinute      Int
+  timezone       String     @db.VarChar(64)
+  createdBy      String     @db.Uuid
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  broker         Membership @relation(fields: [organizationId, brokerId], references: [organizationId, userId], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, brokerId, localDate])
+}
+
+model Viewing {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String        @db.Uuid
+  leadId            String        @db.Uuid
+  propertyId        String        @db.Uuid
+  brokerId          String        @db.Uuid
+  requestedByUserId String        @db.Uuid
+  startAt           DateTime      @db.Timestamptz(6)
+  endAt             DateTime      @db.Timestamptz(6)
+  status            ViewingStatus @default(REQUESTED)
+  notes             String?       @db.VarChar(1000)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+  organization      Organization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  lead              Lead          @relation(fields: [organizationId, leadId], references: [organizationId, id], onDelete: Restrict)
+  property          Property      @relation(fields: [organizationId, propertyId], references: [organizationId, id], onDelete: Restrict)
+  broker            Membership    @relation(fields: [organizationId, brokerId], references: [organizationId, userId], onDelete: Restrict)
+  transitions       ViewingTransition[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, brokerId, startAt])
+  @@index([organizationId, leadId, startAt])
+  @@index([organizationId, status, startAt])
+}
+
+model ViewingTransition {
+  id             String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String                 @db.Uuid
+  viewingId      String                 @db.Uuid
+  action         ViewingTransitionAction
+  fromStatus     ViewingStatus?
+  toStatus       ViewingStatus
+  startAt        DateTime               @db.Timestamptz(6)
+  endAt          DateTime               @db.Timestamptz(6)
+  reason         String?                @db.VarChar(500)
+  actorId        String                 @db.Uuid
+  createdAt      DateTime               @default(now()) @db.Timestamptz(6)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  viewing        Viewing                @relation(fields: [organizationId, viewingId], references: [organizationId, id], onDelete: Restrict)
+
+  @@unique([organizationId, id])
+  @@index([organizationId, viewingId, createdAt])
 }
 
 // EF-402 — Content workflow.

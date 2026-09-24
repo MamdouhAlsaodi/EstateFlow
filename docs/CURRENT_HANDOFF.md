@@ -128,7 +128,7 @@ No dependency, environment-file, commit, push, deployment, shared/live database,
 
 ## Next task
 
-**EF-405 is CLOSED / PASS within this packet:** read-only marketing rollups are live over existing Finance Core expenses, EF-401 attribution facts, and EF-402/404 published content records. Campaign and organization analytics are guarded Owner/Manager GET views with tenant-safe 404s, freshness timestamps, first/last-touch leads, approved spend vs planned budget, published counts by channel, and honest CPL/CAC/ROI denominators. Arabic campaign list/detail views are responsive. The next product task is **Phase 5 EF-501 — Viewing availability and DB exclusion constraint**. Finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-405/implementation.md`.
+**EF-405 is CLOSED / PASS within its packet boundary. EF-501 is CLOSED / PASS within its packet boundary:** broker weekly availability and local date exceptions, audited UTC viewing lifecycle, Lead timeline links, Arabic responsive weekly view, PostgreSQL `btree_gist`/`tstzrange` exclusion for confirmed broker intervals, typed 409 conflict mapping, and isolated parallel-race/DST evidence are delivered. The next product task is **Phase 5 EF-502 — viewing reminders and outcome automation**. Geo search remains EF-510; finance reporting remains read-only and export-free until FIN-07 (PILOT). Evidence: `docs/handoffs/EF-405/implementation.md` and `docs/handoffs/EF-501/implementation.md`.
 
 Environment note: the isolated `estateflow_test` stack on this machine listens on `127.0.0.1:55435` (port 55433 is occupied by an unrelated container). `scripts/assert-test-database.mjs` accepts an explicit `ESTATEFLOW_TEST_DB_PORT` override while keeping every other destructive-test invariant (loopback host, `estateflow_test` user/database, `ALLOW_DESTRUCTIVE_TESTS=1`).
 
@@ -145,7 +145,7 @@ Environment note: the isolated `estateflow_test` stack on this machine listens o
 - API: NestJS modular monolith.
 - Data: PostgreSQL/PostGIS with Prisma baseline; business models begin in their owning tasks.
 - Async: EF-301/302 provide durable API-side scheduler callables; EF-303 adds concrete Lead executors, the API-owned scheduler tick, and the thin `apps/worker` long-lived runner. Lead action behavior remains API-owned; the worker only drives the tick.
-- `btree_gist` remains deferred until the viewing exclusion-constraint task.
+- `btree_gist` is enabled by EF-501's viewing migration for the confirmed broker interval exclusion.
 - No real customer data, credentials, external providers, production mutation, or deployment.
 
 ## Canonical commands

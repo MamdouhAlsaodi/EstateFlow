@@ -2017,6 +2017,57 @@ const closeLeadOperations = [
   },
 ];
 
+const viewingOperations = new Map([
+  [
+    "get /organizations/{organizationId}/viewings",
+    { clientMethod: "listViewings", method: "GET", body: null },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings",
+    { clientMethod: "requestViewing", method: "POST", body: true },
+  ],
+  [
+    "get /organizations/{organizationId}/viewings/{viewingId}",
+    { clientMethod: "getViewing", method: "GET", body: null },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings/{viewingId}/confirm",
+    { clientMethod: "confirmViewing", method: "POST", body: null },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings/{viewingId}/reschedule",
+    { clientMethod: "rescheduleViewing", method: "POST", body: true },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings/{viewingId}/cancel",
+    { clientMethod: "cancelViewing", method: "POST", body: true },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings/{viewingId}/complete",
+    { clientMethod: "completeViewing", method: "POST", body: true },
+  ],
+  [
+    "post /organizations/{organizationId}/viewings/{viewingId}/no-show",
+    { clientMethod: "markViewingNoShow", method: "POST", body: true },
+  ],
+  [
+    "get /organizations/{organizationId}/brokers/{brokerId}/availability",
+    { clientMethod: "getBrokerAvailability", method: "GET", body: null },
+  ],
+  [
+    "post /organizations/{organizationId}/brokers/{brokerId}/availability/weekly",
+    { clientMethod: "addBrokerWeeklyAvailability", method: "POST", body: true },
+  ],
+  [
+    "post /organizations/{organizationId}/brokers/{brokerId}/availability/exceptions",
+    {
+      clientMethod: "addBrokerAvailabilityException",
+      method: "POST",
+      body: true,
+    },
+  ],
+]);
+
 const httpMethods = new Set([
   "get",
   "post",
@@ -2396,6 +2447,37 @@ function readSupportedOperations(document) {
         )
           throw new Error(
             `Unsupported OpenAPI CampaignController operation ${method.toUpperCase()} ${path}`,
+          );
+      }
+    }
+  }
+
+  const hasViewingContract = Object.values(document.paths ?? {}).some(
+    (pathItem) =>
+      Object.values(pathItem).some((operation) =>
+        operation?.operationId?.startsWith("ViewingController_"),
+      ),
+  );
+  if (hasViewingContract) {
+    for (const [key, viewingOperation] of viewingOperations) {
+      const [method, path] = key.split(" ");
+      const operation = document.paths?.[path]?.[method];
+      if (!operation)
+        throw new Error(
+          `Unsupported OpenAPI viewing operation ${method.toUpperCase()} ${path}`,
+        );
+      operations.push({ path, operation, viewingOperation });
+    }
+    for (const [path, pathItem] of Object.entries(document.paths ?? {})) {
+      for (const [method, operation] of Object.entries(pathItem).filter(
+        ([name]) => httpMethods.has(name),
+      )) {
+        if (
+          operation?.operationId?.startsWith("ViewingController_") &&
+          !viewingOperations.has(`${method} ${path}`)
+        )
+          throw new Error(
+            `Unsupported OpenAPI ViewingController operation ${method.toUpperCase()} ${path}`,
           );
       }
     }
@@ -3090,6 +3172,20 @@ export function generateOpenApiClient(document) {
       return `    ${campaignOperation.clientMethod}: (params: ${parameterType(pathParameters)}) => requestJson<${campaignOperation.responseType}>(${encodedPath(path)}),`;
     })
     .join("\n");
+  const viewingOperationEntries = operations.filter(
+    ({ viewingOperation }) => viewingOperation,
+  );
+  const viewingMethods = viewingOperationEntries
+    .map(({ path, viewingOperation }) => {
+      const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
+        name.slice(1, -1),
+      );
+      const params = parameterType(pathParameters);
+      if (viewingOperation.body === null)
+        return `    ${viewingOperation.clientMethod}: (params: ${params}) => requestJson(${encodedPath(path)}, { method: ${JSON.stringify(viewingOperation.method)} }),`;
+      return `    ${viewingOperation.clientMethod}: (params: ${params}, body: Record<string, unknown>) => requestJson(${encodedPath(path)}, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),`;
+    })
+    .join("\n");
   const notificationMethods = notificationOperationEntries
     .map(({ path, notificationOperation }) => {
       const pathParameters = (path.match(/{[^}]+}/g) ?? []).map((name) =>
@@ -3281,6 +3377,7 @@ ${commissionMethods}
 ${receivableMethods}
 ${expenseMethods}
 ${campaignMethods}
+${viewingMethods}
 ${reportMethods}
 ${notificationMethods}
 ${automationMethods}
