@@ -241,6 +241,30 @@ test(
       assert.equal(ownBytes.length, bytes.length);
       assert.deepEqual([...ownBytes], [...bytes]);
 
+      // The signed grant is still within its TTL after confirmation, but a
+      // replayed PUT must not replace bytes that passed validation.
+      const replayBytes = Uint8Array.from(bytes);
+      replayBytes[replayBytes.length - 1] ^= 1;
+      const replay = await fetch(
+        `${base}${mediaPath}/storage-objects/${encodeURIComponent(storageKey)}?token=${encodeURIComponent(token)}`,
+        {
+          method: "PUT",
+          headers: { cookie: ownerA.cookie, "content-type": "image/jpeg" },
+          body: replayBytes,
+        },
+      );
+      assert.equal(replay.status, 409);
+      const replayError = await replay.text();
+      assert.equal(replayError.includes(storageKey), false);
+      assert.equal(replayError.includes(token), false);
+      const afterReplay = await get(
+        base,
+        `${mediaPath}/${mediaId}/bytes`,
+        ownerA,
+      );
+      assert.equal(afterReplay.status, 200);
+      assert.deepEqual([...afterReplay.bytes], [...bytes]);
+
       // Org B (unrelated active owner) reads the identical media id of org A:
       // exact 403, JSON error only — no media bytes, no storage key leakage.
       const crossTenant = await get(

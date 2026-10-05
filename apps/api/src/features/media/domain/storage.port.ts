@@ -10,9 +10,11 @@
  *   this is a presigned PUT URL/object key pair; the client uploads directly
  *   to the storage service, and the API process NEVER streams file bytes.
  * - `putDirect(key, bytes, contentType)`: the direct-upload entry the storage
- *   service itself exposes. The deterministic in-memory fake implements it as
- *   a Map write; it stands in for the client's direct PUT and is never called
- *   from the confirm/validation path.
+ *   service itself exposes. The deterministic in-memory fake inserts into a
+ *   Map only when the key is vacant; replayed PUTs cannot replace bytes that
+ *   passed confirm-time validation. Confirm may also create distinct variant
+ *   keys. A future object-store adapter must enforce an equivalent atomic
+ *   conditional write before activation.
  * - `readObject(key)`: bytes for the confirm-time validation (magic-byte
  *   sniffing, sizes, dimensions) and for demo-time display of stored media.
  * - `deleteObjects(keys)`: bulk delete used only by explicit user deletion and
@@ -37,10 +39,24 @@ export interface StoragePort {
   readonly adapterId: string;
   /** Signs the upload grant; real adapters mint presigned PUT grants here. */
   issueUploadIntent(binding: UploadIntentBinding): UploadIntentToken;
-  /** Direct-upload path of the storage service (client-side in production). */
+  /** Create-only object write (client-side direct upload in production). */
   putDirect(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
   readObject(key: string): Promise<Uint8Array | null>;
   deleteObjects(keys: readonly string[]): Promise<number>;
+}
+
+/**
+ * EF-701 — create-only semantics: a PUT to an object key that already holds
+ * bytes conflicts. Typed so adapters can surface it without leaking the key
+ * or grant material into transport-layer messages.
+ */
+export class StorageObjectConflictError extends Error {
+  readonly code = "STORAGE_OBJECT_CONFLICT";
+
+  constructor() {
+    super("STORAGE_OBJECT_CONFLICT");
+    this.name = "StorageObjectConflictError";
+  }
 }
 
 /** Deterministic opaque storage token: not a path, not guessable structure. */
@@ -74,6 +90,9 @@ export class InMemoryFakeStorageAdapter implements StoragePort {
     bytes: Uint8Array,
     contentType: string,
   ): Promise<void> {
+    // EF-701: create-only. Once a grant has written its canonical key, the
+    // same (or any other) PUT must never silently replace validated bytes.
+    if (this.objects.has(key)) throw new StorageObjectConflictError();
     this.objects.set(
       key,
       Object.freeze({

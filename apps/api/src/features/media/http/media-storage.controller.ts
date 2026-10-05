@@ -11,6 +11,7 @@
 
 import {
   BadRequestException,
+  ConflictException,
   Controller,
   HttpCode,
   HttpStatus,
@@ -27,7 +28,10 @@ import { ParseUUIDPipe } from "@nestjs/common";
 import type { AuthenticatedRequest } from "../../auth/http/auth-request.js";
 import { BrowserSessionGuard } from "../../auth/http/browser-session.guard.js";
 import { MediaValidationError } from "../domain/media.js";
-import { opaqueStorageKey } from "../domain/storage.port.js";
+import {
+  opaqueStorageKey,
+  StorageObjectConflictError,
+} from "../domain/storage.port.js";
 import { UploadIntentError } from "../domain/media-intent.js";
 import type { MediaIntentSigner } from "../domain/media-intent.js";
 import type { StoragePort } from "../domain/storage.port.js";
@@ -90,6 +94,10 @@ export class MediaStorageSimController {
       const bytes = await readRawBody(request, intent.maxBytes);
       await this.storage.putDirect(storageKey, bytes, contentType);
     } catch (error) {
+      if (error instanceof StorageObjectConflictError)
+        // EF-701: bounded, generic conflict code — never echo the storage
+        // key or grant token back to the caller.
+        throw new ConflictException("STORAGE_OBJECT_CONFLICT");
       if (error instanceof UploadIntentError)
         throw new BadRequestException(error.code);
       if (error instanceof MediaValidationError)
