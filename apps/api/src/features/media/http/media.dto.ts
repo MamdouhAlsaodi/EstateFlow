@@ -9,6 +9,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUUID,
   Matches,
@@ -60,6 +61,7 @@ export class SetCoverDto {
 
 export class MediaBytesQueryDto {
   @ApiProperty({ enum: ["ORIGINAL", "THUMB", "PREVIEW"], required: false })
+  @IsOptional()
   @IsIn(["ORIGINAL", "THUMB", "PREVIEW"])
   variant?: "ORIGINAL" | "THUMB" | "PREVIEW";
 }

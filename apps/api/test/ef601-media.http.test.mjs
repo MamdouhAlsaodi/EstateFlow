@@ -179,6 +179,19 @@ test("EF-601 intent/confirm DTOs are strict allowlists", async () => {
   );
 });
 
+test("EF-701 omitted media bytes variant selects ORIGINAL; invalid variants still fail", async () => {
+  const pipe = new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+  });
+  const query = (value) =>
+    pipe.transform(value, { type: "query", metatype: MediaBytesQueryDto });
+  assert.equal((await query({})).variant, undefined);
+  assert.equal((await query({ variant: "ORIGINAL" })).variant, "ORIGINAL");
+  await assert.rejects(() => query({ variant: "HUGE" }), BadRequestException);
+});
+
 function controllerHarness(role = "OWNER", overrides = {}) {
   const signer = new MediaIntentSigner(
     Buffer.from("ef601-http-test-secret-000000000000000", "utf8"),
