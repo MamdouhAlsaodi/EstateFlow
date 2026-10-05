@@ -2,6 +2,11 @@ import type { NextFunction, Request, Response } from "express";
 
 type CorrelatedRequest = Request & { requestId?: string };
 
+function routeTemplate(request: CorrelatedRequest): string {
+  const routePath = request.route?.path;
+  return typeof routePath === "string" ? routePath : "<unmatched>";
+}
+
 export function requestLoggingMiddleware(
   request: CorrelatedRequest,
   response: Response,
@@ -14,7 +19,7 @@ export function requestLoggingMiddleware(
         event: "request_completed",
         requestId: request.requestId ?? "unknown",
         method: request.method,
-        path: request.path,
+        path: routeTemplate(request),
         statusCode: response.statusCode,
         durationMs: Math.round(performance.now() - startedAt),
       }),
