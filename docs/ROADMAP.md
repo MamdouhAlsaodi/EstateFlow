@@ -5,18 +5,22 @@
 > Registry `phases` must mirror this plan.  
 > Work proceeds automatically only inside an approved phase and stops at sensitive checkpoints.
 
+> **CURRENT-STATE OVERRIDE — READ FIRST. This block supersedes the table's status labels and phase headings below; historical planning details remain for reference.**
+>
+> The roadmap table and the "Phase 0 — current" / "planned" labels below are historical planning artifacts, not the current state. Earlier implementation packets have bounded completion evidence in `docs/TASKS.md`; that is not Pilot or sellable-product acceptance. Phase 7 (Pilot Hardening & Market Launch) is the current phase per `docs/DEVELOPMENT_PLAN.md` — with bounded merged PRs #20/#21/#23/#24 (EF-701 slices), #22/#25 (EF-702 readiness/worker-log slices), and #26 (EF-703 draft guide only). **No Phase 7 task (EF-701–EF-705) is accepted or finished.** These slices did not launch Pilot or deploy, and customer-data use is not authorized. Discover the checkout root with `git rev-parse --show-toplevel` and fetch the latest `main`; do not treat historical commands or paths below as executable for this host.
+
 ## Roadmap
 
-| Phase | Name | Outcome | Status | Gate |
-|---:|---|---|---|---|
-| 0 | Commercial Discovery & Contracts | Demo-first scope, workflow, data contracts, ADRs | done — demo-first | Mamdouh approved Training Demo scope and first vertical slice |
-| 1 | Platform Foundation | Repository, CI, tenant-aware Auth/RBAC, audit/outbox, PostgreSQL/PostGIS | doing — EF-101 verified | Security and schema review |
-| 2 | Sellable Operations Slice + Basic Viewings | Listings + CRM + Finance + conflict-safe Viewing workflow | planned | End-to-end demo and concurrent-booking test accepted |
-| 3 | Automation & Reminders | Rule engine, scheduler, retries, reminder library, audit | planned | Delivery-channel approval |
-| 4 | Content & Campaigns | Content calendar, approvals, UTM attribution, ROI | planned | External-channel credential approval |
-| 5 | Advanced Viewings & Geo Discovery | Availability depth, map/radius/polygon search, performance | planned | Search-performance and advanced scheduling tests |
-| 6 | Media, Contracts, Admin & i18n | Media jobs, simplified e-sign, moderation, Arabic/English | planned | Security/legal boundary review |
-| 7 | Pilot Hardening & Market Launch | Production readiness, onboarding, monitoring, paid/timeboxed pilot | planned | Explicit build/release/deploy approval |
+| Phase | Name                                       | Outcome                                                                  | Status                  | Gate                                                          |
+| ----: | ------------------------------------------ | ------------------------------------------------------------------------ | ----------------------- | ------------------------------------------------------------- |
+|     0 | Commercial Discovery & Contracts           | Demo-first scope, workflow, data contracts, ADRs                         | done — demo-first       | Mamdouh approved Training Demo scope and first vertical slice |
+|     1 | Platform Foundation                        | Repository, CI, tenant-aware Auth/RBAC, audit/outbox, PostgreSQL/PostGIS | doing — EF-101 verified | Security and schema review                                    |
+|     2 | Sellable Operations Slice + Basic Viewings | Listings + CRM + Finance + conflict-safe Viewing workflow                | planned                 | End-to-end demo and concurrent-booking test accepted          |
+|     3 | Automation & Reminders                     | Rule engine, scheduler, retries, reminder library, audit                 | planned                 | Delivery-channel approval                                     |
+|     4 | Content & Campaigns                        | Content calendar, approvals, UTM attribution, ROI                        | planned                 | External-channel credential approval                          |
+|     5 | Advanced Viewings & Geo Discovery          | Availability depth, map/radius/polygon search, performance               | planned                 | Search-performance and advanced scheduling tests              |
+|     6 | Media, Contracts, Admin & i18n             | Media jobs, simplified e-sign, moderation, Arabic/English                | planned                 | Security/legal boundary review                                |
+|     7 | Pilot Hardening & Market Launch            | Production readiness, onboarding, monitoring, paid/timeboxed pilot       | planned                 | Explicit build/release/deploy approval                        |
 
 ## Phase 0 — current
 
