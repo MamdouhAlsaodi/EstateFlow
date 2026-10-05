@@ -27,6 +27,7 @@ import { ParseUUIDPipe } from "@nestjs/common";
 import type { AuthenticatedRequest } from "../../auth/http/auth-request.js";
 import { BrowserSessionGuard } from "../../auth/http/browser-session.guard.js";
 import { MediaValidationError } from "../domain/media.js";
+import { opaqueStorageKey } from "../domain/storage.port.js";
 import { UploadIntentError } from "../domain/media-intent.js";
 import type { MediaIntentSigner } from "../domain/media-intent.js";
 import type { StoragePort } from "../domain/storage.port.js";
@@ -76,6 +77,11 @@ export class MediaStorageSimController {
         throw new UploadIntentError("INTENT_BINDING_MISMATCH");
       if (storageKey.length < 8 || storageKey.length > 120)
         throw new BadRequestException("STORAGE_KEY_INVALID");
+      // EF-701: the grant names one media and therefore exactly one canonical
+      // key. Any other route key would let a grant for media A overwrite the
+      // object of a different known media B.
+      if (storageKey !== opaqueStorageKey(intent.mediaId, ""))
+        throw new UploadIntentError("INTENT_BINDING_MISMATCH");
       const contentType = String(
         request.headers["content-type"] ?? "",
       ).toLowerCase();

@@ -400,3 +400,57 @@ test("EF-601 storage-sim authorizes by signed grant only and stores through the 
       error.message === "INTENT_EXPIRED",
   );
 });
+
+test("EF-701 storage-sim rejects PUT with a grant bound to a different media's canonical key", async () => {
+  const signer = new MediaIntentSigner(
+    Buffer.from("ef601-storage-sim-secret-000000000000", "utf8"),
+  );
+  const storage = new InMemoryFakeStorageAdapter(signer);
+  const controller = new MediaStorageSimController(storage, signer);
+
+  const mediaA = "22222222-2222-4222-8222-222222222222";
+  const mediaB = "33333333-3333-4333-8333-333333333333";
+  const keyB = opaqueStorageKey(mediaB, "");
+
+  const grant = signer.sign({
+    mediaId: mediaA,
+    organizationId: "org",
+    propertyId: "prop",
+    userId: "u1",
+    kind: "IMAGE",
+    contentType: "image/png",
+    maxBytes: 10_000,
+    expiresAtEpochSeconds: Math.floor(Date.now() / 1000) + 60,
+  });
+
+  const stream = new PassThrough();
+  const request = Object.assign(stream, {
+    auth: { userId: "u1", verified: true },
+    headers: { "content-type": "image/png" },
+  });
+  stream.end(Buffer.from(validPng(64, 64)));
+
+  // Pre-seed keyB with a sentinel object so we can prove a rejected request
+  // leaves an existing object for another media untouched.
+  const sentinelBytes = Uint8Array.from([0xef, 0x70, 0x01, 0x42]);
+  await storage.putDirect(keyB, sentinelBytes, "application/x-ef701-sentinel");
+
+  await assert.rejects(
+    () =>
+      controller.putObject(
+        "org",
+        "prop",
+        keyB,
+        { token: grant.token },
+        request,
+      ),
+    (error) =>
+      error instanceof BadRequestException &&
+      error.message === "INTENT_BINDING_MISMATCH",
+  );
+  const keyBObject = storage.storedObject(keyB);
+  assert.ok(keyBObject, "keyB sentinel object must survive rejection");
+  assert.deepEqual(Buffer.from(keyBObject.bytes), Buffer.from(sentinelBytes));
+  assert.equal(keyBObject.contentType, "application/x-ef701-sentinel");
+  assert.deepEqual(storage.storedKeys(), [keyB]);
+});
