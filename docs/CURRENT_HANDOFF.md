@@ -1,5 +1,15 @@
 # EstateFlow — Current Handoff
 
+> **CURRENT-STATE OVERRIDE — READ FIRST. This block supersedes status, root, and execution guidance below; historical evidence remains for reference.**
+>
+> The rest of this file is historical reference from earlier sessions on other machines and may be stale. Do not follow it as executable instructions for this host.
+>
+> - Canonical plan: `docs/DEVELOPMENT_PLAN.md` (Phase 7 — Pilot Hardening). Current task statuses: `docs/TASKS.md` (EF-700 section).
+> - Discover the checkout root yourself with `git rev-parse --show-toplevel`; do not trust any literal project path in this file. Fetch the latest `main` before starting work.
+> - Merged Phase 7 work (through PR #26) consists of bounded slices only: #20/#21/#23/#24 are EF-701 (security audit) slices; #22/#25 are EF-702 (reliability/operations) readiness and worker-log slices; #26 is an EF-703 draft guide only. **No Phase 7 task (EF-701, EF-702, EF-703, EF-704, EF-705) is accepted or finished.** These slices did not launch Pilot or deploy, and use of customer data is not authorized.
+> - Historical, NOT executable here: the literal project-root path in "Project root", the EF-233 commit/push authorization sentence, the "Next task" section (EF-630), the "Canonical commands" integration/destructive-test instructions, and the per-port test-stack notes. In this run no isolated PostgreSQL test stack was verified, and Docker socket access was denied, so real-PostgreSQL verification was not performed; do not run destructive tests against an unknown stack.
+> - Remaining gates: scoped independent security/privacy signoff and tenant-isolation tests (EF-701); real readiness probes, metrics/alerts, backup-restore and migration drills, retention/deletion policy, incident/support ownership (EF-702); named decision owner, reviewed CSV dry-run/report, actual pilot evidence, and portfolio/release gates (EF-703–EF-705). No owner names or thresholds are invented here.
+
 ## Resume instruction
 
 Before acting, read this file, `docs/TASKS.md`, `docs/YUI_TECHNICAL_CONTEXT.md`, `docs/DEVELOPMENT_PLAN.md`, and the independent verification reports for EF-120-I, EF-120-II, and EF-120-III:
