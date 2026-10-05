@@ -15,6 +15,7 @@
     "licenses:test": "node --test scripts/report-dependency-licenses.test.mjs",
     "test:integration": "pnpm --recursive --if-present run test:integration",
     "db:test:guard": "node scripts/assert-test-database.mjs",
+    "security:check": "node scripts/verify-security-baseline.mjs",
     "generate:openapi": "pnpm --dir apps/api run build && node scripts/generate-openapi.mjs",
     "check:openapi-drift": "pnpm --dir apps/api run build && node scripts/check-openapi-drift.mjs",
     "infra:local:up": "docker compose -f infra/compose/docker-compose.local.yml up -d",

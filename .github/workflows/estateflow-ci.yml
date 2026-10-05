@@ -25,6 +25,10 @@ jobs:
         run: pnpm licenses:test
       - name: Report dependency license inventory (informational)
         run: pnpm licenses:report
+      - name: Test security baseline scanner
+        run: node --test scripts/verify-security-baseline.test.mjs
+      - name: Check tracked security baseline
+        run: pnpm security:check
       - name: Run lint
         run: pnpm lint
       - name: Run typecheck
