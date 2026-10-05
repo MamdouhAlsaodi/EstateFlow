@@ -11,6 +11,8 @@
     "lint": "pnpm exec eslint . --max-warnings=0 && node scripts/verify-workspace.mjs && node scripts/verify-infrastructure.mjs",
     "typecheck": "pnpm --recursive --if-present run typecheck",
     "test": "pnpm --recursive --if-present run test",
+    "licenses:report": "node scripts/report-dependency-licenses.mjs",
+    "licenses:test": "node --test scripts/report-dependency-licenses.test.mjs",
     "test:integration": "pnpm --recursive --if-present run test:integration",
     "db:test:guard": "node scripts/assert-test-database.mjs",
     "security:check": "node scripts/verify-security-baseline.mjs",
