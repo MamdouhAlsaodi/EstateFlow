@@ -6,6 +6,7 @@ import {
 } from "../dist/bootstrap/config.js";
 import { requestIdMiddleware } from "../dist/common/http/request-id.middleware.js";
 import { HealthController } from "../dist/features/health/health.controller.js";
+import { ServiceUnavailableException } from "@nestjs/common";
 
 const authEnvironment = {
   ESTATEFLOW_BROWSER_ORIGIN: "https://app.estateflow.test",
@@ -59,15 +60,15 @@ test("request ID middleware preserves a valid UUID and generates a replacement",
   assert.match(generated.requestId, /^[0-9a-f-]{36}$/i);
 });
 
-test("health liveness remains independent from readiness", () => {
-  const controller = new HealthController();
+test("health liveness remains independent from readiness", async () => {
+  const controller = new HealthController({
+    check: async () => {
+      throw new Error("database unreachable");
+    },
+  });
   assert.deepEqual(controller.live(), { status: "ok" });
-  const prior = globalThis.process.env.ESTATEFLOW_READY;
-  globalThis.process.env.ESTATEFLOW_READY = "false";
-  assert.throws(() => controller.ready());
-  if (prior === undefined) delete globalThis.process.env.ESTATEFLOW_READY;
-  else globalThis.process.env.ESTATEFLOW_READY = prior;
-  assert.deepEqual(controller.ready(), { status: "ok" });
+  await assert.rejects(controller.ready(), ServiceUnavailableException);
+  assert.deepEqual(controller.live(), { status: "ok" });
 });
 
 test("test-only fake auth delivery is opt-in and rejected outside test", () => {
