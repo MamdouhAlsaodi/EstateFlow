@@ -233,6 +233,35 @@ test(
       assert.equal(confirmed.body.status, "CONFIRMED");
       assert.equal(confirmed.body.byteSize, bytes.length);
 
+      // Confirm-time IMAGE processing creates the THUMB and PREVIEW variants;
+      // the deterministic fake persists a byte-for-byte copy of the validated
+      // upload under each variant key, so org A reads each one verbatim.
+      const variantViews = confirmed.body.variants ?? [];
+      assert.deepEqual(variantViews.map((v) => v.variant).sort(), [
+        "PREVIEW",
+        "THUMB",
+      ]);
+      const variantRows = await prisma.mediaVariant.findMany({
+        where: { mediaAssetId: mediaId },
+        select: { variant: true, storageKey: true, byteSize: true },
+      });
+      assert.equal(variantRows.length, 2);
+      const variantKeys = [];
+      for (const variant of ["THUMB", "PREVIEW"]) {
+        const row = variantRows.find((v) => v.variant === variant);
+        assert.ok(row);
+        variantKeys.push(row.storageKey);
+        const variantOwn = await get(
+          base,
+          `${mediaPath}/${mediaId}/bytes?variant=${variant}`,
+          ownerA,
+        );
+        assert.equal(variantOwn.status, 200);
+        assert.equal(variantOwn.contentType, "image/jpeg");
+        assert.equal(variantOwn.bytes.length, row.byteSize);
+        assert.deepEqual([...variantOwn.bytes], [...bytes]);
+      }
+
       // Org A reads the exact uploaded bytes back over HTTP.
       const own = await get(base, `${mediaPath}/${mediaId}/bytes`, ownerA);
       assert.equal(own.status, 200);
@@ -280,6 +309,25 @@ test(
       // B's listing of org A media is equally denied; state is untouched.
       const crossList = await get(base, mediaPath, ownerB);
       assert.equal(crossList.status, 403);
+      // Org B is equally denied on both variant routes: exact 403 JSON errors
+      // with no original or variant storage key, token, or file name, and no
+      // raw fixture bytes anywhere in the body (binary-safe substring scan).
+      for (const variant of ["THUMB", "PREVIEW"]) {
+        const crossVariant = await get(
+          base,
+          `${mediaPath}/${mediaId}/bytes?variant=${variant}`,
+          ownerB,
+        );
+        assert.equal(crossVariant.status, 403);
+        assert.ok(crossVariant.contentType?.includes("application/json"));
+        assert.equal(crossVariant.text.includes(storageKey), false);
+        for (const variantKey of variantKeys)
+          assert.equal(crossVariant.text.includes(variantKey), false);
+        assert.equal(crossVariant.text.includes(token), false);
+        assert.equal(crossVariant.text.includes("et1_"), false);
+        assert.equal(crossVariant.text.includes("ef701.jpg"), false);
+        assert.equal(Buffer.from(crossVariant.bytes).indexOf(bytes), -1);
+      }
       const assetAfter = await prisma.mediaAsset.findUnique({
         where: {
           organizationId_id: { organizationId: organizationIdA, id: mediaId },
@@ -290,6 +338,18 @@ test(
       assert.equal(assetAfter.storageKey, storageKey);
       const assetCount = await prisma.mediaAsset.count();
       assert.equal(assetCount, 1);
+      // The denied variant reads mutated nothing: both variants remain and the
+      // asset row is unchanged; org A still reads each variant verbatim.
+      assert.equal(await prisma.mediaVariant.count(), 2);
+      for (const variant of ["THUMB", "PREVIEW"]) {
+        const variantStillReadable = await get(
+          base,
+          `${mediaPath}/${mediaId}/bytes?variant=${variant}`,
+          ownerA,
+        );
+        assert.equal(variantStillReadable.status, 200);
+        assert.deepEqual([...variantStillReadable.bytes], [...bytes]);
+      }
       const stillReadable = await get(
         base,
         `${mediaPath}/${mediaId}/bytes`,
