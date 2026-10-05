@@ -27,6 +27,8 @@ jobs:
         run: pnpm licenses:report
       - name: Test security baseline scanner
         run: node --test scripts/verify-security-baseline.test.mjs
+      - name: Test CI-only backup/restore guard
+        run: node --test scripts/ci-backup-restore-drill.test.mjs
       - name: Check tracked security baseline
         run: pnpm security:check
       - name: Run lint
@@ -60,6 +62,16 @@ jobs:
           databaseUrl.password = process.env.POSTGRES_TEST_PASSWORD;
           process.stdout.write(databaseUrl.toString())")"
           ALLOW_DESTRUCTIVE_TESTS=1 pnpm test:integration
+      - name: Run EF-702 backup/restore drill
+        run: |
+          DATABASE_URL="$(node -e "const databaseUrl = new URL('postgresql://');
+          databaseUrl.hostname = '127.0.0.1'; databaseUrl.port = '55433';
+          databaseUrl.pathname = 'estateflow_test'; databaseUrl.username = 'estateflow_test';
+          databaseUrl.password = process.env.POSTGRES_TEST_PASSWORD;
+          process.stdout.write(databaseUrl.toString())")"
+          echo "::add-mask::$DATABASE_URL"
+          export DATABASE_URL
+          ALLOW_DESTRUCTIVE_TESTS=1 bash scripts/ci-backup-restore-drill.sh
       - name: Remove test infrastructure
         if: always()
         run: pnpm infra:test:down
