@@ -48,7 +48,9 @@ New `apps/api/test/health.test.mjs` (8 tests):
 
 ## Merge gate
 
-The EF-702 PR **must not merge** until the EF-701 security gate is accepted; this packet claims no exception to the EF-701 dependency.
+Historical (2026-10-03, superseded): the EF-702 PR was then held to the EF-701 security gate with no exception claimed.
+
+Update (2026-10-05): Mamdouh explicitly instructed that PR #22 be completed and merged and the full plan continued without needless interruption. This is treated as owner authorization for a **narrow exception**: the EF-702 readiness _code slice_ may merge after current-head review and CI pass. It is **not** approval for Pilot, deployment, customer data, or declaring EF-701/EF-702 complete — EF-701 security acceptance and the operational/Pilot gates still block any real use or deployment.
 
 ## Gates (all fresh, this session)
 
@@ -69,14 +71,18 @@ Environment honesty: the sandbox shipped Node v22 without pnpm and without `node
 - Parent-observed focused check on Node v24.14.1 (`node --test test/health.test.mjs test/bootstrap.test.mjs test/openapi.test.mjs` from `apps/api`): **PASS 14/14**.
 - Broader gates (root `pnpm lint`, typecheck, full suite, drift) remain pending in this worktree — Node v22 with no pnpm here; only the focused set above was re-run in this pass.
 - `docs/DEVELOPMENT_PLAN.md` was read directly and confirmed present; the earlier reviewer claim that it is absent is incorrect.
-- **Dependency gate (explicit): the EF-702 PR must not merge until the EF-701 security gate is accepted. No exception to the EF-701 dependency is claimed.** EF-701 has partial unmerged PRs #20/#21 (in progress, not complete); the EF-702 readiness slice is PREPARED for review only.
+- Historical dependency-gate statement (2026-10-03): the EF-702 PR was then required not to merge until the EF-701 security gate was accepted, with no exception claimed. Superseded 2026-10-05 (see Merge gate update above): the readiness code slice may merge after current-head review and CI under a narrow owner-authorized exception. As of this handoff update, PR #22 has **not** merged. EF-701 itself remains IN PROGRESS with merged incremental PRs #20 (index scanner), #21 (license inventory), #23 (demo storage grant binding).
 
 ## Limits / not claimed
 
 - Readiness here means **API↔PostgreSQL connectivity**, nothing more. It does not verify migrations are current, storage writability, worker health, Redis (non-dependency), backup/restore, metrics/alerts, or runbooks. Those remain open EF-702 scope; this slice does not certify full operational readiness or Phase 7 completion.
 - Phase 7 numbering conflict resolved per Mamdouh's explicit authorization: `docs/DEVELOPMENT_PLAN.md` Phase 7 is canonical; the outdated rows in `docs/TASKS.md` were reconciled with a dated rationale note (EF-701 security audit, EF-702 reliability/operations, EF-703 pilot onboarding, EF-704 portfolio release, EF-705 sellable-product gate with the explicit deployment approval). No phase claimed complete.
 - The ops runbook's canonical root (`/home/server/projects/estateflow`) does not match this isolated clone; its live-operations steps were not followed or validated here.
-- No commit/push/PR, no `.env`/secret reads, no customer data, no migrations, no worker changes, no new dependencies, no deployment.
+- At the original 2026-10-03 implementation pass, there was no commit/push/PR; no `.env`/secret reads, customer data, migrations, worker changes, new dependencies, or deployment were involved. The PR and later verification are tracked above.
+
+## Combined-tree verification before PR merge (2026-10-05)
+
+With the latest `main` merged locally into the PR branch (not yet merged on GitHub), the Node 24 parent independently ran an offline frozen install and `security:check`, `licenses:test` + license report, `lint`, `typecheck`, unit tests, `format:check`, OpenAPI drift check, and build — **all PASS**. No real PostgreSQL or Docker-based integration test was run; that remains an open EF-702 scope item.
 
 ## Changed paths
 
