@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { PassThrough } from "node:stream";
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   RequestMethod,
   ValidationPipe,
@@ -21,6 +22,7 @@ import { MediaIntentSigner } from "../dist/features/media/domain/media-intent.js
 import {
   InMemoryFakeStorageAdapter,
   opaqueStorageKey,
+  StorageObjectConflictError,
 } from "../dist/features/media/domain/storage.port.js";
 import { MediaController } from "../dist/features/media/http/media.controller.js";
 import { MediaStorageSimController } from "../dist/features/media/http/media-storage.controller.js";
@@ -466,4 +468,77 @@ test("EF-701 storage-sim rejects PUT with a grant bound to a different media's c
   assert.deepEqual(Buffer.from(keyBObject.bytes), Buffer.from(sentinelBytes));
   assert.equal(keyBObject.contentType, "application/x-ef701-sentinel");
   assert.deepEqual(storage.storedKeys(), [keyB]);
+});
+
+test("EF-701 second PUT to an already-written canonical key conflicts and preserves original bytes", async () => {
+  const signer = new MediaIntentSigner(
+    Buffer.from("ef601-storage-sim-secret-000000000000", "utf8"),
+  );
+  const storage = new InMemoryFakeStorageAdapter(signer);
+  const controller = new MediaStorageSimController(storage, signer);
+
+  const mediaId = "44444444-4444-4444-8444-444444444444";
+  const key = opaqueStorageKey(mediaId, "");
+  const grant = signer.sign({
+    mediaId,
+    organizationId: "org",
+    propertyId: "prop",
+    userId: "u1",
+    kind: "IMAGE",
+    contentType: "image/png",
+    maxBytes: 10_000,
+    expiresAtEpochSeconds: Math.floor(Date.now() / 1000) + 60,
+  });
+
+  const first = Buffer.from(validPng(64, 64));
+  const stream = new PassThrough();
+  stream.headers = { "content-type": "image/png" };
+  stream.auth = { userId: "u1", verified: true };
+  stream.end(first);
+  await controller.putObject(
+    "org",
+    "prop",
+    key,
+    { token: grant.token },
+    stream,
+  );
+  const firstObject = storage.storedObject(key);
+  assert.ok(firstObject);
+  assert.deepEqual(Buffer.from(firstObject.bytes), first);
+
+  // Second PUT with the same valid grant must be refused with an explicit,
+  // generic conflict code — no storage key or grant material in the message.
+  const tampered = Buffer.from(validPng(32, 32));
+  const stream2 = new PassThrough();
+  stream2.headers = { "content-type": "image/png" };
+  stream2.auth = { userId: "u1", verified: true };
+  stream2.end(tampered);
+  await assert.rejects(
+    () =>
+      controller.putObject("org", "prop", key, { token: grant.token }, stream2),
+    (error) => {
+      assert.ok(
+        error instanceof ConflictException,
+        "must be ConflictException",
+      );
+      assert.equal(error.getStatus(), 409);
+      assert.equal(error.message, "STORAGE_OBJECT_CONFLICT");
+      assert.ok(!error.message.includes(key), "must not leak storage key");
+      assert.ok(!error.message.includes(grant.token), "must not leak token");
+      return true;
+    },
+  );
+
+  // Original stored bytes remain unchanged after the rejected PUT.
+  const after = storage.storedObject(key);
+  assert.ok(after);
+  assert.deepEqual(Buffer.from(after.bytes), first);
+  assert.equal(after.contentType, "image/png");
+  assert.deepEqual(storage.storedKeys(), [key]);
+
+  // The fake adapter itself surfaces a typed create-only conflict error.
+  await assert.rejects(
+    () => storage.putDirect(key, tampered, "image/png"),
+    (error) => error instanceof StorageObjectConflictError,
+  );
 });
