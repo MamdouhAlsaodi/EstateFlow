@@ -19,7 +19,10 @@ type WorkerLoopOptions = Readonly<{
   maxBackoffMs?: number;
   setTimeoutFn?: (callback: () => void, delay: number) => unknown;
   clearTimeoutFn?: (handle: unknown) => void;
-  logger?: Readonly<{ error?: (message: string) => void }>;
+  logger?: Readonly<{
+    info?: (message: string) => void;
+    error?: (message: string) => void;
+  }>;
 }>;
 
 export const DEFAULT_AUTOMATION_JOB_BATCH_SIZE = 100;
@@ -44,9 +47,10 @@ export function createAutomationWorker(
 
   return createAutomationWorkerLoop({
     tick: () =>
-      options.scheduler
-        .tick({ now: new Date(), limit: jobBatchSize })
-        .then(() => undefined),
+      // The tick result is preserved (not discarded) so the worker loop can
+      // emit EF-702 `worker_tick_completed` counter events from the known
+      // scheduler shapes; unknown fields never reach the log.
+      options.scheduler.tick({ now: new Date(), limit: jobBatchSize }),
     intervalMs: options.intervalMs,
     maxBackoffMs: options.maxBackoffMs,
     setTimeoutFn: options.setTimeoutFn,

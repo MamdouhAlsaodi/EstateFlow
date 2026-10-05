@@ -1,10 +1,13 @@
 export type AutomationWorkerLoopOptions = Readonly<{
-  tick: () => Promise<void>;
+  tick: () => Promise<unknown>;
   intervalMs?: number;
   maxBackoffMs?: number;
   setTimeoutFn?: (callback: () => void, delay: number) => unknown;
   clearTimeoutFn?: (handle: unknown) => void;
-  logger?: Readonly<{ error?: (message: string) => void }>;
+  logger?: Readonly<{
+    info?: (message: string) => void;
+    error?: (message: string) => void;
+  }>;
 }>;
 
 export type AutomationWorkerLoop = Readonly<{

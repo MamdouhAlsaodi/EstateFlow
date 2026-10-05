@@ -1,3 +1,5 @@
+import { performance } from "node:perf_hooks";
+
 const DEFAULT_INTERVAL_MS = 5_000;
 const DEFAULT_MAX_BACKOFF_MS = 60_000;
 
@@ -7,6 +9,40 @@ const DEFAULT_MAX_BACKOFF_MS = 60_000;
  * Polls never overlap, errors back off with a bounded delay, and stop() waits
  * for the active tick before returning.
  */
+// EF-702 observability: allowlisted counters per known scheduler shape.
+// Anything outside these groups/keys (IDs, tokens, freeform fields) is never
+// serialized. Groups without an object result are omitted, never synthesized.
+const TICK_COUNTER_GROUPS = Object.freeze({
+  schedules: Object.freeze(["evaluatedRules", "scheduled", "alreadyScheduled"]),
+  jobs: Object.freeze(["claimed", "succeeded", "retried", "failed"]),
+  deliveries: Object.freeze([
+    "claimed",
+    "delivered",
+    "retried",
+    "failed",
+    "cancelled",
+  ]),
+  media: Object.freeze(["marked", "swept", "deletedStorageKeys"]),
+});
+
+const isNonnegativeSafeInteger = (value) =>
+  typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+
+const extractTickCounterGroups = (result) => {
+  if (typeof result !== "object" || result === null) return {};
+  const groups = {};
+  for (const [group, keys] of Object.entries(TICK_COUNTER_GROUPS)) {
+    const source = result[group];
+    if (typeof source !== "object" || source === null) continue;
+    const counters = {};
+    for (const key of keys) {
+      if (isNonnegativeSafeInteger(source[key])) counters[key] = source[key];
+    }
+    if (Object.keys(counters).length > 0) groups[group] = counters;
+  }
+  return groups;
+};
+
 export function createAutomationWorkerLoop({
   tick,
   intervalMs = DEFAULT_INTERVAL_MS,
@@ -44,14 +80,45 @@ export function createAutomationWorkerLoop({
   const poll = async () => {
     if (stopped || running) return;
     running = (async () => {
+      const startedAtMs = performance.now();
       try {
-        await tick();
+        const result = await tick();
         backoffMs = intervalMs;
+        // One structured, privacy-minimized event per successful tick using
+        // the existing console JSON convention (no wall-clock timestamps,
+        // no raw scheduler fields). Logging must never affect tick outcome
+        // classification, so its side effects are isolated here.
+        try {
+          logger.info?.(
+            JSON.stringify({
+              event: "worker_tick_completed",
+              durationMs: Math.max(
+                0,
+                Math.round(performance.now() - startedAtMs),
+              ),
+              ...extractTickCounterGroups(result),
+            }),
+          );
+        } catch {
+          // swallow: a throwing logger must not change the tick outcome
+        }
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "unknown worker error";
-        logger.error?.(`automation worker tick failed: ${message}`);
+        // Fixed code only: raw messages, stacks, names, and identifiers are
+        // deliberately never serialized. Logging must never reject the poll
+        // (which would escape as an unhandled rejection and race stop()).
+        void error;
         backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+        try {
+          logger.error?.(
+            JSON.stringify({
+              event: "worker_tick_failed",
+              code: "TICK_FAILED",
+              backoffMs,
+            }),
+          );
+        } catch {
+          // swallow: a throwing logger must not change the tick outcome
+        }
       } finally {
         running = null;
         schedule(backoffMs);
