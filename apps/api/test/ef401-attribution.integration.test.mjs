@@ -207,8 +207,16 @@ test(
       const organicScenario = await seedLead("Organic deal");
 
       const issuer = new NodeCryptoCredentialIssuer(HASH_KEY);
-      const owner = await sessionFor(prisma, issuer, ownerId, now);
-      const manager = await sessionFor(prisma, issuer, managerId, now);
+      // Access authentication uses wall-clock time; the scenario's fixed
+      // business timestamp must not issue a session already expired in CI.
+      const sessionIssuedAt = new Date();
+      const owner = await sessionFor(prisma, issuer, ownerId, sessionIssuedAt);
+      const manager = await sessionFor(
+        prisma,
+        issuer,
+        managerId,
+        sessionIssuedAt,
+      );
       await app.listen(0, "127.0.0.1");
       base = `http://127.0.0.1:${app.getHttpServer().address().port}`;
       const campaignsPath = `/organizations/${organizationId}/campaigns`;
