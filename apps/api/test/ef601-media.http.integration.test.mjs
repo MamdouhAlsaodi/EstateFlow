@@ -64,6 +64,7 @@ async function sessionFor(prisma, issuer, userId, now) {
     data: { userId },
     select: { id: true },
   });
+  const familyId = family.id;
   await prisma.accessSession.create({
     data: {
       id: access.id,
@@ -77,6 +78,7 @@ async function sessionFor(prisma, issuer, userId, now) {
   return {
     cookie: `__Host-estateflow_access=${access.serialized}; estateflow_csrf=${csrfToken}`,
     csrfToken,
+    familyId,
   };
 }
 async function get(base, path, session) {
@@ -91,11 +93,17 @@ async function get(base, path, session) {
     contentType: response.headers.get("content-type"),
   };
 }
-async function postJson(base, path, session, body) {
-  const headers = { origin: ORIGIN, "content-type": "application/json" };
+async function postJson(
+  base,
+  path,
+  session,
+  body,
+  { origin = ORIGIN, withCsrf = true } = {},
+) {
+  const headers = { origin, "content-type": "application/json" };
   if (session) {
     headers.cookie = session.cookie;
-    headers["x-csrf-token"] = session.csrfToken;
+    if (withCsrf) headers["x-csrf-token"] = session.csrfToken;
   }
   const response = await fetch(`${base}${path}`, {
     method: "POST",
@@ -115,6 +123,7 @@ test(
       { AppModule },
       { PrismaService },
       { NodeCryptoCredentialIssuer },
+      { requestIdMiddleware },
       { cleanupDatabase, assertTablesAreEmpty },
       { validJpeg },
     ] = await Promise.all([
@@ -122,10 +131,13 @@ test(
       import("../dist/app.module.js"),
       import("../dist/database/prisma.service.js"),
       import("../dist/features/auth/infrastructure/node-crypto-credential-issuer.js"),
+      import("../dist/common/http/request-id.middleware.js"),
       import("./support/cleanup-database.mjs"),
       import("./support/ef601-media-fixtures.mjs"),
     ]);
     const app = await NestFactory.create(AppModule, { logger: false });
+    // Logout persists an audit event and needs the bootstrap's canonical ID.
+    app.use(requestIdMiddleware);
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
@@ -356,6 +368,83 @@ test(
         ownerA,
       );
       assert.equal(stillReadable.status, 200);
+
+      // Session/CSRF boundary: with an otherwise-valid intent payload, org B
+      // (valid session, origin, CSRF) is denied at the authorization guard;
+      // org A is denied at the CSRF guard without the CSRF header and at the
+      // origin guard with a non-canonical Origin. None of these mutate state.
+      const deniedIntentBody = {
+        kind: "IMAGE",
+        contentType: "image/jpeg",
+        byteSize: bytes.length,
+        fileName: "ef701-denied.jpg",
+      };
+      const deniedB = await postJson(
+        base,
+        `${mediaPath}/upload-intents`,
+        ownerB,
+        deniedIntentBody,
+      );
+      assert.equal(deniedB.status, 403);
+      const deniedNoCsrf = await postJson(
+        base,
+        `${mediaPath}/upload-intents`,
+        ownerA,
+        deniedIntentBody,
+        { withCsrf: false },
+      );
+      assert.equal(deniedNoCsrf.status, 403);
+      const deniedWrongOrigin = await postJson(
+        base,
+        `${mediaPath}/upload-intents`,
+        ownerA,
+        deniedIntentBody,
+        { origin: "https://evil.example" },
+      );
+      assert.equal(deniedWrongOrigin.status, 403);
+      for (const denied of [deniedB, deniedNoCsrf, deniedWrongOrigin]) {
+        assert.ok(denied.body);
+        const serialized = JSON.stringify(denied.body);
+        for (const secret of [storageKey, token, ownerA.cookie, ownerB.cookie])
+          assert.equal(serialized.includes(secret), false);
+        assert.equal(serialized.includes("ef701.jpg"), false);
+        assert.equal(Buffer.from(serialized).indexOf(bytes), -1);
+      }
+      assert.equal(await prisma.mediaAsset.count(), 1);
+      assert.equal(await prisma.mediaVariant.count(), 2);
+
+      // Logout revokes the whole session family: the pre-logout access cookie
+      // stops working everywhere, while confirmed media state is unchanged.
+      const logout = await postJson(base, "/auth/logout", ownerA, {});
+      assert.equal(logout.status, 204);
+      const familyAfter = await prisma.sessionFamily.findUnique({
+        where: { id: ownerA.familyId },
+        select: { revokedAt: true, revokedReason: true },
+      });
+      assert.ok(familyAfter?.revokedAt);
+      assert.equal(familyAfter.revokedReason, "LOGOUT");
+      const sessionAfterLogout = await get(base, "/auth/session", ownerA);
+      assert.equal(sessionAfterLogout.status, 401);
+      const bytesAfterLogout = await get(
+        base,
+        `${mediaPath}/${mediaId}/bytes`,
+        ownerA,
+      );
+      assert.equal(bytesAfterLogout.status, 401);
+      const thumbAfterLogout = await get(
+        base,
+        `${mediaPath}/${mediaId}/bytes?variant=THUMB`,
+        ownerA,
+      );
+      assert.equal(thumbAfterLogout.status, 401);
+      const assetAfterLogout = await prisma.mediaAsset.findUnique({
+        where: {
+          organizationId_id: { organizationId: organizationIdA, id: mediaId },
+        },
+      });
+      assert.ok(assetAfterLogout);
+      assert.equal(assetAfterLogout.status, "CONFIRMED");
+      assert.equal(assetAfterLogout.storageKey, storageKey);
     } finally {
       await app.close();
       await cleanupDatabase(prisma, TABLES);
