@@ -335,6 +335,18 @@ export type CsvDryRunBinding = Readonly<{
   expiresAtEpochSeconds: number;
 }>;
 
+/**
+ * Random nonce embedded in every signed token. Two dry-runs for the same
+ * organization and bytes within the same second must still produce distinct
+ * tokens, or the single-use registry would misclassify the second grant as a
+ * replay of the first.
+ */
+const TOKEN_NONCE_BYTES = 16;
+
+function freshTokenNonce(): string {
+  return randomBytes(TOKEN_NONCE_BYTES).toString("base64url");
+}
+
 export type CsvDryRunTokenErrorCode =
   "TOKEN_INVALID_SIGNATURE" | "TOKEN_EXPIRED" | "TOKEN_MISMATCH";
 
@@ -362,6 +374,7 @@ export class CsvDryRunTokenSigner {
       binding.organizationId,
       binding.csvSha256,
       binding.expiresAtEpochSeconds,
+      freshTokenNonce(),
     ]);
     const signature = createHmac("sha256", this.secret)
       .update(payload)
@@ -405,7 +418,7 @@ export class CsvDryRunTokenSigner {
     } catch {
       throw new CsvDryRunTokenError("TOKEN_INVALID_SIGNATURE");
     }
-    if (!Array.isArray(parsed) || parsed.length !== 4)
+    if (!Array.isArray(parsed) || parsed.length !== 5)
       throw new CsvDryRunTokenError("TOKEN_INVALID_SIGNATURE");
     const [version, organizationId, csvSha, expiresAtEpochSeconds] =
       parsed as unknown[];

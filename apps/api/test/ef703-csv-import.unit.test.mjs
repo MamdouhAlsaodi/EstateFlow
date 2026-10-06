@@ -181,6 +181,15 @@ test("token signer binds organization and exact-bytes hash; tampering is rejecte
     csvSha256: "a".repeat(64),
     expiresAtEpochSeconds,
   });
+  // Two grants for the same organization/bytes within the same second must
+  // still be distinct tokens, or the single-use registry would treat the
+  // second grant as a replay of the first.
+  const secondToken = signer.sign({
+    organizationId: "org-a",
+    csvSha256: "a".repeat(64),
+    expiresAtEpochSeconds,
+  });
+  assert.notEqual(token, secondToken);
   signer.verify(token, {
     organizationId: "org-a",
     csvSha256: "a".repeat(64),
