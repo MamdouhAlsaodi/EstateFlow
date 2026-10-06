@@ -3,6 +3,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { Buffer } from "node:buffer";
 import {
   CSV_IMPORT_LIMITS,
   CsvDryRunTokenError,

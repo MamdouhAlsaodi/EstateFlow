@@ -6,7 +6,7 @@
 // is skipped on developer machines and must run in CI.
 
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import process from "node:process";
 import { URL } from "node:url";
 import test from "node:test";
@@ -74,18 +74,6 @@ async function sessionFor(prisma, issuer, userId, now) {
     cookie: `__Host-estateflow_access=${access.serialized}; estateflow_csrf=${csrfToken}`,
     csrfToken,
     familyId,
-  };
-}
-async function get(base, path, session) {
-  const headers = {};
-  if (session) headers.cookie = session.cookie;
-  const response = await fetch(`${base}${path}`, { headers });
-  const text = await response.text();
-  return {
-    status: response.status,
-    contentType: response.headers.get("content-type"),
-    body: text ? JSON.parse(text) : null,
-    text,
   };
 }
 async function postJson(

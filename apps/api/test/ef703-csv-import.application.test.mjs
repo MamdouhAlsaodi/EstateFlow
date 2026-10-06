@@ -4,6 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { Buffer } from "node:buffer";
 import { CsvImportApplication } from "../dist/features/properties/application/csv-import-application.js";
 import {
   CsvDryRunTokenError,
