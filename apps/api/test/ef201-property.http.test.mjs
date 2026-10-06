@@ -25,6 +25,7 @@ import {
   UpdatePropertyDto,
 } from "../dist/features/properties/http/property.dto.js";
 import { PropertyController } from "../dist/features/properties/http/property.controller.js";
+import { CsvImportController } from "../dist/features/properties/http/csv-import.controller.js";
 
 const unsafe = [RequireCanonicalOriginGuard, BrowserSessionGuard, CsrfGuard];
 const route = (method) => [
@@ -46,8 +47,12 @@ test("Nest bootstrap registers PropertiesModule", () => {
     ),
   );
   assert.deepEqual(
-    Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PropertiesModule),
-    [PropertyController],
+    Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, PropertiesModule).sort(
+      (a, b) => a.name.localeCompare(b.name),
+    ),
+    [CsvImportController, PropertyController].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    ),
   );
 });
 
