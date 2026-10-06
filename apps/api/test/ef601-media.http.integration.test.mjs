@@ -123,6 +123,7 @@ test(
       { AppModule },
       { PrismaService },
       { NodeCryptoCredentialIssuer },
+      { requestIdMiddleware },
       { cleanupDatabase, assertTablesAreEmpty },
       { validJpeg },
     ] = await Promise.all([
@@ -130,10 +131,13 @@ test(
       import("../dist/app.module.js"),
       import("../dist/database/prisma.service.js"),
       import("../dist/features/auth/infrastructure/node-crypto-credential-issuer.js"),
+      import("../dist/common/http/request-id.middleware.js"),
       import("./support/cleanup-database.mjs"),
       import("./support/ef601-media-fixtures.mjs"),
     ]);
     const app = await NestFactory.create(AppModule, { logger: false });
+    // Logout persists an audit event and needs the bootstrap's canonical ID.
+    app.use(requestIdMiddleware);
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
