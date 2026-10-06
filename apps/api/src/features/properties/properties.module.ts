@@ -2,9 +2,16 @@ import { Module } from "@nestjs/common";
 import { PrismaService } from "../../database/prisma.service.js";
 import { AuthModule } from "../auth/auth.module.js";
 import { SearchModule } from "../search/search.module.js";
+import { CsvImportApplication } from "./application/csv-import-application.js";
+import {
+  CSV_IMPORT_REPOSITORY,
+  type CsvImportRepository,
+} from "./application/csv-import-repository.js";
 import { PropertyApplication } from "./application/property-application.js";
 import type { PropertyRepository } from "./application/property-repository.js";
+import { PrismaCsvImportRepository } from "./infrastructure/prisma-csv-import.repository.js";
 import { PrismaPropertyRepository } from "./infrastructure/prisma-property.repository.js";
+import { CsvImportController } from "./http/csv-import.controller.js";
 import {
   PropertyController,
   PROPERTY_MEMBERSHIP_READER,
@@ -14,7 +21,7 @@ export const PROPERTY_REPOSITORY = Symbol("PROPERTY_REPOSITORY");
 
 @Module({
   imports: [AuthModule, SearchModule],
-  controllers: [PropertyController],
+  controllers: [PropertyController, CsvImportController],
   providers: [
     {
       provide: PROPERTY_REPOSITORY,
@@ -39,6 +46,18 @@ export const PROPERTY_REPOSITORY = Symbol("PROPERTY_REPOSITORY");
       inject: [PROPERTY_REPOSITORY],
       useFactory: (repository: PropertyRepository) =>
         new PropertyApplication(repository),
+    },
+    {
+      provide: CSV_IMPORT_REPOSITORY,
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService): CsvImportRepository =>
+        new PrismaCsvImportRepository(prisma),
+    },
+    {
+      provide: CsvImportApplication,
+      inject: [CSV_IMPORT_REPOSITORY],
+      useFactory: (repository: CsvImportRepository) =>
+        new CsvImportApplication({ repository }),
     },
   ],
 })
