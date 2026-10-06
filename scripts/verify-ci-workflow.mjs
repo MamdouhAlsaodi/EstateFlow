@@ -104,6 +104,53 @@ requireContract(
   "integration database must target estateflow_test",
 );
 
+{
+  const guardCommand = "node --test scripts/ci-migration-rehearsal.test.mjs";
+  const drillGuardCommand =
+    "node --test scripts/ci-backup-restore-drill.test.mjs";
+  requireContract(
+    contains(guardCommand),
+    "missing EF-702 migration rehearsal guard-test step",
+  );
+  requireContract(
+    workflow.indexOf(guardCommand) < workflow.indexOf(drillGuardCommand),
+    "migration rehearsal guard test must precede the backup/restore guard test",
+  );
+}
+
+{
+  const migrationRehearsalCommand = "bash scripts/ci-migration-rehearsal.sh";
+  const backupDrillCommand = "bash scripts/ci-backup-restore-drill.sh";
+  requireContract(
+    contains(migrationRehearsalCommand),
+    "missing EF-702 migration rehearsal step",
+  );
+  requireContract(
+    contains(backupDrillCommand),
+    "missing EF-702 backup/restore drill step",
+  );
+  requireContract(
+    workflow.indexOf(migrationRehearsalCommand) <
+      workflow.indexOf(backupDrillCommand),
+    "migration rehearsal must precede the backup/restore drill",
+  );
+  const stepStart = workflow.indexOf(migrationRehearsalCommand);
+  const stepText = workflow.slice(Math.max(0, stepStart - 800), stepStart);
+  requireContract(
+    stepText.includes("new URL('postgresql://')") &&
+      stepText.includes("add-mask::$DATABASE_URL"),
+    "migration rehearsal must mask the constructed DATABASE_URL",
+  );
+  requireContract(
+    stepText.includes("ALLOW_DESTRUCTIVE_TESTS=1"),
+    "migration rehearsal must opt in to destructive tests",
+  );
+  requireContract(
+    !/(?:POSTGRES_TEST_PASSWORD|DATABASE_URL)\s*=\s*(?!\$|"\$)/.test(stepText),
+    "migration rehearsal must not contain credential literals",
+  );
+}
+
 if (errors.length > 0) {
   globalThis.process.stderr.write(`${errors.join("\n")}\n`);
   globalThis.process.exitCode = 1;
