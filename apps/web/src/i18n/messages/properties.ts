@@ -107,6 +107,41 @@ const ar = {
   "properties.csvImport.result.imported": "صفوف مستوردة",
   "properties.csvImport.result.skippedDuplicate": "صفوف مكررة تم تجاوزها",
   "properties.csvImport.result.totalRows": "إجمالي الصفوف",
+
+  "properties.list.eyebrow": "العقارات",
+  "properties.list.title": "عقارات المؤسسة",
+  "properties.list.loading": "جارٍ التحميل…",
+  "properties.list.empty":
+    "لا توجد عقارات بعد — أضف أول عقار من النموذج أدناه أو استورد ملف CSV.",
+  "properties.list.loadFailed":
+    "تعذر تحميل قائمة العقارات — تحقق من الجلسة والصلاحيات.",
+  "properties.list.rowsAria": "قائمة العقارات",
+  "properties.list.loadMore": "تحميل المزيد",
+  "properties.list.importLink": "استيراد من ملف CSV",
+
+  "properties.create.title": "إضافة عقار",
+  "properties.create.field.title": "العنوان",
+  "properties.create.field.propertyType": "نوع العقار",
+  "properties.create.field.addressText": "العنوان النصي",
+  "properties.create.field.ownerReference": "مرجع المالك (اختياري)",
+  "properties.create.field.latitude": "خط العرض (اختياري)",
+  "properties.create.field.longitude": "خط الطول (اختياري)",
+  "properties.create.coordinateHint":
+    "إحداثيات الموقع تُحفظ معًا أو لا تُحفظ إطلاقًا.",
+  "properties.create.required":
+    "أكمل الحقول المطلوبة: العنوان والنوع والعنوان النصي.",
+  "properties.create.coordinatePair":
+    "أدخل خط العرض وخط الطول معًا أو اتركهما فارغين.",
+  "properties.create.coordinateInvalid": "قيم الإحداثيات غير صالحة.",
+  "properties.create.pending": "جارٍ الحفظ…",
+  "properties.create.submit": "حفظ العقار",
+  "properties.create.success": "تم حفظ العقار.",
+  "properties.create.forbidden": "لا تملك صلاحية إضافة عقارات لهذه المؤسسة.",
+  "properties.create.session":
+    "انتهت الجلسة — أعد تسجيل الدخول ثم أعد المحاولة.",
+  "properties.create.validation":
+    "تعذر حفظ العقار — تحقق من صحة الحقول ثم أعد المحاولة.",
+  "properties.create.generic": "تعذر حفظ العقار — أعد المحاولة لاحقًا.",
 };
 
 const en: Record<keyof typeof ar, string> = {
@@ -214,6 +249,42 @@ const en: Record<keyof typeof ar, string> = {
   "properties.csvImport.result.imported": "Rows imported",
   "properties.csvImport.result.skippedDuplicate": "Duplicate rows skipped",
   "properties.csvImport.result.totalRows": "Total rows",
+
+  "properties.list.eyebrow": "Properties",
+  "properties.list.title": "Organization properties",
+  "properties.list.loading": "Loading…",
+  "properties.list.empty":
+    "No properties yet — add the first one with the form below or import a CSV file.",
+  "properties.list.loadFailed":
+    "Could not load the properties list — check your session and permissions.",
+  "properties.list.rowsAria": "Properties list",
+  "properties.list.loadMore": "Load more",
+  "properties.list.importLink": "Import from CSV",
+
+  "properties.create.title": "Add property",
+  "properties.create.field.title": "Title",
+  "properties.create.field.propertyType": "Property type",
+  "properties.create.field.addressText": "Address",
+  "properties.create.field.ownerReference": "Owner reference (optional)",
+  "properties.create.field.latitude": "Latitude (optional)",
+  "properties.create.field.longitude": "Longitude (optional)",
+  "properties.create.coordinateHint":
+    "Location coordinates are saved together or not at all.",
+  "properties.create.required":
+    "Complete the required fields: title, type, and address.",
+  "properties.create.coordinatePair":
+    "Enter latitude and longitude together, or leave both empty.",
+  "properties.create.coordinateInvalid": "Coordinate values are invalid.",
+  "properties.create.pending": "Saving…",
+  "properties.create.submit": "Save property",
+  "properties.create.success": "Property saved.",
+  "properties.create.forbidden":
+    "You do not have permission to add properties for this organization.",
+  "properties.create.session":
+    "Your session expired — sign in again and retry.",
+  "properties.create.validation":
+    "Could not save the property — check the fields and retry.",
+  "properties.create.generic": "Could not save the property — retry later.",
 };
 
 export const propertiesMessages = { ar, en };
