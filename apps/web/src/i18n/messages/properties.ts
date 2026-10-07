@@ -61,6 +61,52 @@ const ar = {
   "properties.media.card.setCover": "تعيين كغلاف",
   "properties.media.card.completeConfirmFirst": "أكمل التأكيد لإظهارها.",
   "properties.media.card.delete": "حذف",
+
+  "properties.csvImport.eyebrow": "استيراد العقارات",
+  "properties.csvImport.title": "استيراد العقارات من ملف CSV",
+  "properties.csvImport.description":
+    "الصق محتوى ملف CSV ثم شغّل فحصًا أوليًا دون حفظ، وبعد مراجعة التقرير أكّد الاستيراد. تُعرض الأخطاء برقم الصف والعمود دون إظهار محتوى الخلايا.",
+  "properties.csvImport.inputLabel": "محتوى ملف CSV (يشمل صف العناوين)",
+  "properties.csvImport.boundsHint":
+    "الحد الأقصى {rows} صفًا للبيانات أو 512 ك.ب لكل عملية.",
+  "properties.csvImport.pending": "جارٍ التنفيذ…",
+  "properties.csvImport.dryRunButton": "فحص أولي",
+  "properties.csvImport.commitButton": "تأكيد الاستيراد",
+  "properties.csvImport.tooFewRows":
+    "الصق محتوى CSV صالحًا يضم صف عناوين وصف بيانات واحدًا على الأقل.",
+  "properties.csvImport.tooLarge":
+    "حجم المحتوى يتجاوز 512 ك.ب — قسّمه إلى عمليات أصغر.",
+  "properties.csvImport.tooManyRows":
+    "عدد الصفوف يتجاوز 100 صف — قسّمه إلى عمليات أصغر.",
+  "properties.csvImport.reportAria": "تقرير الفحص الأولي",
+  "properties.csvImport.report.totalRows": "إجمالي الصفوف",
+  "properties.csvImport.report.validRows": "الصفوف الصالحة",
+  "properties.csvImport.errorRowsAria": "أخطاء الصفوف",
+  "properties.csvImport.previewsAria": "معاينة الصفوف الصالحة",
+  "properties.csvImport.column.row": "الصف",
+  "properties.csvImport.column.field": "العمود",
+  "properties.csvImport.column.title": "العنوان",
+  "properties.csvImport.column.propertyType": "نوع العقار",
+  "properties.csvImport.column.ownerReference": "مرجع المالك",
+  "properties.csvImport.field.title": "العنوان",
+  "properties.csvImport.field.propertyType": "نوع العقار",
+  "properties.csvImport.field.ownerReference": "مرجع المالك",
+  "properties.csvImport.field.other": "عمود غير صالح",
+  "properties.csvImport.ownerReferenceLinked": "مرتبط",
+  "properties.csvImport.ownerReferenceNone": "بدون",
+  "properties.csvImport.forbidden":
+    "لا تملك صلاحية استيراد العقارات لهذه المؤسسة.",
+  "properties.csvImport.conflict":
+    "انتهت صلاحية رمز الفحص أو لا يطابق هذا الملف — أعد الفحص الأولي ثم أكّد من جديد.",
+  "properties.csvImport.session":
+    "انتهت الجلسة — أعد تسجيل الدخول ثم أعد المحاولة.",
+  "properties.csvImport.generic":
+    "تعذر إكمال العملية — تحقق من تنسيق الملف ثم أعد المحاولة.",
+  "properties.csvImport.commitSuccess": "تم الاستيراد بنجاح.",
+  "properties.csvImport.resultAria": "نتيجة الاستيراد",
+  "properties.csvImport.result.imported": "صفوف مستوردة",
+  "properties.csvImport.result.skippedDuplicate": "صفوف مكررة تم تجاوزها",
+  "properties.csvImport.result.totalRows": "إجمالي الصفوف",
 };
 
 const en: Record<keyof typeof ar, string> = {
@@ -122,6 +168,52 @@ const en: Record<keyof typeof ar, string> = {
   "properties.media.card.completeConfirmFirst":
     "Complete confirmation to show it.",
   "properties.media.card.delete": "Delete",
+
+  "properties.csvImport.eyebrow": "Property import",
+  "properties.csvImport.title": "Import properties from CSV",
+  "properties.csvImport.description":
+    "Paste the CSV content, run a dry-run that saves nothing, then confirm the import after reviewing the report. Errors show the row and column only — cell contents are never displayed.",
+  "properties.csvImport.inputLabel": "CSV content (including the header row)",
+  "properties.csvImport.boundsHint":
+    "Up to {rows} data rows or 512 KiB per run.",
+  "properties.csvImport.pending": "Working…",
+  "properties.csvImport.dryRunButton": "Dry-run",
+  "properties.csvImport.commitButton": "Confirm import",
+  "properties.csvImport.tooFewRows":
+    "Paste valid CSV with a header row and at least one data row.",
+  "properties.csvImport.tooLarge":
+    "The content exceeds 512 KiB — split it into smaller runs.",
+  "properties.csvImport.tooManyRows":
+    "More than 100 rows — split it into smaller runs.",
+  "properties.csvImport.reportAria": "Dry-run report",
+  "properties.csvImport.report.totalRows": "Total rows",
+  "properties.csvImport.report.validRows": "Valid rows",
+  "properties.csvImport.errorRowsAria": "Row errors",
+  "properties.csvImport.previewsAria": "Valid row previews",
+  "properties.csvImport.column.row": "Row",
+  "properties.csvImport.column.field": "Field",
+  "properties.csvImport.column.title": "Title",
+  "properties.csvImport.column.propertyType": "Property type",
+  "properties.csvImport.column.ownerReference": "Owner reference",
+  "properties.csvImport.field.title": "Title",
+  "properties.csvImport.field.propertyType": "Property type",
+  "properties.csvImport.field.ownerReference": "Owner reference",
+  "properties.csvImport.field.other": "Invalid field",
+  "properties.csvImport.ownerReferenceLinked": "Linked",
+  "properties.csvImport.ownerReferenceNone": "None",
+  "properties.csvImport.forbidden":
+    "You do not have permission to import properties for this organization.",
+  "properties.csvImport.conflict":
+    "The dry-run token expired or does not match this file — run the dry-run again and confirm anew.",
+  "properties.csvImport.session":
+    "Your session expired — sign in again and retry.",
+  "properties.csvImport.generic":
+    "Could not complete the operation — check the file format and retry.",
+  "properties.csvImport.commitSuccess": "Import completed successfully.",
+  "properties.csvImport.resultAria": "Import result",
+  "properties.csvImport.result.imported": "Rows imported",
+  "properties.csvImport.result.skippedDuplicate": "Duplicate rows skipped",
+  "properties.csvImport.result.totalRows": "Total rows",
 };
 
 export const propertiesMessages = { ar, en };
